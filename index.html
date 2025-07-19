@@ -380,7 +380,6 @@
             to { opacity: 1; }
         }
 
-        /* Mobile Responsive */
         @media (max-width: 768px) {
             .container {
                 padding: 10px;
@@ -479,7 +478,7 @@
                     <label for="decisionDescription">Describe the context (optional)</label>
                     <textarea id="decisionDescription" rows="3" placeholder="Any additional context that might help..."></textarea>
                 </div>
-                <button class="btn" onclick="nextStep()">Continue</button>
+                <button class="btn" id="step1Continue" aria-label="Continue to next step">Continue</button>
             </div>
 
             <!-- Step 2: Add Options -->
@@ -493,7 +492,7 @@
                     <label for="optionDescription">Description (optional)</label>
                     <textarea id="optionDescription" rows="2" placeholder="Brief description..."></textarea>
                 </div>
-                <button class="btn" onclick="addOption()">Add Option</button>
+                <button class="btn" id="addOptionBtn" aria-label="Add new option">Add Option</button>
                 
                 <div class="options-list" id="optionsList"></div>
                 
@@ -503,8 +502,8 @@
                 </div>
 
                 <div style="margin-top: 20px;">
-                    <button class="btn btn-secondary" onclick="previousStep()">Back</button>
-                    <button class="btn" onclick="nextStep()">Continue</button>
+                    <button class="btn btn-secondary" id="step2Back" aria-label="Go back to previous step">Back</button>
+                    <button class="btn" id="step2Continue" aria-label="Continue to next step">Continue</button>
                 </div>
             </div>
 
@@ -519,7 +518,7 @@
                     <label for="criteriaDescription">Description (optional)</label>
                     <textarea id="criteriaDescription" rows="2" placeholder="What does this criteria measure?"></textarea>
                 </div>
-                <button class="btn" onclick="addCriteria()">Add Criteria</button>
+                <button class="btn" id="addCriteriaBtn" aria-label="Add new criteria">Add Criteria</button>
                 
                 <div class="criteria-list" id="criteriaList"></div>
                 
@@ -529,8 +528,8 @@
                 </div>
 
                 <div style="margin-top: 20px;">
-                    <button class="btn btn-secondary" onclick="previousStep()">Back</button>
-                    <button class="btn" onclick="nextStep()">Continue</button>
+                    <button class="btn btn-secondary" id="step3Back" aria-label="Go back to previous step">Back</button>
+                    <button class="btn" id="step3Continue" aria-label="Continue to next step">Continue</button>
                 </div>
             </div>
 
@@ -547,8 +546,8 @@
                 </div>
 
                 <div style="margin-top: 20px;">
-                    <button class="btn btn-secondary" onclick="previousStep()">Back</button>
-                    <button class="btn" onclick="nextStep()">Continue</button>
+                    <button class="btn btn-secondary" id="step4Back" aria-label="Go back to previous step">Back</button>
+                    <button class="btn" id="step4Continue" aria-label="Continue to next step">Continue</button>
                 </div>
             </div>
 
@@ -560,8 +559,8 @@
                 <div id="ratingMatrix"></div>
 
                 <div style="margin-top: 20px;">
-                    <button class="btn btn-secondary" onclick="previousStep()">Back</button>
-                    <button class="btn" onclick="calculateResults()">View Results</button>
+                    <button class="btn btn-secondary" id="step5Back" aria-label="Go back to previous step">Back</button>
+                    <button class="btn" id="step5Calculate" aria-label="Calculate and view results">View Results</button>
                 </div>
             </div>
 
@@ -571,8 +570,8 @@
                 <div class="results-grid" id="resultsGrid"></div>
                 
                 <div style="margin-top: 30px; text-align: center;">
-                    <button class="btn btn-success" onclick="exportResults()">Export Results</button>
-                    <button class="btn btn-secondary" onclick="startOver()">Start New Decision</button>
+                    <button class="btn btn-success" id="exportResultsBtn" aria-label="Export decision results">Export Results</button>
+                    <button class="btn btn-secondary" id="startOverBtn" aria-label="Start a new decision">Start New Decision</button>
                 </div>
             </div>
         </div>
@@ -590,9 +589,34 @@
             ratings: {}
         };
 
+        // Input sanitization
+        function sanitizeInput(input) {
+            return input.replace(/[<>&"']/g, char => ({
+                '<': '&lt;',
+                '>': '&gt;',
+                '&': '&amp;',
+                '"': '&quot;',
+                "'": '&apos;'
+            }[char]));
+        }
+
         // Initialize app
         function initializeApp() {
             updateProgressBar();
+            // Attach event listeners
+            document.getElementById('step1Continue').addEventListener('click', nextStep);
+            document.getElementById('addOptionBtn').addEventListener('click', addOption);
+            document.getElementById('step2Back').addEventListener('click', previousStep);
+            document.getElementById('step2Continue').addEventListener('click', nextStep);
+            document.getElementById('addCriteriaBtn').addEventListener('click', addCriteria);
+            document.getElementById('step3Back').addEventListener('click', previousStep);
+            document.getElementById('step3Continue').addEventListener('click', nextStep);
+            document.getElementById('step4Back').addEventListener('click', previousStep);
+            document.getElementById('step4Continue').addEventListener('click', nextStep);
+            document.getElementById('step5Back').addEventListener('click', previousStep);
+            document.getElementById('step5Calculate').addEventListener('click', calculateResults);
+            document.getElementById('exportResultsBtn').addEventListener('click', exportResults);
+            document.getElementById('startOverBtn').addEventListener('click', startOver);
         }
 
         // Step navigation
@@ -613,14 +637,10 @@
         }
 
         function showStep(step) {
-            // Hide all sections
             for (let i = 1; i <= 6; i++) {
                 document.getElementById(`section${i}`).classList.add('hidden');
             }
-            // Show current section
             document.getElementById(`section${step}`).classList.remove('hidden');
-            
-            // Special setup for certain steps
             if (step === 4) {
                 setupWeightingStep();
             } else if (step === 5) {
@@ -657,24 +677,21 @@
                         alert('Please enter a decision title.');
                         return false;
                     }
-                    decisionData.title = title;
-                    decisionData.description = document.getElementById('decisionDescription').value.trim();
+                    decisionData.title = sanitizeInput(title);
+                    decisionData.description = sanitizeInput(document.getElementById('decisionDescription').value.trim());
                     return true;
-                    
                 case 2:
                     if (decisionData.options.length < 2) {
                         alert('Please add at least 2 options to compare.');
                         return false;
                     }
                     return true;
-                    
                 case 3:
                     if (decisionData.criteria.length < 2) {
                         alert('Please add at least 2 criteria for comparison.');
                         return false;
                     }
                     return true;
-                    
                 default:
                     return true;
             }
@@ -682,39 +699,55 @@
 
         // Options management
         function addOption() {
-            const name = document.getElementById('optionName').value.trim();
+            const name = sanitizeInput(document.getElementById('optionName').value.trim());
             if (!name) {
                 alert('Please enter an option name.');
                 return;
             }
-            
-            const description = document.getElementById('optionDescription').value.trim();
+            const description = sanitizeInput(document.getElementById('optionDescription').value.trim());
             const option = {
                 id: Date.now(),
                 name: name,
                 description: description
             };
-            
             decisionData.options.push(option);
             displayOptions();
-            
-            // Clear inputs
             document.getElementById('optionName').value = '';
             document.getElementById('optionDescription').value = '';
-            
-            // Show bias warning if needed
             checkOptionsWarning();
         }
 
         function displayOptions() {
             const container = document.getElementById('optionsList');
-            container.innerHTML = decisionData.options.map(option => `
-                <div class="option-item">
-                    <button class="remove-btn" onclick="removeOption(${option.id})">×</button>
-                    <h4>${option.name}</h4>
-                    ${option.description ? `<p style="color: #666; margin-top: 8px;">${option.description}</p>` : ''}
-                </div>
-            `).join('');
+            container.innerHTML = '';
+            decisionData.options.forEach(option => {
+                const div = document.createElement('div');
+                div.className = 'option-item';
+                div.dataset.id = option.id;
+
+                const button = document.createElement('button');
+                button.className = 'remove-btn';
+                button.textContent = '×';
+                button.setAttribute('aria-label', `Remove option ${option.name}`);
+                button.addEventListener('click', () => removeOption(option.id));
+
+                const h4 = document.createElement('h4');
+                h4.textContent = option.name;
+
+                div.appendChild(button);
+                div.appendChild(h4);
+
+                if (option.description) {
+                    const p = document.createElement('p');
+                    p.style.color = '#666';
+                    p.style.marginTop = '8px';
+                    p.textContent = option.description;
+                    div.appendChild(p);
+                }
+
+                container.appendChild(div);
+            });
+            checkOptionsWarning();
         }
 
         function removeOption(id) {
@@ -725,84 +758,92 @@
 
         function checkOptionsWarning() {
             const warning = document.getElementById('optionsWarning');
-            if (decisionData.options.length < 3) {
-                warning.style.display = 'block';
-            } else {
-                warning.style.display = 'none';
-            }
+            warning.style.display = decisionData.options.length < 3 ? 'block' : 'none';
         }
 
         // Criteria management
         function addCriteria() {
-            const name = document.getElementById('criteriaName').value.trim();
+            const name = sanitizeInput(document.getElementById('criteriaName').value.trim());
             if (!name) {
                 alert('Please enter a criteria name.');
                 return;
             }
-            
-            const description = document.getElementById('criteriaDescription').value.trim();
+            const description = sanitizeInput(document.getElementById('criteriaDescription').value.trim());
             const criteria = {
                 id: Date.now(),
                 name: name,
                 description: description
             };
-            
             decisionData.criteria.push(criteria);
             displayCriteria();
-            
-            // Clear inputs
             document.getElementById('criteriaName').value = '';
             document.getElementById('criteriaDescription').value = '';
-            
-            // Show bias warning if needed
             checkCriteriaWarning();
         }
 
         function displayCriteria() {
             const container = document.getElementById('criteriaList');
-            container.innerHTML = decisionData.criteria.map(criteria => `
-                <div class="criteria-item">
-                    <button class="remove-btn" onclick="removeCriteria(${criteria.id})">×</button>
-                    <h4>${criteria.name}</h4>
-                    ${criteria.description ? `<p style="color: #666; margin-top: 8px;">${criteria.description}</p>` : ''}
-                </div>
-            `).join('');
+            container.innerHTML = '';
+            decisionData.criteria.forEach(criteria => {
+                const div = document.createElement('div');
+                div.className = 'criteria-item';
+                div.dataset.id = criteria.id;
+
+                const button = document.createElement('button');
+                button.className = 'remove-btn';
+                button.textContent = '×';
+                button.setAttribute('aria-label', `Remove criteria ${criteria.name}`);
+                button.addEventListener('click', () => removeCriteria(criteria.id));
+
+                const h4 = document.createElement('h4');
+                h4.textContent = criteria.name;
+
+                div.appendChild(button);
+                div.appendChild(h4);
+
+                if (criteria.description) {
+                    const p = document.createElement('p');
+                    p.style.color = '#666';
+                    p.style.marginTop = '8px';
+                    p.textContent = criteria.description;
+                    div.appendChild(p);
+                }
+
+                container.appendChild(div);
+            });
+            checkCriteriaWarning();
         }
 
         function removeCriteria(id) {
             decisionData.criteria = decisionData.criteria.filter(criteria => criteria.id !== id);
+            delete decisionData.weights[id];
             displayCriteria();
             checkCriteriaWarning();
         }
 
         function checkCriteriaWarning() {
             const warning = document.getElementById('criteriaWarning');
-            if (decisionData.criteria.length > 7) {
-                warning.style.display = 'block';
-            } else {
-                warning.style.display = 'none';
-            }
+            warning.style.display = decisionData.criteria.length > 7 ? 'block' : 'none';
         }
 
         // Weighting step
         function setupWeightingStep() {
             const container = document.getElementById('weightingList');
-            const equalWeight = 100 / decisionData.criteria.length;
-            
-            // Initialize weights if not set
+            const equalWeight = decisionData.criteria.length ? 100 / decisionData.criteria.length : 0;
             decisionData.criteria.forEach(criteria => {
                 if (!decisionData.weights[criteria.id]) {
                     decisionData.weights[criteria.id] = equalWeight;
                 }
             });
-            
             container.innerHTML = decisionData.criteria.map(criteria => `
                 <div class="criteria-item">
                     <h4>${criteria.name}</h4>
                     ${criteria.description ? `<p style="color: #666; margin-bottom: 10px;">${criteria.description}</p>` : ''}
                     <div class="weight-slider">
                         <input type="range" min="5" max="50" value="${decisionData.weights[criteria.id]}" 
-                               onchange="updateWeight(${criteria.id}, this.value)" class="slider">
+                               class="slider" role="slider" aria-label="Weight for ${criteria.name}"
+                               aria-valuemin="5" aria-valuemax="50" aria-valuenow="${decisionData.weights[criteria.id]}"
+                               onchange="updateWeight(${criteria.id}, this.value)">
                         <div class="weight-display">
                             <span>Less Important</span>
                             <span id="weight-${criteria.id}">${Math.round(decisionData.weights[criteria.id])}%</span>
@@ -820,7 +861,10 @@
         }
 
         function normalizeWeights() {
-            const total = Object.values(decisionData.weights).reduce((sum, weight) => sum + weight, 0);
+            const weights = Object.values(decisionData.weights);
+            if (!weights.length) return;
+            const total = weights.reduce((sum, weight) => sum + weight, 0);
+            if (total === 0) return;
             Object.keys(decisionData.weights).forEach(id => {
                 decisionData.weights[id] = (decisionData.weights[id] / total) * 100;
             });
@@ -839,7 +883,6 @@
         function setupRatingStep() {
             const container = document.getElementById('ratingMatrix');
             let html = '';
-            
             decisionData.criteria.forEach(criteria => {
                 html += `
                     <div class="criteria-item" style="margin-bottom: 30px;">
@@ -847,32 +890,29 @@
                         ${criteria.description ? `<p style="color: #666; margin-bottom: 15px;">${criteria.description}</p>` : ''}
                         <div style="display: grid; gap: 10px;">
                 `;
-                
                 decisionData.options.forEach(option => {
                     const ratingKey = `${option.id}-${criteria.id}`;
                     const currentRating = decisionData.ratings[ratingKey] || 3;
-                    
                     html += `
                         <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #f8f9fa; border-radius: 8px;">
                             <span style="font-weight: 600;">${option.name}</span>
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <span style="font-size: 0.9rem; color: #666;">Poor</span>
                                 <input type="range" min="1" max="5" value="${currentRating}" 
-                                       onchange="updateRating('${ratingKey}', this.value)"
-                                       style="width: 120px;">
+                                       class="slider" role="slider" aria-label="Rating for ${option.name} on ${criteria.name}"
+                                       aria-valuemin="1" aria-valuemax="5" aria-valuenow="${currentRating}"
+                                       onchange="updateRating('${ratingKey}', this.value)">
                                 <span style="font-size: 0.9rem; color: #666;">Excellent</span>
                                 <span id="rating-${ratingKey}" style="font-weight: bold; color: #667eea; min-width: 20px;">${currentRating}</span>
                             </div>
                         </div>
                     `;
                 });
-                
                 html += `
                         </div>
                     </div>
                 `;
             });
-            
             container.innerHTML = html;
         }
 
@@ -884,80 +924,106 @@
         // Results calculation
         function calculateResults() {
             const results = [];
-            
             decisionData.options.forEach(option => {
                 let totalScore = 0;
                 const criteriaScores = {};
-                
                 decisionData.criteria.forEach(criteria => {
                     const ratingKey = `${option.id}-${criteria.id}`;
                     const rating = decisionData.ratings[ratingKey] || 3;
                     const weight = decisionData.weights[criteria.id] / 100;
                     const score = rating * weight;
-                    
                     criteriaScores[criteria.name] = {
                         rating: rating,
                         weight: weight,
                         score: score
                     };
-                    
                     totalScore += score;
                 });
-                
                 results.push({
                     option: option,
                     totalScore: totalScore,
                     criteriaScores: criteriaScores
                 });
             });
-            
-            // Sort by total score descending
             results.sort((a, b) => b.totalScore - a.totalScore);
-            
             displayResults(results);
             nextStep();
         }
 
         function displayResults(results) {
             const container = document.getElementById('resultsGrid');
+            container.innerHTML = '';
             const maxScore = Math.max(...results.map(r => r.totalScore));
-            
-            container.innerHTML = results.map((result, index) => {
-                const isWinner = index === 0;
-                const scorePercentage = (result.totalScore / maxScore) * 100;
+            results.forEach((result, index) => {
+                const card = document.createElement('div');
+                card.className = `result-card ${index === 0 ? 'winner' : ''}`;
                 
-                let criteriaBreakdown = '';
+                if (index === 0) {
+                    const winnerBadge = document.createElement('div');
+                    winnerBadge.style.textAlign = 'center';
+                    winnerBadge.style.color = '#28a745';
+                    winnerBadge.style.fontWeight = 'bold';
+                    winnerBadge.style.marginBottom = '10px';
+                    winnerBadge.textContent = '🏆 WINNER';
+                    card.appendChild(winnerBadge);
+                }
+
+                const h3 = document.createElement('h3');
+                h3.style.marginBottom = '10px';
+                h3.textContent = result.option.name;
+                card.appendChild(h3);
+
+                if (result.option.description) {
+                    const p = document.createElement('p');
+                    p.style.color = '#666';
+                    p.style.marginBottom = '15px';
+                    p.textContent = result.option.description;
+                    card.appendChild(p);
+                }
+
+                const scoreBar = document.createElement('div');
+                scoreBar.className = 'score-bar';
+                const scoreFill = document.createElement('div');
+                scoreFill.className = 'score-fill';
+                scoreFill.style.width = `${(result.totalScore / maxScore) * 100}%`;
+                scoreBar.appendChild(scoreFill);
+                card.appendChild(scoreBar);
+
+                const scoreText = document.createElement('div');
+                scoreText.style.textAlign = 'center';
+                scoreText.style.fontWeight = 'bold';
+                scoreText.style.color = '#667eea';
+                scoreText.style.marginBottom = '15px';
+                scoreText.textContent = `Score: ${result.totalScore.toFixed(2)}/5.0`;
+                card.appendChild(scoreText);
+
+                const details = document.createElement('details');
+                details.style.marginTop = '15px';
+                const summary = document.createElement('summary');
+                summary.style.cursor = 'pointer';
+                summary.style.fontWeight = '600';
+                summary.style.color = '#555';
+                summary.textContent = 'View Breakdown';
+                details.appendChild(summary);
+
+                const breakdown = document.createElement('div');
+                breakdown.style.marginTop = '10px';
+                breakdown.style.paddingTop = '10px';
+                breakdown.style.borderTop = '1px solid #dee2e6';
                 Object.entries(result.criteriaScores).forEach(([criteriaName, scores]) => {
-                    criteriaBreakdown += `
-                        <div style="display: flex; justify-content: space-between; margin: 5px 0; font-size: 0.9rem;">
-                            <span>${criteriaName}:</span>
-                            <span>${scores.rating}/5 (${Math.round(scores.score * 20)}%)</span>
-                        </div>
-                    `;
+                    const div = document.createElement('div');
+                    div.style.display = 'flex';
+                    div.style.justifyContent = 'space-between';
+                    div.style.margin = '5px 0';
+                    div.style.fontSize = '0.9rem';
+                    div.innerHTML = `<span>${criteriaName}:</span><span>${scores.rating}/5 (${Math.round(scores.score * 20)}%)</span>`;
+                    breakdown.appendChild(div);
                 });
-                
-                return `
-                    <div class="result-card ${isWinner ? 'winner' : ''}">
-                        ${isWinner ? '<div style="text-align: center; color: #28a745; font-weight: bold; margin-bottom: 10px;">🏆 WINNER</div>' : ''}
-                        <h3 style="margin-bottom: 10px;">${result.option.name}</h3>
-                        ${result.option.description ? `<p style="color: #666; margin-bottom: 15px;">${result.option.description}</p>` : ''}
-                        
-                        <div class="score-bar">
-                            <div class="score-fill" style="width: ${scorePercentage}%"></div>
-                        </div>
-                        <div style="text-align: center; font-weight: bold; color: #667eea; margin-bottom: 15px;">
-                            Score: ${result.totalScore.toFixed(2)}/5.0
-                        </div>
-                        
-                        <details style="margin-top: 15px;">
-                            <summary style="cursor: pointer; font-weight: 600; color: #555;">View Breakdown</summary>
-                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #dee2e6;">
-                                ${criteriaBreakdown}
-                            </div>
-                        </details>
-                    </div>
-                `;
-            }).join('');
+                details.appendChild(breakdown);
+                card.appendChild(details);
+
+                container.appendChild(card);
+            });
         }
 
         function exportResults() {
@@ -970,7 +1036,6 @@
                 weights: decisionData.weights,
                 ratings: decisionData.ratings
             };
-            
             const dataStr = JSON.stringify(results, null, 2);
             const dataBlob = new Blob([dataStr], {type: 'application/json'});
             const url = URL.createObjectURL(dataBlob);
@@ -978,11 +1043,11 @@
             link.href = url;
             link.download = `decision_analysis_${Date.now()}.json`;
             link.click();
+            URL.revokeObjectURL(url);
         }
 
         function startOver() {
             if (confirm('Are you sure you want to start a new decision? This will clear all current data.')) {
-                // Reset all data
                 currentStep = 1;
                 decisionData = {
                     title: '',
@@ -992,21 +1057,15 @@
                     weights: {},
                     ratings: {}
                 };
-                
-                // Clear all inputs
                 document.getElementById('decisionTitle').value = '';
                 document.getElementById('decisionDescription').value = '';
                 document.getElementById('optionName').value = '';
                 document.getElementById('optionDescription').value = '';
                 document.getElementById('criteriaName').value = '';
                 document.getElementById('criteriaDescription').value = '';
-                
-                // Show first step
                 showStep(1);
                 updateProgressBar();
                 updateStepIndicator();
-                
-                // Clear displays
                 document.getElementById('optionsList').innerHTML = '';
                 document.getElementById('criteriaList').innerHTML = '';
                 document.getElementById('optionsWarning').style.display = 'none';
@@ -1014,26 +1073,25 @@
             }
         }
 
-        // Add keyboard support
+        // Keyboard support
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Enter' && !event.shiftKey) {
                 const activeElement = document.activeElement;
                 if (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA') {
                     event.preventDefault();
-                    
-                    // Handle different input contexts
                     if (activeElement.id === 'optionName') {
-                        addOption();
+                        document.getElementById('addOptionBtn').click();
                     } else if (activeElement.id === 'criteriaName') {
-                        addCriteria();
+                        document.getElementById('addCriteriaBtn').click();
                     } else if (activeElement.id === 'decisionTitle') {
-                        nextStep();
+                        document.getElementById('step1Continue').click();
                     }
                 }
             }
         });
 
-        // Initialize the app when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            initializeApp();
-        });
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
