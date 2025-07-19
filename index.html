@@ -199,28 +199,19 @@
             margin-top: 10px;
         }
 
-        .weight-slider input[type="range"] {
+        .weight-slider select {
             width: 100%;
-            height: 8px;
-            border-radius: 4px;
-            background: #e0e0e0;
-            outline: none;
-            -webkit-appearance: none;
-        }
-
-        .weight-slider input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #667eea;
-            cursor: pointer;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
             transition: all 0.3s ease;
         }
 
-        .weight-slider input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
+        .weight-slider select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         .weight-display {
@@ -536,13 +527,13 @@
             <!-- Step 4: Weight Criteria -->
             <div class="section hidden" id="section4">
                 <div class="section-title">Set Criteria Importance</div>
-                <p style="margin-bottom: 20px; color: #666;">Adjust the sliders to reflect how important each criteria is to your decision. The total will automatically normalize to 100%.</p>
+                <p style="margin-bottom: 20px; color: #666;">Select the importance of each criterion from 1 (Not Important) to 5 (Critical). The system will calculate weights that sum to 100%.</p>
                 
                 <div class="criteria-list" id="weightingList"></div>
                 
                 <div class="bias-warning">
                     <h4>💡 Avoiding Equal Weight Bias</h4>
-                    <p>Don't make everything equally important. Think about what truly matters most for this specific decision.</p>
+                    <p>Assign different importance levels to reflect what truly matters most for your decision.</p>
                 </div>
 
                 <div style="margin-top: 20px;">
@@ -554,7 +545,7 @@
             <!-- Step 5: Rate Options -->
             <div class="section hidden" id="section5">
                 <div class="section-title">Rate Each Option</div>
-                <p style="margin-bottom: 20px; color: #666;">For each criteria, rate how well each option performs (1 = Poor, 5 = Excellent).</p>
+                <p style="margin-bottom: 20px; color: #666;">For each criterion, rate how well each option performs (1 = Poor, 5 = Excellent).</p>
                 
                 <div id="ratingMatrix"></div>
 
@@ -592,11 +583,11 @@
         // Input sanitization
         function sanitizeInput(input) {
             return input.replace(/[<>&"']/g, char => ({
-                '<': '&lt;',
-                '>': '&gt;',
-                '&': '&amp;',
-                '"': '&quot;',
-                "'": '&apos;'
+                '<': '<',
+                '>': '>',
+                '&': '&',
+                '"': '"',
+                "'": '''
             }[char]));
         }
 
@@ -829,7 +820,7 @@
         // Weighting step
         function setupWeightingStep() {
             const container = document.getElementById('weightingList');
-            const equalWeight = decisionData.criteria.length ? 100 / decisionData.criteria.length : 0;
+            const equalWeight = decisionData.criteria.length ? 3 : 0; // Default to "Moderately Important"
             decisionData.criteria.forEach(criteria => {
                 if (!decisionData.weights[criteria.id]) {
                     decisionData.weights[criteria.id] = equalWeight;
@@ -840,41 +831,44 @@
                     <h4>${criteria.name}</h4>
                     ${criteria.description ? `<p style="color: #666; margin-bottom: 10px;">${criteria.description}</p>` : ''}
                     <div class="weight-slider">
-                        <input type="range" min="5" max="50" value="${decisionData.weights[criteria.id]}" 
-                               class="slider" role="slider" aria-label="Weight for ${criteria.name}"
-                               aria-valuemin="5" aria-valuemax="50" aria-valuenow="${decisionData.weights[criteria.id]}"
-                               onchange="updateWeight(${criteria.id}, this.value)">
+                        <select onchange="updateWeight(${criteria.id}, this.value)" 
+                                aria-label="Importance for ${criteria.name}">
+                            <option value="1" ${decisionData.weights[criteria.id] === 1 ? 'selected' : ''}>1 - Not Important</option>
+                            <option value="2" ${decisionData.weights[criteria.id] === 2 ? 'selected' : ''}>2 - Slightly Important</option>
+                            <option value="3" ${decisionData.weights[criteria.id] === 3 ? 'selected' : ''}>3 - Moderately Important</option>
+                            <option value="4" ${decisionData.weights[criteria.id] === 4 ? 'selected' : ''}>4 - Very Important</option>
+                            <option value="5" ${decisionData.weights[criteria.id] === 5 ? 'selected' : ''}>5 - Critical</option>
+                        </select>
                         <div class="weight-display">
-                            <span>Less Important</span>
-                            <span id="weight-${criteria.id}">${Math.round(decisionData.weights[criteria.id])}%</span>
-                            <span>More Important</span>
+                            <span>Weight: <span id="weight-${criteria.id}">${Math.round(calculateNormalizedWeight(criteria.id))}%</span></span>
                         </div>
                     </div>
                 </div>
             `).join('');
         }
 
+        function calculateNormalizedWeight(criteriaId) {
+            const multipliers = { 1: 1, 2: 2, 3: 4, 4: 6, 5: 8 };
+            const total = Object.values(decisionData.weights).reduce((sum, score) => sum + (multipliers[score] || 1), 0);
+            if (total === 0) return 0;
+            const rawWeight = multipliers[decisionData.weights[criteria.id]] || 1;
+            return (rawWeight / total) * 100;
+        }
+
         function updateWeight(criteriaId, value) {
-            decisionData.weights[criteriaId] = parseFloat(value);
-            normalizeWeights();
+            decisionData.weights[criteriaId] = parseInt(value);
             updateWeightDisplays();
         }
 
         function normalizeWeights() {
-            const weights = Object.values(decisionData.weights);
-            if (!weights.length) return;
-            const total = weights.reduce((sum, weight) => sum + weight, 0);
-            if (total === 0) return;
-            Object.keys(decisionData.weights).forEach(id => {
-                decisionData.weights[id] = (decisionData.weights[id] / total) * 100;
-            });
+            // Normalization is handled in calculateNormalizedWeight for display and calculateResults
         }
 
         function updateWeightDisplays() {
             Object.keys(decisionData.weights).forEach(id => {
                 const display = document.getElementById(`weight-${id}`);
                 if (display) {
-                    display.textContent = `${Math.round(decisionData.weights[id])}%`;
+                    display.textContent = `${Math.round(calculateNormalizedWeight(id))}%`;
                 }
             });
         }
@@ -924,17 +918,21 @@
         // Results calculation
         function calculateResults() {
             const results = [];
+            const multipliers = { 1: 1, 2: 2, 3: 4, 4: 6, 5: 8 };
+            const totalWeight = Object.values(decisionData.weights).reduce((sum, score) => sum + (multipliers[score] || 1), 0);
+            
             decisionData.options.forEach(option => {
                 let totalScore = 0;
                 const criteriaScores = {};
                 decisionData.criteria.forEach(criteria => {
                     const ratingKey = `${option.id}-${criteria.id}`;
                     const rating = decisionData.ratings[ratingKey] || 3;
-                    const weight = decisionData.weights[criteria.id] / 100;
-                    const score = rating * weight;
+                    const rawWeight = multipliers[decisionData.weights[criteria.id]] || 1;
+                    const normalizedWeight = totalWeight ? (rawWeight / totalWeight) : 0;
+                    const score = rating * normalizedWeight;
                     criteriaScores[criteria.name] = {
                         rating: rating,
-                        weight: weight,
+                        weight: normalizedWeight,
                         score: score
                     };
                     totalScore += score;
