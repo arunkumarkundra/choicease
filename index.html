@@ -199,19 +199,28 @@
             margin-top: 10px;
         }
 
-        .weight-slider select {
+        .weight-slider input[type="range"] {
             width: 100%;
-            padding: 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1rem;
+            height: 8px;
+            border-radius: 4px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .weight-slider input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
             transition: all 0.3s ease;
         }
 
-        .weight-slider select:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        .weight-slider input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
         }
 
         .weight-display {
@@ -221,6 +230,61 @@
             font-size: 0.9rem;
             color: #666;
         }
+
+.importance-rating {
+    margin-top: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.rating-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.rating-option input[type="radio"] {
+    margin-bottom: 5px;
+    transform: scale(1.2);
+    accent-color: #667eea;
+}
+
+.rating-option label {
+    font-size: 0.85rem;
+    color: #666;
+    text-align: center;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.rating-option:hover label {
+    color: #667eea;
+}
+
+.rating-option input[type="radio"]:checked + label {
+    color: #667eea;
+    font-weight: 600;
+}
+
+.weight-result {
+    margin-top: 10px;
+    text-align: center;
+    font-weight: bold;
+    color: #667eea;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+    .importance-rating {
+        justify-content: center;
+        gap: 15px;
+    }
+}
 
         .remove-btn {
             position: absolute;
@@ -524,28 +588,27 @@
                 </div>
             </div>
 
-            <!-- Step 4: Weight Criteria -->
-            <div class="section hidden" id="section4">
-                <div class="section-title">Set Criteria Importance</div>
-                <p style="margin-bottom: 20px; color: #666;">Select the importance of each criterion from 1 (Not Important) to 5 (Critical). The system will calculate weights that sum to 100%.</p>
-                
-                <div class="criteria-list" id="weightingList"></div>
-                
-                <div class="bias-warning">
-                    <h4>💡 Avoiding Equal Weight Bias</h4>
-                    <p>Assign different importance levels to reflect what truly matters most for your decision.</p>
-                </div>
+<!-- Step 4: Criteria Importance -->
+<div class="section hidden" id="section4">
+    <div class="section-title">Criteria Importance</div>
+    <p style="margin-bottom: 20px; color: #666;">Rate how important each criteria is to your decision (1 = least important, 5 = most important). The weights will automatically be calculated and normalized to 100%.</p>
+    
+    <div class="criteria-list" id="weightingList"></div>
+    
+    <div class="bias-warning">
+        <h4>💡 Avoiding Equal Weight Bias</h4>
+        <p>Don't make everything equally important. Think about what truly matters most for this specific decision.</p>
+    </div>
 
-                <div style="margin-top: 20px;">
-                    <button class="btn btn-secondary" id="step4Back" aria-label="Go back to previous step">Back</button>
-                    <button class="btn" id="step4Continue" aria-label="Continue to next step">Continue</button>
-                </div>
-            </div>
-
+    <div style="margin-top: 20px;">
+        <button class="btn btn-secondary" id="step4Back" aria-label="Go back to previous step">Back</button>
+        <button class="btn" id="step4Continue" aria-label="Continue to next step">Continue</button>
+    </div>
+</div>
             <!-- Step 5: Rate Options -->
             <div class="section hidden" id="section5">
                 <div class="section-title">Rate Each Option</div>
-                <p style="margin-bottom: 20px; color: #666;">For each criterion, rate how well each option performs (1 = Poor, 5 = Excellent).</p>
+                <p style="margin-bottom: 20px; color: #666;">For each criteria, rate how well each option performs (1 = Poor, 5 = Excellent).</p>
                 
                 <div id="ratingMatrix"></div>
 
@@ -583,11 +646,11 @@
         // Input sanitization
         function sanitizeInput(input) {
             return input.replace(/[<>&"']/g, char => ({
-                '<': '<',
-                '>': '>',
-                '&': '&',
-                '"': '"',
-                "'": '''
+                '<': '&lt;',
+                '>': '&gt;',
+                '&': '&amp;',
+                '"': '&quot;',
+                "'": '&apos;'
             }[char]));
         }
 
@@ -818,60 +881,79 @@
         }
 
         // Weighting step
-        function setupWeightingStep() {
-            const container = document.getElementById('weightingList');
-            const equalWeight = decisionData.criteria.length ? 3 : 0; // Default to "Moderately Important"
-            decisionData.criteria.forEach(criteria => {
-                if (!decisionData.weights[criteria.id]) {
-                    decisionData.weights[criteria.id] = equalWeight;
-                }
-            });
-            container.innerHTML = decisionData.criteria.map(criteria => `
-                <div class="criteria-item">
-                    <h4>${criteria.name}</h4>
-                    ${criteria.description ? `<p style="color: #666; margin-bottom: 10px;">${criteria.description}</p>` : ''}
-                    <div class="weight-slider">
-                        <select onchange="updateWeight(${criteria.id}, this.value)" 
-                                aria-label="Importance for ${criteria.name}">
-                            <option value="1" ${decisionData.weights[criteria.id] === 1 ? 'selected' : ''}>1 - Not Important</option>
-                            <option value="2" ${decisionData.weights[criteria.id] === 2 ? 'selected' : ''}>2 - Slightly Important</option>
-                            <option value="3" ${decisionData.weights[criteria.id] === 3 ? 'selected' : ''}>3 - Moderately Important</option>
-                            <option value="4" ${decisionData.weights[criteria.id] === 4 ? 'selected' : ''}>4 - Very Important</option>
-                            <option value="5" ${decisionData.weights[criteria.id] === 5 ? 'selected' : ''}>5 - Critical</option>
-                        </select>
-                        <div class="weight-display">
-                            <span>Weight: <span id="weight-${criteria.id}">${Math.round(calculateNormalizedWeight(criteria.id))}%</span></span>
-                        </div>
+function setupWeightingStep() {
+    const container = document.getElementById('weightingList');
+    // Initialize with default rating of 3 if not set
+    decisionData.criteria.forEach(criteria => {
+        if (!decisionData.weights[criteria.id]) {
+            decisionData.weights[criteria.id] = 3; // Store as rating initially
+        }
+    });
+    
+    container.innerHTML = decisionData.criteria.map(criteria => `
+        <div class="criteria-item">
+            <h4>${criteria.name}</h4>
+            ${criteria.description ? `<p style="color: #666; margin-bottom: 10px;">${criteria.description}</p>` : ''}
+            <div class="importance-rating">
+                ${[1, 2, 3, 4, 5].map(rating => `
+                    <div class="rating-option">
+                        <input type="radio" id="rating-${criteria.id}-${rating}" name="importance-${criteria.id}" 
+                               value="${rating}" ${decisionData.weights[criteria.id] == rating ? 'checked' : ''}
+                               onchange="updateImportanceRating(${criteria.id}, ${rating})">
+                        <label for="rating-${criteria.id}-${rating}">${rating === 1 ? 'Least' : rating === 5 ? 'Most' : rating}</label>
                     </div>
-                </div>
-            `).join('');
-        }
+                `).join('')}
+            </div>
+            <div class="weight-result" id="weight-${criteria.id}">
+                ${calculateDisplayWeight(criteria.id)}%
+            </div>
+        </div>
+    `).join('');
+}
 
-        function calculateNormalizedWeight(criteriaId) {
-            const multipliers = { 1: 1, 2: 2, 3: 4, 4: 6, 5: 8 };
-            const total = Object.values(decisionData.weights).reduce((sum, score) => sum + (multipliers[score] || 1), 0);
-            if (total === 0) return 0;
-            const rawWeight = multipliers[decisionData.weights[criteria.id]] || 1;
-            return (rawWeight / total) * 100;
-        }
+function updateImportanceRating(criteriaId, rating) {
+    decisionData.weights[criteriaId] = rating;
+    normalizeImportanceWeights();
+    updateWeightDisplays();
+}
 
-        function updateWeight(criteriaId, value) {
-            decisionData.weights[criteriaId] = parseInt(value);
-            updateWeightDisplays();
-        }
+function normalizeImportanceWeights() {
+    // Map ratings to actual weights
+    const ratingToWeight = { 1: 1, 2: 2, 3: 3.5, 4: 6, 5: 10 };
+    
+    // Calculate total of mapped weights
+    const totalMappedWeight = Object.values(decisionData.weights)
+        .reduce((sum, rating) => sum + ratingToWeight[rating], 0);
+    
+    // Store normalized percentages (but keep original ratings for display)
+    const normalizedWeights = {};
+    Object.keys(decisionData.weights).forEach(id => {
+        const rating = decisionData.weights[id];
+        const mappedWeight = ratingToWeight[rating];
+        normalizedWeights[id] = (mappedWeight / totalMappedWeight) * 100;
+    });
+    
+    // Store normalized weights separately for calculations
+    decisionData.normalizedWeights = normalizedWeights;
+}
 
-        function normalizeWeights() {
-            // Normalization is handled in calculateNormalizedWeight for display and calculateResults
-        }
+function calculateDisplayWeight(criteriaId) {
+    if (!decisionData.normalizedWeights) {
+        normalizeImportanceWeights();
+    }
+    return Math.round(decisionData.normalizedWeights[criteriaId] || 0);
+}
 
-        function updateWeightDisplays() {
-            Object.keys(decisionData.weights).forEach(id => {
-                const display = document.getElementById(`weight-${id}`);
-                if (display) {
-                    display.textContent = `${Math.round(calculateNormalizedWeight(id))}%`;
-                }
-            });
+
+
+function updateWeightDisplays() {
+    Object.keys(decisionData.weights).forEach(id => {
+        const display = document.getElementById(`weight-${id}`);
+        if (display) {
+            display.textContent = `${calculateDisplayWeight(id)}%`;
         }
+    });
+}
 
         // Rating step
         function setupRatingStep() {
@@ -918,21 +1000,17 @@
         // Results calculation
         function calculateResults() {
             const results = [];
-            const multipliers = { 1: 1, 2: 2, 3: 4, 4: 6, 5: 8 };
-            const totalWeight = Object.values(decisionData.weights).reduce((sum, score) => sum + (multipliers[score] || 1), 0);
-            
             decisionData.options.forEach(option => {
                 let totalScore = 0;
                 const criteriaScores = {};
                 decisionData.criteria.forEach(criteria => {
                     const ratingKey = `${option.id}-${criteria.id}`;
                     const rating = decisionData.ratings[ratingKey] || 3;
-                    const rawWeight = multipliers[decisionData.weights[criteria.id]] || 1;
-                    const normalizedWeight = totalWeight ? (rawWeight / totalWeight) : 0;
-                    const score = rating * normalizedWeight;
+                    const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
+                    const score = rating * weight;
                     criteriaScores[criteria.name] = {
                         rating: rating,
-                        weight: normalizedWeight,
+                        weight: weight,
                         score: score
                     };
                     totalScore += score;
