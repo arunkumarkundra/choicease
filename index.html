@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Decision Maker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            animation: slideDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .app-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .step {
+            display: flex;
+            align-items: center;
+            margin: 5px 10px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .step-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .step.active .step-number {
+            background: #667eea;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .step.completed .step-number {
+            background: #28a745;
+            color: white;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 30px;
+            background: #667eea;
+            margin-right: 15px;
+            border-radius: 2px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            margin: 5px;
+            display: inline-block;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c757d, #495057);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+        }
+
+        .criteria-list, .options-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .criteria-item, .option-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .criteria-item:hover, .option-item:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .weight-slider {
+            margin-top: 10px;
+        }
+
+        .weight-slider input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .weight-slider input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #667eea;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .weight-slider input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .weight-display {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+
+        .remove-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+        }
+
+        .results-grid {
+            display: grid;
+            gap: 20px;
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            padding: 25px;
+            border-radius: 15px;
+            border: 2px solid #dee2e6;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+
+        .result-card.winner {
+            border-color: #28a745;
+            background: linear-gradient(135deg, #d4edda, #c3e6cb);
+            transform: scale(1.02);
+        }
+
+        .result-card.winner::before {
+            background: linear-gradient(135deg, #28a745, #20c997);
+        }
+
+        .score-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+            position: relative;
+        }
+
+        .score-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 10px;
+            transition: width 0.8s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .score-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shine 2s infinite;
+        }
+
+        @keyframes shine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        .bias-warning {
+            background: #fff3cd;
+            border: 2px solid #ffeaa7;
+            border-radius: 12px;
+            padding: 15px;
+            margin: 20px 0;
+            animation: pulse 2s infinite;
+        }
+
+        .bias-warning h4 {
+            color: #856404;
+            margin-bottom: 8px;
+        }
+
+        .bias-warning p {
+            color: #856404;
+            margin: 0;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .app-container {
+                padding: 20px;
+                border-radius: 15px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .header p {
+                font-size: 1rem;
+            }
+
+            .step-indicator {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .section-title {
+                font-size: 1.3rem;
+            }
+
+            .btn {
+                width: 100%;
+                margin: 5px 0;
+            }
+
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .criteria-list, .options-list {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            }
+
+            .results-grid {
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 Smart Decision Maker</h1>
+            <p>Make better decisions with science-backed multi-criteria analysis</p>
+        </div>
+
+        <div class="app-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+
+            <div class="step-indicator">
+                <div class="step active" id="step1">
+                    <div class="step-number">1</div>
+                    <span>Define Decision</span>
+                </div>
+                <div class="step" id="step2">
+                    <div class="step-number">2</div>
+                    <span>Add Options</span>
+                </div>
+                <div class="step" id="step3">
+                    <div class="step-number">3</div>
+                    <span>Set Criteria</span>
+                </div>
+                <div class="step" id="step4">
+                    <div class="step-number">4</div>
+                    <span>Weight Importance</span>
+                </div>
+                <div class="step" id="step5">
+                    <div class="step-number">5</div>
+                    <span>Rate Options</span>
+                </div>
+                <div class="step" id="step6">
+                    <div class="step-number">6</div>
+                    <span>Results</span>
+                </div>
+            </div>
+
+            <!-- Step 1: Define Decision -->
+            <div class="section" id="section1">
+                <div class="section-title">Define Your Decision</div>
+                <div class="input-group">
+                    <label for="decisionTitle">What decision are you making?</label>
+                    <input type="text" id="decisionTitle" placeholder="e.g., Choose the best laptop for work">
+                </div>
+                <div class="input-group">
+                    <label for="decisionDescription">Describe the context (optional)</label>
+                    <textarea id="decisionDescription" rows="3" placeholder="Any additional context that might help..."></textarea>
+                </div>
+                <button class="btn" onclick="nextStep()">Continue</button>
+            </div>
+
+            <!-- Step 2: Add Options -->
+            <div class="section hidden" id="section2">
+                <div class="section-title">Add Your Options</div>
+                <div class="input-group">
+                    <label for="optionName">Option Name</label>
+                    <input type="text" id="optionName" placeholder="e.g., MacBook Pro 14-inch">
+                </div>
+                <div class="input-group">
+                    <label for="optionDescription">Description (optional)</label>
+                    <textarea id="optionDescription" rows="2" placeholder="Brief description..."></textarea>
+                </div>
+                <button class="btn" onclick="addOption()">Add Option</button>
+                
+                <div class="options-list" id="optionsList"></div>
+                
+                <div class="bias-warning" id="optionsWarning" style="display: none;">
+                    <h4>⚠️ Bias Alert: Too Few Options</h4>
+                    <p>Consider adding more options to avoid limiting your choices. Research shows that having 3-7 options leads to better decisions.</p>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-secondary" onclick="previousStep()">Back</button>
+                    <button class="btn" onclick="nextStep()">Continue</button>
+                </div>
+            </div>
+
+            <!-- Step 3: Set Criteria -->
+            <div class="section hidden" id="section3">
+                <div class="section-title">Define Decision Criteria</div>
+                <div class="input-group">
+                    <label for="criteriaName">Criteria Name</label>
+                    <input type="text" id="criteriaName" placeholder="e.g., Price, Performance, Battery Life">
+                </div>
+                <div class="input-group">
+                    <label for="criteriaDescription">Description (optional)</label>
+                    <textarea id="criteriaDescription" rows="2" placeholder="What does this criteria measure?"></textarea>
+                </div>
+                <button class="btn" onclick="addCriteria()">Add Criteria</button>
+                
+                <div class="criteria-list" id="criteriaList"></div>
+                
+                <div class="bias-warning" id="criteriaWarning" style="display: none;">
+                    <h4>⚠️ Bias Alert: Cognitive Overload Risk</h4>
+                    <p>You have many criteria. Consider grouping similar ones or focusing on the most important 5-7 criteria to avoid decision paralysis.</p>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-secondary" onclick="previousStep()">Back</button>
+                    <button class="btn" onclick="nextStep()">Continue</button>
+                </div>
+            </div>
+
+            <!-- Step 4: Weight Criteria -->
+            <div class="section hidden" id="section4">
+                <div class="section-title">Set Criteria Importance</div>
+                <p style="margin-bottom: 20px; color: #666;">Adjust the sliders to reflect how important each criteria is to your decision. The total will automatically normalize to 100%.</p>
+                
+                <div class="criteria-list" id="weightingList"></div>
+                
+                <div class="bias-warning">
+                    <h4>💡 Avoiding Equal Weight Bias</h4>
+                    <p>Don't make everything equally important. Think about what truly matters most for this specific decision.</p>
+                </div>
+
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-secondary" onclick="previousStep()">Back</button>
+                    <button class="btn" onclick="nextStep()">Continue</button>
+                </div>
+            </div>
+
+            <!-- Step 5: Rate Options -->
+            <div class="section hidden" id="section5">
+                <div class="section-title">Rate Each Option</div>
+                <p style="margin-bottom: 20px; color: #666;">For each criteria, rate how well each option performs (1 = Poor, 5 = Excellent).</p>
+                
+                <div id="ratingMatrix"></div>
+
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-secondary" onclick="previousStep()">Back</button>
+                    <button class="btn" onclick="calculateResults()">View Results</button>
+                </div>
+            </div>
+
+            <!-- Step 6: Results -->
+            <div class="section hidden" id="section6">
+                <div class="section-title">Decision Results</div>
+                <div class="results-grid" id="resultsGrid"></div>
+                
+                <div style="margin-top: 30px; text-align: center;">
+                    <button class="btn btn-success" onclick="exportResults()">Export Results</button>
+                    <button class="btn btn-secondary" onclick="startOver()">Start New Decision</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Application state
+        let currentStep = 1;
+        let decisionData = {
+            title: '',
+            description: '',
+            options: [],
+            criteria: [],
+            weights: {},
+            ratings: {}
+        };
+
+        // Initialize app
+        function initializeApp() {
+            updateProgressBar();
+        }
+
+        // Step navigation
+        function nextStep() {
+            if (validateCurrentStep()) {
+                currentStep++;
+                showStep(currentStep);
+                updateProgressBar();
+                updateStepIndicator();
+            }
+        }
+
+        function previousStep() {
+            currentStep--;
+            showStep(currentStep);
+            updateProgressBar();
+            updateStepIndicator();
+        }
+
+        function showStep(step) {
+            // Hide all sections
+            for (let i = 1; i <= 6; i++) {
+                document.getElementById(`section${i}`).classList.add('hidden');
+            }
+            // Show current section
+            document.getElementById(`section${step}`).classList.remove('hidden');
+            
+            // Special setup for certain steps
+            if (step === 4) {
+                setupWeightingStep();
+            } else if (step === 5) {
+                setupRatingStep();
+            }
+        }
+
+        function updateProgressBar() {
+            const progress = (currentStep / 6) * 100;
+            document.getElementById('progressFill').style.width = `${progress}%`;
+        }
+
+        function updateStepIndicator() {
+            for (let i = 1; i <= 6; i++) {
+                const step = document.getElementById(`step${i}`);
+                if (i < currentStep) {
+                    step.classList.remove('active');
+                    step.classList.add('completed');
+                } else if (i === currentStep) {
+                    step.classList.remove('completed');
+                    step.classList.add('active');
+                } else {
+                    step.classList.remove('active', 'completed');
+                }
+            }
+        }
+
+        // Validation
+        function validateCurrentStep() {
+            switch (currentStep) {
+                case 1:
+                    const title = document.getElementById('decisionTitle').value.trim();
+                    if (!title) {
+                        alert('Please enter a decision title.');
+                        return false;
+                    }
+                    decisionData.title = title;
+                    decisionData.description = document.getElementById('decisionDescription').value.trim();
+                    return true;
+                    
+                case 2:
+                    if (decisionData.options.length < 2) {
+                        alert('Please add at least 2 options to compare.');
+                        return false;
+                    }
+                    return true;
+                    
+                case 3:
+                    if (decisionData.criteria.length < 2) {
+                        alert('Please add at least 2 criteria for comparison.');
+                        return false;
+                    }
+                    return true;
+                    
+                default:
+                    return true;
+            }
+        }
+
+        // Options management
+        function addOption() {
+            const name = document.getElementById('optionName').value.trim();
+            if (!name) {
+                alert('Please enter an option name.');
+                return;
+            }
+            
+            const description = document.getElementById('optionDescription').value.trim();
+            const option = {
+                id: Date.now(),
+                name: name,
+                description: description
+            };
+            
+            decisionData.options.push(option);
+            displayOptions();
+            
+            // Clear inputs
+            document.getElementById('optionName').value = '';
+            document.getElementById('optionDescription').value = '';
+            
+            // Show bias warning if needed
+            checkOptionsWarning();
+        }
+
+        function displayOptions() {
+            const container = document.getElementById('optionsList');
+            container.innerHTML = decisionData.options.map(option => `
+                <div class="option-item">
+                    <button class="remove-btn" onclick="removeOption(${option.id})">×</button>
+                    <h4>${option.name}</h4>
+                    ${option.description ? `<p style="color: #666; margin-top: 8px;">${option.description}</p>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function removeOption(id) {
+            decisionData.options = decisionData.options.filter(option => option.id !== id);
+            displayOptions();
+            checkOptionsWarning();
+        }
+
+        function checkOptionsWarning() {
+            const warning = document.getElementById('optionsWarning');
+            if (decisionData.options.length < 3) {
+                warning.style.display = 'block';
+            } else {
+                warning.style.display = 'none';
+            }
+        }
+
+        // Criteria management
+        function addCriteria() {
+            const name = document.getElementById('criteriaName').value.trim();
+            if (!name) {
+                alert('Please enter a criteria name.');
+                return;
+            }
+            
+            const description = document.getElementById('criteriaDescription').value.trim();
+            const criteria = {
+                id: Date.now(),
+                name: name,
+                description: description
+            };
+            
+            decisionData.criteria.push(criteria);
+            displayCriteria();
+            
+            // Clear inputs
+            document.getElementById('criteriaName').value = '';
+            document.getElementById('criteriaDescription').value = '';
+            
+            // Show bias warning if needed
+            checkCriteriaWarning();
+        }
+
+        function displayCriteria() {
+            const container = document.getElementById('criteriaList');
+            container.innerHTML = decisionData.criteria.map(criteria => `
+                <div class="criteria-item">
+                    <button class="remove-btn" onclick="removeCriteria(${criteria.id})">×</button>
+                    <h4>${criteria.name}</h4>
+                    ${criteria.description ? `<p style="color: #666; margin-top: 8px;">${criteria.description}</p>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function removeCriteria(id) {
+            decisionData.criteria = decisionData.criteria.filter(criteria => criteria.id !== id);
+            displayCriteria();
+            checkCriteriaWarning();
+        }
+
+        function checkCriteriaWarning() {
+            const warning = document.getElementById('criteriaWarning');
+            if (decisionData.criteria.length > 7) {
+                warning.style.display = 'block';
+            } else {
+                warning.style.display = 'none';
+            }
+        }
+
+        // Weighting step
+        function setupWeightingStep() {
+            const container = document.getElementById('weightingList');
+            const equalWeight = 100 / decisionData.criteria.length;
+            
+            // Initialize weights if not set
+            decisionData.criteria.forEach(criteria => {
+                if (!decisionData.weights[criteria.id]) {
+                    decisionData.weights[criteria.id] = equalWeight;
+                }
+            });
+            
+            container.innerHTML = decisionData.criteria.map(criteria => `
+                <div class="criteria-item">
+                    <h4>${criteria.name}</h4>
+                    ${criteria.description ? `<p style="color: #666; margin-bottom: 10px;">${criteria.description}</p>` : ''}
+                    <div class="weight-slider">
+                        <input type="range" min="5" max="50" value="${decisionData.weights[criteria.id]}" 
+                               onchange="updateWeight(${criteria.id}, this.value)" class="slider">
+                        <div class="weight-display">
+                            <span>Less Important</span>
+                            <span id="weight-${criteria.id}">${Math.round(decisionData.weights[criteria.id])}%</span>
+                            <span>More Important</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateWeight(criteriaId, value) {
+            decisionData.weights[criteriaId] = parseFloat(value);
+            normalizeWeights();
+            updateWeightDisplays();
+        }
+
+        function normalizeWeights() {
+            const total = Object.values(decisionData.weights).reduce((sum, weight) => sum + weight, 0);
+            Object.keys(decisionData.weights).forEach(id => {
+                decisionData.weights[id] = (decisionData.weights[id] / total) * 100;
+            });
+        }
+
+        function updateWeightDisplays() {
+            Object.keys(decisionData.weights).forEach(id => {
+                const display = document.getElementById(`weight-${id}`);
+                if (display) {
+                    display.textContent = `${Math.round(decisionData.weights[id])}%`;
+                }
+            });
+        }
+
+        // Rating step
+        function setupRatingStep() {
+            const container = document.getElementById('ratingMatrix');
+            let html = '';
+            
+            decisionData.criteria.forEach(criteria => {
+                html += `
+                    <div class="criteria-item" style="margin-bottom: 30px;">
+                        <h4>${criteria.name}</h4>
+                        ${criteria.description ? `<p style="color: #666; margin-bottom: 15px;">${criteria.description}</p>` : ''}
+                        <div style="display: grid; gap: 10px;">
+                `;
+                
+                decisionData.options.forEach(option => {
+                    const ratingKey = `${option.id}-${criteria.id}`;
+                    const currentRating = decisionData.ratings[ratingKey] || 3;
+                    
+                    html += `
+                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                            <span style="font-weight: 600;">${option.name}</span>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 0.9rem; color: #666;">Poor</span>
+                                <input type="range" min="1" max="5" value="${currentRating}" 
+                                       onchange="updateRating('${ratingKey}', this.value)"
+                                       style="width: 120px;">
+                                <span style="font-size: 0.9rem; color: #666;">Excellent</span>
+                                <span id="rating-${ratingKey}" style="font-weight: bold; color: #667eea; min-width: 20px;">${currentRating}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function updateRating(key, value) {
+            decisionData.ratings[key] = parseInt(value);
+            document.getElementById(`rating-${key}`).textContent = value;
+        }
+
+        // Results calculation
+        function calculateResults() {
+            const results = [];
+            
+            decisionData.options.forEach(option => {
+                let totalScore = 0;
+                const criteriaScores = {};
+                
+                decisionData.criteria.forEach(criteria => {
+                    const ratingKey = `${option.id}-${criteria.id}`;
+                    const rating = decisionData.ratings[ratingKey] || 3;
+                    const weight = decisionData.weights[criteria.id] / 100;
+                    const score = rating * weight;
+                    
+                    criteriaScores[criteria.name] = {
+                        rating: rating,
+                        weight: weight,
+                        score: score
+                    };
+                    
+                    totalScore += score;
+                });
+                
+                results.push({
+                    option: option,
+                    totalScore: totalScore,
+                    criteriaScores: criteriaScores
+                });
+            });
+            
+            // Sort by total score descending
+            results.sort((a, b) => b.totalScore - a.totalScore);
+            
+            displayResults(results);
+            nextStep();
+        }
+
+        function displayResults(results) {
+            const container = document.getElementById('resultsGrid');
+            const maxScore = Math.max(...results.map(r => r.totalScore));
+            
+            container.innerHTML = results.map((result, index) => {
+                const isWinner = index === 0;
+                const scorePercentage = (result.totalScore / maxScore) * 100;
+                
+                let criteriaBreakdown = '';
+                Object.entries(result.criteriaScores).forEach(([criteriaName, scores]) => {
+                    criteriaBreakdown += `
+                        <div style="display: flex; justify-content: space-between; margin: 5px 0; font-size: 0.9rem;">
+                            <span>${criteriaName}:</span>
+                            <span>${scores.rating}/5 (${Math.round(scores.score * 20)}%)</span>
+                        </div>
+                    `;
+                });
+                
+                return `
+                    <div class="result-card ${isWinner ? 'winner' : ''}">
+                        ${isWinner ? '<div style="text-align: center; color: #28a745; font-weight: bold; margin-bottom: 10px;">🏆 WINNER</div>' : ''}
+                        <h3 style="margin-bottom: 10px;">${result.option.name}</h3>
+                        ${result.option.description ? `<p style="color: #666; margin-bottom: 15px;">${result.option.description}</p>` : ''}
+                        
+                        <div class="score-bar">
+                            <div class="score-fill" style="width: ${scorePercentage}%"></div>
+                        </div>
+                        <div style="text-align: center; font-weight: bold; color: #667eea; margin-bottom: 15px;">
+                            Score: ${result.totalScore.toFixed(2)}/5.0
+                        </div>
+                        
+                        <details style="margin-top: 15px;">
+                            <summary style="cursor: pointer; font-weight: 600; color: #555;">View Breakdown</summary>
+                            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #dee2e6;">
+                                ${criteriaBreakdown}
+                            </div>
+                        </details>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function exportResults() {
+            const results = {
+                decision: decisionData.title,
+                description: decisionData.description,
+                timestamp: new Date().toISOString(),
+                options: decisionData.options,
+                criteria: decisionData.criteria,
+                weights: decisionData.weights,
+                ratings: decisionData.ratings
+            };
+            
+            const dataStr = JSON.stringify(results, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `decision_analysis_${Date.now()}.json`;
+            link.click();
+        }
+
+        function startOver() {
+            if (confirm('Are you sure you want to start a new decision? This will clear all current data.')) {
+                // Reset all data
+                currentStep = 1;
+                decisionData = {
+                    title: '',
+                    description: '',
+                    options: [],
+                    criteria: [],
+                    weights: {},
+                    ratings: {}
+                };
+                
+                // Clear all inputs
+                document.getElementById('decisionTitle').value = '';
+                document.getElementById('decisionDescription').value = '';
+                document.getElementById('optionName').value = '';
+                document.getElementById('optionDescription').value = '';
+                document.getElementById('criteriaName').value = '';
+                document.getElementById('criteriaDescription').value = '';
+                
+                // Show first step
+                showStep(1);
+                updateProgressBar();
+                updateStepIndicator();
+                
+                // Clear displays
+                document.getElementById('optionsList').innerHTML = '';
+                document.getElementById('criteriaList').innerHTML = '';
+                document.getElementById('optionsWarning').style.display = 'none';
+                document.getElementById('criteriaWarning').style.display = 'none';
+            }
+        }
+
+        // Add keyboard support
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                const activeElement = document.activeElement;
+                if (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA') {
+                    event.preventDefault();
+                    
+                    // Handle different input contexts
+                    if (activeElement.id === 'optionName') {
+                        addOption();
+                    } else if (activeElement.id === 'criteriaName') {
+                        addCriteria();
+                    } else if (activeElement.id === 'decisionTitle') {
+                        nextStep();
+                    }
+                }
+            }
+        });
+
+        // Initialize the app when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
