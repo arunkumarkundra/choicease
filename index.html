@@ -520,6 +520,8 @@
             }
         }
     </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -671,6 +673,7 @@
 <div style="margin-top: 30px; text-align: center;">
     <button class="btn btn-secondary" id="step6Back" aria-label="Go back to previous step">Back</button>
     <button class="btn btn-success" id="exportResultsBtn" aria-label="Export decision results">Export Results</button>
+    <button class="btn btn-success" id="downloadReportBtn" aria-label="Download PDF report">📄 Download Report</button>
     <button class="btn btn-secondary" id="startOverBtn" aria-label="Start a new decision">Start New Decision</button>
 </div>
             </div>
@@ -716,6 +719,7 @@
             document.getElementById('step5Back').addEventListener('click', previousStep);
             document.getElementById('step5Calculate').addEventListener('click', calculateResults);
             document.getElementById('exportResultsBtn').addEventListener('click', exportResults);
+            document.getElementById('downloadReportBtn').addEventListener('click', downloadPDFReport);
             document.getElementById('startOverBtn').addEventListener('click', startOver);
             document.getElementById('step6Back').addEventListener('click', previousStep);
             document.getElementById('importFile').addEventListener('change', handleFileImport);
@@ -1194,6 +1198,164 @@ function exportResults() {
     link.click();
     URL.revokeObjectURL(url);
 }
+
+
+function downloadPDFReport() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    let yPos = 20;
+    const pageWidth = 190; // A4 width minus margins
+    const lineHeight = 7;
+    
+    // Header
+    doc.setFontSize(20);
+    doc.setFont(undefined, 'bold');
+    doc.text('RANKiya - Decision Analysis Report', 105, yPos, { align: 'center' });
+    yPos += 15;
+    
+    // Decision Title
+    doc.setFontSize(16);
+    doc.text(`Decision: ${decisionData.title}`, 20, yPos);
+    yPos += 10;
+    
+    // Context (if exists)
+    if (decisionData.description) {
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'normal');
+        const contextLines = doc.splitTextToSize(`Context: ${decisionData.description}`, pageWidth);
+        doc.text(contextLines, 20, yPos);
+        yPos += contextLines.length * lineHeight + 5;
+    }
+    
+    // Timestamp
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, yPos);
+    yPos += 15;
+    
+    // Calculate results for the report
+    const results = [];
+    decisionData.options.forEach(option => {
+        let totalScore = 0;
+        decisionData.criteria.forEach(criteria => {
+            const ratingKey = `${option.id}-${criteria.id}`;
+            const rating = decisionData.ratings[ratingKey] || 3;
+            const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
+            totalScore += rating * weight;
+        });
+        results.push({
+            name: option.name,
+            description: option.description,
+            totalScore: totalScore
+        });
+    });
+    results.sort((a, b) => b.totalScore - a.totalScore);
+    
+    // Final Results Section
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text('Final Results (Ranked)', 20, yPos);
+    yPos += 10;
+    
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    results.forEach((result, index) => {
+        const rankText = `${index + 1}. ${result.name} - Score: ${result.totalScore.toFixed(2)}/5.0`;
+        doc.text(rankText, 25, yPos);
+        yPos += lineHeight;
+        
+        if (result.description) {
+            doc.setFontSize(9);
+            const descLines = doc.splitTextToSize(`   ${result.description}`, pageWidth - 10);
+            doc.text(descLines, 25, yPos);
+            yPos += descLines.length * 5 + 3;
+            doc.setFontSize(11);
+        }
+    });
+    
+    yPos += 10;
+    
+    // Check if we need a new page
+    if (yPos > 250) {
+        doc.addPage();
+        yPos = 20;
+    }
+    
+    // Criteria and Weights Section
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text('Decision Criteria & Importance', 20, yPos);
+    yPos += 10;
+    
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    decisionData.criteria.forEach(criteria => {
+        const weight = calculateDisplayWeight(criteria.id);
+        doc.text(`• ${criteria.name} (${weight}% importance)`, 25, yPos);
+        yPos += lineHeight;
+        
+        if (criteria.description) {
+            doc.setFontSize(9);
+            const descLines = doc.splitTextToSize(`   ${criteria.description}`, pageWidth - 10);
+            doc.text(descLines, 25, yPos);
+            yPos += descLines.length * 5 + 3;
+            doc.setFontSize(11);
+        }
+    });
+    
+    yPos += 10;
+    
+    // Ratings Matrix Section
+    if (yPos > 200) {
+        doc.addPage();
+        yPos = 20;
+    }
+    
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text('Detailed Ratings Matrix', 20, yPos);
+    yPos += 10;
+    
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    
+    decisionData.criteria.forEach(criteria => {
+        if (yPos > 250) {
+            doc.addPage();
+            yPos = 20;
+        }
+        
+        doc.setFont(undefined, 'bold');
+        doc.text(`${criteria.name}:`, 25, yPos);
+        yPos += 7;
+        
+        doc.setFont(undefined, 'normal');
+        decisionData.options.forEach(option => {
+            const ratingKey = `${option.id}-${criteria.id}`;
+            const rating = decisionData.ratings[ratingKey] || 3;
+            doc.text(`   ${option.name}: ${rating}/5`, 30, yPos);
+            yPos += 6;
+        });
+        yPos += 5;
+    });
+    
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Generated by RANKiya - Try it yourself at ${window.location.origin}`, 105, 285, { align: 'center' });
+        doc.text(`Page ${i} of ${pageCount}`, 105, 292, { align: 'center' });
+    }
+    
+    // Download
+    const fileName = `Rankiya_Report_${decisionData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
+    doc.save(fileName);
+}
+
+
+        
 function handleFileImport(event) {
     const file = event.target.files[0];
     if (!file) return;
