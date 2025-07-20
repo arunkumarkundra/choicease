@@ -320,7 +320,31 @@
             position: relative;
             overflow: hidden;
         }
+.results-header {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    padding: 25px;
+    border-radius: 15px;
+    margin-bottom: 25px;
+    border: 2px solid #dee2e6;
+}
 
+.results-header h2 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 1.5rem;
+}
+
+.results-header .context {
+    color: #666;
+    margin-bottom: 15px;
+    font-style: italic;
+}
+
+.results-header .timestamp {
+    color: #888;
+    font-size: 0.9rem;
+    text-align: right;
+}
         .result-card::before {
             content: '';
             position: absolute;
@@ -623,10 +647,11 @@
                 <div class="section-title">Decision Results</div>
                 <div class="results-grid" id="resultsGrid"></div>
                 
-                <div style="margin-top: 30px; text-align: center;">
-                    <button class="btn btn-success" id="exportResultsBtn" aria-label="Export decision results">Export Results</button>
-                    <button class="btn btn-secondary" id="startOverBtn" aria-label="Start a new decision">Start New Decision</button>
-                </div>
+<div style="margin-top: 30px; text-align: center;">
+    <button class="btn btn-secondary" id="step6Back" aria-label="Go back to previous step">Back</button>
+    <button class="btn btn-success" id="exportResultsBtn" aria-label="Export decision results">Export Results</button>
+    <button class="btn btn-secondary" id="startOverBtn" aria-label="Start a new decision">Start New Decision</button>
+</div>
             </div>
         </div>
     </div>
@@ -671,6 +696,7 @@
             document.getElementById('step5Calculate').addEventListener('click', calculateResults);
             document.getElementById('exportResultsBtn').addEventListener('click', exportResults);
             document.getElementById('startOverBtn').addEventListener('click', startOver);
+            document.getElementById('step6Back').addEventListener('click', previousStep);
         }
 
         // Step navigation
@@ -1028,6 +1054,28 @@ function updateWeightDisplays() {
 
         function displayResults(results) {
             const container = document.getElementById('resultsGrid');
+// Add results header
+const header = document.createElement('div');
+header.className = 'results-header';
+
+const titleElement = document.createElement('h2');
+titleElement.textContent = `Decision: ${decisionData.title}`;
+header.appendChild(titleElement);
+
+if (decisionData.description) {
+    const contextElement = document.createElement('div');
+    contextElement.className = 'context';
+    contextElement.textContent = `Context: ${decisionData.description}`;
+    header.appendChild(contextElement);
+}
+
+const timestampElement = document.createElement('div');
+timestampElement.className = 'timestamp';
+timestampElement.textContent = `Generated on: ${new Date().toLocaleString()}`;
+header.appendChild(timestampElement);
+
+container.appendChild(header);
+            
             container.innerHTML = '';
             const maxScore = Math.max(...results.map(r => r.totalScore));
             results.forEach((result, index) => {
