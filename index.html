@@ -974,7 +974,7 @@ function updateWeightDisplays() {
                             <span style="font-weight: 600;">${option.name}</span>
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <span style="font-size: 0.9rem; color: #666;">Poor</span>
-                                <input type="range" min="1" max="5" value="${currentRating}" 
+                                <input type="range" min="0" max="5" value="${currentRating}" 
                                        class="slider" role="slider" aria-label="Rating for ${option.name} on ${criteria.name}"
                                        aria-valuemin="1" aria-valuemax="5" aria-valuenow="${currentRating}"
                                        onchange="updateRating('${ratingKey}', this.value)">
