@@ -139,6 +139,19 @@
             transform: translateY(-2px);
         }
 
+.import-section {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #e0e0e0;
+    text-align: center;
+}
+
+.import-section p {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: #666;
+}
+        
         .btn {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
@@ -559,6 +572,13 @@
                     <textarea id="decisionDescription" rows="3" placeholder="Any additional context that might help..."></textarea>
                 </div>
                 <button class="btn" id="step1Continue" aria-label="Continue to next step">Continue</button>
+<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+    <label for="importFile" class="btn btn-secondary" style="cursor: pointer; display: inline-block;">
+        📁 Import Previous Decision
+    </label>
+    <input type="file" id="importFile" accept=".json" style="display: none;">
+    <p style="margin-top: 8px; font-size: 0.9rem; color: #666;">Import a previously exported decision analysis</p>
+</div>
             </div>
 
             <!-- Step 2: Add Options -->
@@ -698,6 +718,7 @@
             document.getElementById('exportResultsBtn').addEventListener('click', exportResults);
             document.getElementById('startOverBtn').addEventListener('click', startOver);
             document.getElementById('step6Back').addEventListener('click', previousStep);
+            document.getElementById('importFile').addEventListener('change', handleFileImport);
         }
 
         // Step navigation
@@ -1153,26 +1174,123 @@ function updateWeightDisplays() {
             });
         }
 
-        function exportResults() {
-            const results = {
-                decision: decisionData.title,
-                description: decisionData.description,
-                timestamp: new Date().toISOString(),
-                options: decisionData.options,
-                criteria: decisionData.criteria,
-                weights: decisionData.weights,
-                ratings: decisionData.ratings
-            };
-            const dataStr = JSON.stringify(results, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `decision_analysis_${Date.now()}.json`;
-            link.click();
-            URL.revokeObjectURL(url);
+function exportResults() {
+    const results = {
+        decision: decisionData.title,
+        description: decisionData.description,
+        timestamp: new Date().toISOString(),
+        options: decisionData.options,
+        criteria: decisionData.criteria,
+        weights: decisionData.weights,
+        ratings: decisionData.ratings,
+        version: "1.0" // Add version for future compatibility
+    };
+    const dataStr = JSON.stringify(results, null, 2);
+    const dataBlob = new Blob([dataStr], {type: 'application/json'});
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `rankiya_decision_${Date.now()}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+}
+function handleFileImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    if (!file.name.endsWith('.json')) {
+        alert('Please select a valid JSON file.');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            if (validateImportedData(importedData)) {
+                loadImportedData(importedData);
+                alert('Decision data imported successfully!');
+            } else {
+                alert('Invalid file format. Please select a file exported by RANKiya.');
+            }
+        } catch (error) {
+            alert('Error reading file. Please ensure it\'s a valid JSON file.');
         }
+    };
+    reader.readAsText(file);
+    
+    // Reset file input
+    event.target.value = '';
+}
 
+function validateImportedData(data) {
+    // Check if all required fields exist
+    return data && 
+           typeof data.decision === 'string' &&
+           Array.isArray(data.options) &&
+           Array.isArray(data.criteria) &&
+           typeof data.weights === 'object' &&
+           typeof data.ratings === 'object';
+}
+
+function loadImportedData(data) {
+    // Clear current data first
+    decisionData = {
+        title: '',
+        description: '',
+        options: [],
+        criteria: [],
+        weights: {},
+        ratings: {},
+        normalizedWeights: {}
+    };
+    
+    // Load imported data
+    decisionData.title = sanitizeInput(data.decision || '');
+    decisionData.description = sanitizeInput(data.description || '');
+    decisionData.options = data.options.map(option => ({
+        id: option.id || Date.now() + Math.random(),
+        name: sanitizeInput(option.name || ''),
+        description: sanitizeInput(option.description || '')
+    }));
+    decisionData.criteria = data.criteria.map(criteria => ({
+        id: criteria.id || Date.now() + Math.random(),
+        name: sanitizeInput(criteria.name || ''),
+        description: sanitizeInput(criteria.description || '')
+    }));
+    decisionData.weights = data.weights || {};
+    decisionData.ratings = data.ratings || {};
+    
+    // Normalize weights if they exist
+    if (Object.keys(decisionData.weights).length > 0) {
+        normalizeImportanceWeights();
+    }
+    
+    // Update UI
+    updateUIWithImportedData();
+}
+
+function updateUIWithImportedData() {
+    // Update form fields
+    document.getElementById('decisionTitle').value = decisionData.title;
+    document.getElementById('decisionDescription').value = decisionData.description;
+    
+    // Update displays
+    displayOptions();
+    displayCriteria();
+    
+    // Clear input fields
+    document.getElementById('optionName').value = '';
+    document.getElementById('optionDescription').value = '';
+    document.getElementById('criteriaName').value = '';
+    document.getElementById('criteriaDescription').value = '';
+    
+    // Update warnings
+    checkOptionsWarning();
+    checkCriteriaWarning();
+}
+        
+        
         function startOver() {
             if (confirm('Are you sure you want to start a new decision? This will clear all current data.')) {
                 currentStep = 1;
