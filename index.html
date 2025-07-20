@@ -1054,29 +1054,31 @@ function updateWeightDisplays() {
 
         function displayResults(results) {
             const container = document.getElementById('resultsGrid');
-// Add results header
-const header = document.createElement('div');
-header.className = 'results-header';
+    
+    // Add results header first
+    const header = document.createElement('div');
+    header.className = 'results-header';
 
-const titleElement = document.createElement('h2');
-titleElement.textContent = `Decision: ${decisionData.title}`;
-header.appendChild(titleElement);
+    const titleElement = document.createElement('h2');
+    titleElement.textContent = `Decision: ${decisionData.title}`;
+    header.appendChild(titleElement);
 
-if (decisionData.description) {
-    const contextElement = document.createElement('div');
-    contextElement.className = 'context';
-    contextElement.textContent = `Context: ${decisionData.description}`;
-    header.appendChild(contextElement);
-}
+    if (decisionData.description) {
+        const contextElement = document.createElement('div');
+        contextElement.className = 'context';
+        contextElement.textContent = `Context: ${decisionData.description}`;
+        header.appendChild(contextElement);
+    }
 
-const timestampElement = document.createElement('div');
-timestampElement.className = 'timestamp';
-timestampElement.textContent = `Generated on: ${new Date().toLocaleString()}`;
-header.appendChild(timestampElement);
+    const timestampElement = document.createElement('div');
+    timestampElement.className = 'timestamp';
+    timestampElement.textContent = `Generated on: ${new Date().toLocaleString()}`;
+    header.appendChild(timestampElement);
 
-container.appendChild(header);
-            
-            container.innerHTML = '';
+    // Clear container and add header first
+    container.innerHTML = '';
+    container.appendChild(header);
+
             const maxScore = Math.max(...results.map(r => r.totalScore));
             results.forEach((result, index) => {
                 const card = document.createElement('div');
