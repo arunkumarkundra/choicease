@@ -486,7 +486,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎯 Rankiya.</h1>
+            <h1>🎯 Rankiya</h1>
             <p>Choosing from multiple options with multiple criteria, made easy.</p>
         </div>
 
@@ -976,7 +976,7 @@ function updateWeightDisplays() {
                                 <span style="font-size: 0.9rem; color: #666;">Poor</span>
                                 <input type="range" min="0" max="5" value="${currentRating}" 
                                        class="slider" role="slider" aria-label="Rating for ${option.name} on ${criteria.name}"
-                                       aria-valuemin="1" aria-valuemax="5" aria-valuenow="${currentRating}"
+                                       aria-valuemin="0" aria-valuemax="5" aria-valuenow="${currentRating}"
                                        onchange="updateRating('${ratingKey}', this.value)">
                                 <span style="font-size: 0.9rem; color: #666;">Excellent</span>
                                 <span id="rating-${ratingKey}" style="font-weight: bold; color: #667eea; min-width: 20px;">${currentRating}</span>
