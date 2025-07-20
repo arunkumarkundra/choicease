@@ -1194,7 +1194,7 @@ function exportResults() {
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `smart_choice_decision_${Date.now()}.json`;
+    link.download = `smart_choice_decision_${decisionData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.json`;
     link.click();
     URL.revokeObjectURL(url);
 }
