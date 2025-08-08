@@ -535,7 +535,7 @@
         .modal {
             display: none;
             position: fixed;
-            z-index: 1000;
+            z-index: 9999;
             left: 0;
             top: 0;
             width: 100%;
@@ -571,7 +571,19 @@
             line-height: 1.7;
             color: #333;
         }
+
+        .modal-body > div {
+            margin-bottom: 25px; /* Adds space between each section */
+        }
         
+        .modal-body ul, .modal-body ol {
+            padding-left: 25px; /* Indents lists to the right */
+            margin-top: 10px;   /* Adds space above the list */
+        }
+        
+        .modal-body li {
+            margin-bottom: 8px; /* Adds space between list items */
+        }
         .close {
             color: rgba(255, 255, 255, 0.8);
             float: right;
@@ -873,9 +885,9 @@
                 
 <div style="margin-top: 30px; text-align: center;">
     <button class="btn btn-secondary" id="step6Back" aria-label="Go back to previous step">Back</button>
-    <button class="btn btn-success" id="shareResultsBtn" aria-label="Share results">📱 Share Results</button>
+    <button class="btn btn-success" id="shareResultsBtn" aria-label="Share results">↗️ Share Results</button>
     <div style="display: inline-block; position: relative;">
-        <button class="btn btn-success" id="exportDropdownBtn" aria-label="Export options">📄 Export Results ▼</button>
+        <button class="btn btn-success" id="exportDropdownBtn" aria-label="Export options">📤 Export Results ▼</button>
         <div class="export-dropdown hidden" id="exportDropdown" style="position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 180px;">
             <button class="export-option" data-type="json">📁 Export as JSON</button>
             <button class="export-option" data-type="pdf">📄 Export as PDF</button>
