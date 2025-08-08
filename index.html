@@ -487,6 +487,169 @@
             background-color: #f8f9fa;
         }
 
+        .info-button {
+            position: absolute;
+            top: -10px;
+            right: -20px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #667eea;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: #667eea;
+            backdrop-filter: blur(10px);
+        }
+        
+        .info-button:hover {
+            background: #667eea;
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .text-info-button {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid #667eea;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            color: #667eea;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            font-weight: 600;
+        }
+        
+        .text-info-button:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .modal-content {
+            background-color: #fefefe;
+            margin: 2% auto;
+            padding: 0;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            animation: slideInDown 0.4s ease;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px 30px;
+            border-radius: 20px 20px 0 0;
+            position: relative;
+        }
+        
+        .modal-body {
+            padding: 30px;
+            line-height: 1.7;
+            color: #333;
+        }
+        
+        .close {
+            color: rgba(255, 255, 255, 0.8);
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+        
+        .close:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+        
+        .step-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            margin-right: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .feature-list {
+            display: grid;
+            gap: 12px;
+            margin: 20px 0;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            background: linear-gradient(135deg, #f8f9ff, #f0f4ff);
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .feature-emoji {
+            font-size: 1.2rem;
+            margin-right: 12px;
+        }
+        
+        @keyframes slideInDown {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        @media (max-width: 768px) {
+            .text-info-button {
+                display: none;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 5% auto;
+                max-height: 85vh;
+            }
+            
+            .modal-body {
+                padding: 20px;
+            }
+        }
+        
         
         @keyframes slideDown {
             from { transform: translateY(-50px); opacity: 0; }
@@ -557,7 +720,21 @@
 <body>
     <div class="container">
         <div class="header">
-<img src="images/logo.png" alt="Choicease - Smart Choices, Made Easy" style="max-width: 300px; height: auto;">
+            <div style="position: relative;">
+                <img src="images/logo.png" alt="Choicease - Smart Choices, Made Easy" style="max-width: 300px; height: auto;">
+                <button id="howItWorksBtn" class="info-button" aria-label="How it works" title="How Choicease Works">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9,9h0a3,3,0,0,1,5.12,2.12h0A3,3,0,0,1,13,14"></path>
+                        <circle cx="12" cy="17" r="1"></circle>
+                    </svg>
+                </button>
+            </div>
+            <div style="position: absolute; top: 20px; right: 20px;">
+                <button id="howItWorksTextBtn" class="text-info-button" aria-label="How it works">
+                    How it works?
+                </button>
+            </div>
         </div>
 
         <div class="app-container">
@@ -720,6 +897,121 @@
         </div>
     </div>
 
+
+<div id="howItWorksModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="close">&times;</span>
+            <h2 style="margin: 0; font-size: 1.8rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                🧭 How Choicease Works
+            </h2>
+            <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 1rem;">
+                Smart decisions made simple
+            </p>
+        </div>
+        
+        <div class="modal-body">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin-bottom: 10px;">🤔 Stuck between options?</h3>
+                <p style="font-size: 1.1rem; color: #555;">Choicease helps you decide faster — and more confidently — by guiding you step-by-step through your options using proven decision-making science.</p>
+            </div>
+
+            <h3 style="color: #667eea; margin: 25px 0 15px 0; font-size: 1.3rem;">🧠 Why Choose Choicease?</h3>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <span class="feature-emoji">🎯</span>
+                    <span><strong>Eliminates decision paralysis</strong> by breaking complex choices into clear steps</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-emoji">🧮</span>
+                    <span><strong>Uses weighted scoring</strong> to match your personal priorities</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-emoji">📊</span>
+                    <span><strong>Visual results & comparisons</strong> make your best choice obvious</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-emoji">💾</span>
+                    <span><strong>Export & share results</strong> in multiple formats (PDF, CSV, Image)</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-emoji">🔒</span>
+                    <span><strong>100% private</strong> — no data stored, your decisions stay yours</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-emoji">🎁</span>
+                    <span><strong>Completely free</strong> — use it as many times as you want</span>
+                </div>
+            </div>
+
+            <h3 style="color: #667eea; margin: 30px 0 20px 0; font-size: 1.3rem;">🪜 The Process</h3>
+            <div style="display: grid; gap: 15px;">
+                <div style="display: flex; align-items: flex-start; padding: 15px; background: #fafafa; border-radius: 12px; border-left: 4px solid #667eea;">
+                    <span class="step-icon">1</span>
+                    <div>
+                        <strong style="color: #333;">Define Your Decision</strong>
+                        <p style="margin: 5px 0 0 0; color: #666;">Tell us what you're deciding — from choosing a laptop to picking a career path.</p>
+                    </div>
+                </div>
+                
+                <div style="display: flex; align-items: flex-start; padding: 15px; background: #fafafa; border-radius: 12px; border-left: 4px solid #667eea;">
+                    <span class="step-icon">2</span>
+                    <div>
+                        <strong style="color: #333;">List Your Options</strong>
+                        <p style="margin: 5px 0 0 0; color: #666;">Add all the choices you're considering (we recommend 3-7 options).</p>
+                    </div>
+                </div>
+                
+                <div style="display: flex; align-items: flex-start; padding: 15px; background: #fafafa; border-radius: 12px; border-left: 4px solid #667eea;">
+                    <span class="step-icon">3</span>
+                    <div>
+                        <strong style="color: #333;">Define What Matters</strong>
+                        <p style="margin: 5px 0 0 0; color: #666;">Set criteria that matter to you (price, quality, convenience, etc.).</p>
+                    </div>
+                </div>
+                
+                <div style="display: flex; align-items: flex-start; padding: 15px; background: #fafafa; border-radius: 12px; border-left: 4px solid #667eea;">
+                    <span class="step-icon">4</span>
+                    <div>
+                        <strong style="color: #333;">Weight Your Priorities</strong>
+                        <p style="margin: 5px 0 0 0; color: #666;">Tell us how important each criteria is (1-5 scale).</p>
+                    </div>
+                </div>
+                
+                <div style="display: flex; align-items: flex-start; padding: 15px; background: #fafafa; border-radius: 12px; border-left: 4px solid #667eea;">
+                    <span class="step-icon">5</span>
+                    <div>
+                        <strong style="color: #333;">Rate Each Option</strong>
+                        <p style="margin: 5px 0 0 0; color: #666;">Score how well each option meets each criteria (1-5 scale).</p>
+                    </div>
+                </div>
+                
+                <div style="display: flex; align-items: flex-start; padding: 15px; background: linear-gradient(135deg, #d4edda, #c3e6cb); border-radius: 12px; border-left: 4px solid #28a745;">
+                    <span class="step-icon" style="background: #28a745;">✓</span>
+                    <div>
+                        <strong style="color: #333;">Get Your Answer!</strong>
+                        <p style="margin: 5px 0 0 0; color: #666;">See your personalized ranking with detailed breakdowns and confidence scores.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="background: linear-gradient(135deg, #f0f4ff, #e6f2ff); padding: 20px; border-radius: 15px; margin: 30px 0; border: 2px solid #667eea;">
+                <h4 style="color: #667eea; margin: 0 0 10px 0;">📤 Ready to Share or Save?</h4>
+                <p style="margin: 0; color: #555;">Export your results as PDF reports, CSV data, or shareable images. Perfect for team decisions, getting input from others, or revisiting choices later.</p>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <button class="btn" id="closeModalBtn" style="font-size: 1.1rem; padding: 12px 30px;">
+                    🚀 Let's Make a Decision!
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+    
     <script>
         // Application state
         let currentStep = 1;
@@ -763,6 +1055,20 @@
             document.getElementById('step6Back').addEventListener('click', previousStep);
             document.getElementById('importFile').addEventListener('change', handleFileImport);
             document.getElementById('shareResultsBtn').addEventListener('click', shareResults);
+            document.getElementById('howItWorksBtn').addEventListener('click', openModal);
+            document.getElementById('howItWorksTextBtn').addEventListener('click', openModal);
+            document.querySelector('.close').addEventListener('click', closeModal);
+            document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+            
+            // Close modal when clicking outside
+            window.addEventListener('click', function(event) {
+                const modal = document.getElementById('howItWorksModal');
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+
+            
             document.addEventListener('click', function(event) {
                 if (event.target.classList.contains('export-option')) {
                     const type = event.target.getAttribute('data-type');
@@ -2082,6 +2388,17 @@ function updateUIWithImportedData() {
             }
         }
 
+
+        function openModal() {
+            document.getElementById('howItWorksModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+        
+        function closeModal() {
+            document.getElementById('howItWorksModal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+        
         // Keyboard support
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Enter' && !event.shiftKey) {
