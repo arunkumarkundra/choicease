@@ -552,6 +552,7 @@
     </style>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -698,9 +699,13 @@
             <div class="section hidden" id="section6">
                 <div class="section-title">Decision Results</div>
                 <div class="results-grid" id="resultsGrid"></div>
+                <div id="shareCanvas" style="position: absolute; left: -9999px; top: -9999px; width: 800px; background: white; padding: 40px; font-family: 'Segoe UI', sans-serif;">
+                    <!-- This will be populated dynamically -->
+                </div>
                 
 <div style="margin-top: 30px; text-align: center;">
     <button class="btn btn-secondary" id="step6Back" aria-label="Go back to previous step">Back</button>
+    <button class="btn btn-success" id="shareResultsBtn" aria-label="Share results">📱 Share Results</button>
     <div style="display: inline-block; position: relative;">
         <button class="btn btn-success" id="exportDropdownBtn" aria-label="Export options">📄 Export Results ▼</button>
         <div class="export-dropdown hidden" id="exportDropdown" style="position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 180px;">
@@ -709,7 +714,6 @@
             <button class="export-option" data-type="csv">📊 Export as CSV</button>
         </div>
     </div>
-    
     <button class="btn btn-secondary" id="startOverBtn" aria-label="Start a new decision">Start New Decision</button>
 </div>
             </div>
@@ -758,6 +762,7 @@
             document.getElementById('startOverBtn').addEventListener('click', startOver);
             document.getElementById('step6Back').addEventListener('click', previousStep);
             document.getElementById('importFile').addEventListener('change', handleFileImport);
+            document.getElementById('shareResultsBtn').addEventListener('click', shareResults);
             document.addEventListener('click', function(event) {
                 if (event.target.classList.contains('export-option')) {
                     const type = event.target.getAttribute('data-type');
@@ -1683,6 +1688,151 @@ function exportToCSV() {
     URL.revokeObjectURL(url);
 }
 
+
+
+
+function shareResults() {
+    createShareableImage().then(canvas => {
+        // Convert canvas to blob
+        canvas.toBlob(blob => {
+            const shareText = `Just completed my decision analysis for "${decisionData.title}" using Choicease! 🎯\n\nMy top choice: ${getTopChoice()}\n\nSmart decisions made easy at choicease.com`;
+            
+            if (navigator.share) {
+                // Native sharing (mobile)
+                const file = new File([blob], 'choicease-results.png', { type: 'image/png' });
+                navigator.share({
+                    title: `Decision Results: ${decisionData.title}`,
+                    text: shareText,
+                    files: [file]
+                }).catch(console.error);
+            } else {
+                // Fallback: Download image and copy text
+                downloadImageAndCopyText(blob, shareText);
+            }
+        }, 'image/png');
+    });
+}
+
+function getTopChoice() {
+    // Calculate results to get top option
+    const results = [];
+    decisionData.options.forEach(option => {
+        let totalScore = 0;
+        decisionData.criteria.forEach(criteria => {
+            const ratingKey = `${option.id}-${criteria.id}`;
+            const rating = decisionData.ratings[ratingKey] || 3;
+            const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
+            totalScore += rating * weight;
+        });
+        results.push({ name: option.name, totalScore });
+    });
+    results.sort((a, b) => b.totalScore - a.totalScore);
+    return results[0].name;
+}
+
+function createShareableImage() {
+    return new Promise((resolve) => {
+        const container = document.getElementById('shareCanvas');
+        
+        // Calculate results for image
+        const results = [];
+        decisionData.options.forEach(option => {
+            let totalScore = 0;
+            decisionData.criteria.forEach(criteria => {
+                const ratingKey = `${option.id}-${criteria.id}`;
+                const rating = decisionData.ratings[ratingKey] || 3;
+                const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
+                totalScore += rating * weight;
+            });
+            results.push({
+                name: option.name,
+                description: option.description,
+                totalScore: totalScore
+            });
+        });
+        results.sort((a, b) => b.totalScore - a.totalScore);
+        
+        // Create image content
+        const maxScore = Math.max(...results.map(r => r.totalScore));
+        
+        container.innerHTML = `
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; margin: -40px -40px 30px -40px; text-align: center;">
+                <img src="images/logo.png" alt="Choicease" style="max-width: 200px; height: auto; margin-bottom: 15px;">
+                <h1 style="font-size: 28px; margin: 0; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">Decision Results</h1>
+            </div>
+            
+            <div style="margin-bottom: 25px;">
+                <h2 style="font-size: 24px; color: #333; margin-bottom: 8px; font-weight: bold;">${decisionData.title}</h2>
+                ${decisionData.description ? `<p style="color: #666; font-size: 16px; margin: 0; font-style: italic;">${decisionData.description}</p>` : ''}
+            </div>
+            
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #667eea; font-size: 20px; margin-bottom: 20px; font-weight: 600;">Ranking Results</h3>
+                ${results.map((result, index) => `
+                    <div style="display: flex; align-items: center; margin-bottom: 15px; padding: 15px; background: ${index === 0 ? 'linear-gradient(135deg, #d4edda, #c3e6cb)' : '#f8f9fa'}; border-radius: 12px; border: 2px solid ${index === 0 ? '#28a745' : '#e9ecef'};">
+                        <div style="width: 35px; height: 35px; background: ${index === 0 ? '#28a745' : '#667eea'}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 15px; font-size: 18px;">
+                            ${index + 1}
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: bold; font-size: 18px; color: #333; margin-bottom: 4px;">
+                                ${result.name} ${index === 0 ? '🏆' : ''}
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <div style="width: 200px; height: 12px; background: #e9ecef; border-radius: 6px; margin-right: 10px; overflow: hidden;">
+                                    <div style="width: ${(result.totalScore / maxScore) * 100}%; height: 100%; background: ${index === 0 ? '#28a745' : '#667eea'}; border-radius: 6px;"></div>
+                                </div>
+                                <span style="font-weight: bold; color: #667eea; font-size: 16px;">${result.totalScore.toFixed(2)}/5.0</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            
+            <div style="border-top: 2px solid #e9ecef; padding-top: 20px; display: flex; justify-content: space-between; align-items: center; color: #666; font-size: 14px;">
+                <div>Generated on: ${new Date().toLocaleString()}</div>
+                <div style="text-align: right;">
+                    <div style="font-weight: 600; color: #667eea; margin-bottom: 4px;">Try it yourself!</div>
+                    <div>Visit: choicease.com</div>
+                </div>
+            </div>
+        `;
+        
+        // Use html2canvas to convert to image
+        html2canvas(container, {
+            backgroundColor: '#ffffff',
+            scale: 2,
+            useCORS: true,
+            allowTaint: true
+        }).then(canvas => {
+            resolve(canvas);
+        });
+    });
+}
+
+function downloadImageAndCopyText(blob, shareText) {
+    // Download image
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `choicease_${decisionData.title.replace(/[^a-z0-9]/gi, '_')}_results.png`;
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    // Copy text to clipboard
+    navigator.clipboard.writeText(shareText).then(() => {
+        alert('Image downloaded and share text copied to clipboard! You can now paste the text when sharing on social media.');
+    }).catch(() => {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = shareText;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Image downloaded and share text copied to clipboard! You can now paste the text when sharing on social media.');
+    });
+}
+        
 
 function checkDataIntegrity(data) {
     const warnings = [];
