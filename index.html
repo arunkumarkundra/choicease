@@ -1940,25 +1940,25 @@ function exportToCSV() {
 
 function shareResults() {
     createShareableImage().then(canvas => {
-        // Convert canvas to blob
         canvas.toBlob(blob => {
-        const shareText = `🎯 Just completed my decision analysis for "${decisionData.title}" using Choicease!
-        
-        ✅ My top choice: ${getTopChoice()}
-        📊 Analyzed ${decisionData.options.length} options across ${decisionData.criteria.length} criteria
-        
-        Smart decisions made easy! Try it yourself at choicease.com`;
+            // ✅ Use the more detailed and robust getEnhancedShareText() function
+            const shareText = getEnhancedShareText();
+            const shareData = {
+                title: `Decision Results: ${decisionData.title}`,
+                text: shareText,
+                files: [new File([blob], 'choicease-results.png', { type: 'image/png' })]
+            };
             
-            if (navigator.share) {
-                // Native sharing (mobile)
-                const file = new File([blob], 'choicease-results.png', { type: 'image/png' });
-                navigator.share({
-                    title: `Decision Results: ${decisionData.title}`,
-                    text: shareText,
-                    files: [file]
-                }).catch(console.error);
+            // Check if the browser can share the files
+            if (navigator.canShare && navigator.canShare(shareData)) {
+                navigator.share(shareData).catch(error => {
+                    // Fallback if user cancels or an error occurs
+                    console.error('Sharing failed:', error);
+                    downloadImageAndCopyText(blob, shareText);
+                });
             } else {
-                // Fallback: Download image and copy text
+                // Fallback for browsers that don't support sharing files
+                console.log("Sharing files not supported, falling back to download.");
                 downloadImageAndCopyText(blob, shareText);
             }
         }, 'image/png');
@@ -2110,7 +2110,7 @@ function getEnhancedShareText() {
 🏆 Winner: ${topChoice} (${scorePercentage}% match)
 📊 ${decisionData.options.length} options • ${decisionData.criteria.length} criteria analyzed
 
-Make your next smart decision at choicease.com`;
+Smart choices made easy! Try it yourself at choicease.com`;
 }
 
         
