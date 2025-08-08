@@ -1228,20 +1228,41 @@ function exportResults() {
     if (!decisionData.normalizedWeights || Object.keys(decisionData.normalizedWeights).length === 0) {
         normalizeImportanceWeights();
     }
+    // Create deep copies to avoid modifying original data
+    const modifiedWeights = { ...decisionData.weights };
+    const modifiedRatings = { ...decisionData.ratings };
+    
+    // Assign default value of 3 to missing weights
+    decisionData.criteria.forEach(criterion => {
+        if (!(criterion in modifiedWeights)) {
+            modifiedWeights[criterion] = 3;
+        }
+    });
+    
+    // Assign default value of 3 to missing ratings
+    decisionData.options.forEach(option => {
+        if (!modifiedRatings[option]) {
+            modifiedRatings[option] = {};
+        }
+        decisionData.criteria.forEach(criterion => {
+            if (!(criterion in modifiedRatings[option])) {
+                modifiedRatings[option][criterion] = 3;
+            }
+        });
+    });
     
     const results = {
-        // Use consistent field names
-        title: decisionData.title,              // ✅ Fixed: was "decision"
+        title: decisionData.title,
         description: decisionData.description,
         timestamp: new Date().toISOString(),
         options: decisionData.options,
         criteria: decisionData.criteria,
-        weights: decisionData.weights,
-        normalizedWeights: decisionData.normalizedWeights,  // ✅ Added: Critical for calculations
-        ratings: decisionData.ratings,
-        version: "1.1"  // ✅ Updated version
+        weights: modifiedWeights,
+        normalizedWeights: decisionData.normalizedWeights,
+        ratings: modifiedRatings,
+        version: "1.1"
     };
-    
+        
     const dataStr = JSON.stringify(results, null, 2);
     const dataBlob = new Blob([dataStr], {type: 'application/json'});
     const url = URL.createObjectURL(dataBlob);
