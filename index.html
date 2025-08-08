@@ -1695,7 +1695,12 @@ function shareResults() {
     createShareableImage().then(canvas => {
         // Convert canvas to blob
         canvas.toBlob(blob => {
-            const shareText = `Just completed my decision analysis for "${decisionData.title}" using Choicease! 🎯\n\nMy top choice: ${getTopChoice()}\n\nSmart decisions made easy at choicease.com`;
+        const shareText = `🎯 Just completed my decision analysis for "${decisionData.title}" using Choicease!
+        
+        ✅ My top choice: ${getTopChoice()}
+        📊 Analyzed ${decisionData.options.length} options across ${decisionData.criteria.length} criteria
+        
+        Smart decisions made easy! Try it yourself at choicease.com`;
             
             if (navigator.share) {
                 // Native sharing (mobile)
@@ -1730,6 +1735,21 @@ function getTopChoice() {
     return results[0].name;
 }
 
+function getTopScore() {
+    const results = [];
+    decisionData.options.forEach(option => {
+        let totalScore = 0;
+        decisionData.criteria.forEach(criteria => {
+            const ratingKey = `${option.id}-${criteria.id}`;
+            const rating = decisionData.ratings[ratingKey] || 3;
+            const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
+            totalScore += rating * weight;
+        });
+        results.push(totalScore);
+    });
+    return Math.max(...results);
+}
+        
 function createShareableImage() {
     return new Promise((resolve) => {
         const container = document.getElementById('shareCanvas');
@@ -1833,7 +1853,20 @@ function downloadImageAndCopyText(blob, shareText) {
     });
 }
         
+function getEnhancedShareText() {
+    const topChoice = getTopChoice();
+    const scorePercentage = Math.round((getTopScore() / 5) * 100);
+    
+    return `🎯 Decision Analysis Complete!
 
+📝 "${decisionData.title}"
+🏆 Winner: ${topChoice} (${scorePercentage}% match)
+📊 ${decisionData.options.length} options • ${decisionData.criteria.length} criteria analyzed
+
+Make your next smart decision at choicease.com`;
+}
+
+        
 function checkDataIntegrity(data) {
     const warnings = [];
     let isValid = true;
