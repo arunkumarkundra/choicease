@@ -1065,6 +1065,7 @@ function updateWeightDisplays() {
                 `;
                 decisionData.options.forEach(option => {
                     const ratingKey = `${option.id}-${criteria.id}`;
+                    decisionData.ratings[ratingKey] = decisionData.ratings[ratingKey] || 3;
                     const currentRating = decisionData.ratings[ratingKey] || 3;
                     html += `
                         <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #f8f9fa; border-radius: 8px;">
