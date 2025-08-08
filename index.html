@@ -773,6 +773,10 @@
         // Step navigation
         function nextStep() {
             if (validateCurrentStep()) {
+                // Capture all ratings when leaving step 5
+                if (currentStep === 5) {
+                    captureAllRatings();
+                }
                 currentStep++;
                 showStep(currentStep);
                 updateProgressBar();
@@ -781,6 +785,10 @@
         }
 
         function previousStep() {
+            // Capture all ratings when leaving step 5
+            if (currentStep === 5) {
+                captureAllRatings();
+            }
             currentStep--;
             showStep(currentStep);
             updateProgressBar();
@@ -1092,6 +1100,19 @@ function updateWeightDisplays() {
         function updateRating(key, value) {
             decisionData.ratings[key] = parseInt(value);
             document.getElementById(`rating-${key}`).textContent = value;
+        }
+
+        function captureAllRatings() {
+            decisionData.options.forEach(option => {
+                decisionData.criteria.forEach(criteria => {
+                    const ratingKey = `${option.id}-${criteria.id}`;
+                    const sliderElement = document.querySelector(`input[onchange*="${ratingKey}"]`);
+                    if (sliderElement) {
+                        const currentValue = sliderElement.value;
+                        updateRating(ratingKey, currentValue);
+                    }
+                });
+            });
         }
 
         // Results calculation
