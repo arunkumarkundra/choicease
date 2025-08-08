@@ -1224,16 +1224,24 @@ function updateWeightDisplays() {
         }
 
 function exportResults() {
+    // Ensure normalized weights are calculated
+    if (!decisionData.normalizedWeights || Object.keys(decisionData.normalizedWeights).length === 0) {
+        normalizeImportanceWeights();
+    }
+    
     const results = {
-        decision: decisionData.title,
+        // Use consistent field names
+        title: decisionData.title,              // ✅ Fixed: was "decision"
         description: decisionData.description,
         timestamp: new Date().toISOString(),
         options: decisionData.options,
         criteria: decisionData.criteria,
         weights: decisionData.weights,
+        normalizedWeights: decisionData.normalizedWeights,  // ✅ Added: Critical for calculations
         ratings: decisionData.ratings,
-        version: "1.0" // Add version for future compatibility
+        version: "1.1"  // ✅ Updated version
     };
+    
     const dataStr = JSON.stringify(results, null, 2);
     const dataBlob = new Blob([dataStr], {type: 'application/json'});
     const url = URL.createObjectURL(dataBlob);
@@ -1655,7 +1663,50 @@ function exportToCSV() {
 }
 
 
-
+function checkDataIntegrity(data) {
+    const warnings = [];
+    let isValid = true;
+    
+    // Check for orphaned ratings (ratings without corresponding options/criteria)
+    if (data.ratings && Object.keys(data.ratings).length > 0) {
+        const optionIds = data.options ? data.options.map(o => o.id.toString()) : [];
+        const criteriaIds = data.criteria ? data.criteria.map(c => c.id.toString()) : [];
+        
+        Object.keys(data.ratings).forEach(ratingKey => {
+            const [optionId, criteriaId] = ratingKey.split('-');
+            if (!optionIds.includes(optionId)) {
+                warnings.push(`Found rating for missing option ID: ${optionId}`);
+            }
+            if (!criteriaIds.includes(criteriaId)) {
+                warnings.push(`Found rating for missing criteria ID: ${criteriaId}`);
+            }
+        });
+    }
+    
+    // Check for orphaned weights
+    if (data.weights && Object.keys(data.weights).length > 0) {
+        const criteriaIds = data.criteria ? data.criteria.map(c => c.id.toString()) : [];
+        Object.keys(data.weights).forEach(weightKey => {
+            if (!criteriaIds.includes(weightKey)) {
+                warnings.push(`Found weight for missing criteria ID: ${weightKey}`);
+            }
+        });
+    }
+    
+    // Check for missing ratings
+    if (data.options && data.criteria && data.options.length > 0 && data.criteria.length > 0) {
+        const expectedRatings = data.options.length * data.criteria.length;
+        const actualRatings = Object.keys(data.ratings || {}).length;
+        if (actualRatings < expectedRatings) {
+            warnings.push(`Missing ${expectedRatings - actualRatings} ratings. Some options may not be fully rated.`);
+        }
+    }
+    
+    return {
+        isValid: warnings.length === 0,
+        warnings: warnings
+    };
+}
 
         
 function handleFileImport(event) {
@@ -1671,13 +1722,22 @@ function handleFileImport(event) {
     reader.onload = function(e) {
         try {
             const importedData = JSON.parse(e.target.result);
+            
             if (validateImportedData(importedData)) {
-                loadImportedData(importedData);
-                alert('Decision data imported successfully!');
+                // ✅ Added: Check for data integrity
+                const integrity = checkDataIntegrity(importedData);
+                if (integrity.isValid) {
+                    loadImportedData(importedData);
+                    alert('Decision data imported successfully!');
+                } else {
+                    alert(`Import completed with warnings:\n${integrity.warnings.join('\n')}\nData may be incomplete.`);
+                    loadImportedData(importedData);
+                }
             } else {
                 alert('Invalid file format. Please select a file exported by Choicease.');
             }
         } catch (error) {
+            console.error('Import error:', error);
             alert('Error reading file. Please ensure it\'s a valid JSON file.');
         }
     };
@@ -1687,14 +1747,34 @@ function handleFileImport(event) {
     event.target.value = '';
 }
 
+        
 function validateImportedData(data) {
-    // Check if all required fields exist
-    return data && 
-           typeof data.decision === 'string' &&
+    // Support both old and new formats
+    const hasTitle = data.title || data.decision;
+    const hasValidStructure = data && 
+           typeof hasTitle === 'string' &&
            Array.isArray(data.options) &&
            Array.isArray(data.criteria) &&
            typeof data.weights === 'object' &&
            typeof data.ratings === 'object';
+    
+    // Validate options have required fields
+    if (hasValidStructure && data.options.length > 0) {
+        const optionsValid = data.options.every(option => 
+            option && typeof option.name === 'string' && option.id
+        );
+        if (!optionsValid) return false;
+    }
+    
+    // Validate criteria have required fields
+    if (hasValidStructure && data.criteria.length > 0) {
+        const criteriaValid = data.criteria.every(criteria => 
+            criteria && typeof criteria.name === 'string' && criteria.id
+        );
+        if (!criteriaValid) return false;
+    }
+    
+    return hasValidStructure;
 }
 
 function loadImportedData(data) {
@@ -1709,24 +1789,31 @@ function loadImportedData(data) {
         normalizedWeights: {}
     };
     
-    // Load imported data
-    decisionData.title = sanitizeInput(data.decision || '');
+    // Load imported data with backward compatibility
+    decisionData.title = sanitizeInput(data.title || data.decision || '');
     decisionData.description = sanitizeInput(data.description || '');
+    
+    // ✅ CRITICAL FIX: Preserve original IDs to maintain rating key relationships
     decisionData.options = data.options.map(option => ({
-        id: option.id || Date.now() + Math.random(),
+        id: option.id,  // Keep original ID - don't generate new ones!
         name: sanitizeInput(option.name || ''),
         description: sanitizeInput(option.description || '')
     }));
+    
     decisionData.criteria = data.criteria.map(criteria => ({
-        id: criteria.id || Date.now() + Math.random(),
+        id: criteria.id,  // Keep original ID - don't generate new ones!
         name: sanitizeInput(criteria.name || ''),
         description: sanitizeInput(criteria.description || '')
     }));
+    
+    // Load weights and ratings
     decisionData.weights = data.weights || {};
     decisionData.ratings = data.ratings || {};
     
-    // Normalize weights if they exist
-    if (Object.keys(decisionData.weights).length > 0) {
+    // ✅ Load normalized weights if available, otherwise recalculate
+    if (data.normalizedWeights && Object.keys(data.normalizedWeights).length > 0) {
+        decisionData.normalizedWeights = data.normalizedWeights;
+    } else if (Object.keys(decisionData.weights).length > 0) {
         normalizeImportanceWeights();
     }
     
@@ -1734,6 +1821,8 @@ function loadImportedData(data) {
     updateUIWithImportedData();
 }
 
+
+        
 function updateUIWithImportedData() {
     // Update form fields
     document.getElementById('decisionTitle').value = decisionData.title;
@@ -1752,8 +1841,15 @@ function updateUIWithImportedData() {
     // Update warnings
     checkOptionsWarning();
     checkCriteriaWarning();
-}
-        
+    
+    // ✅ Added: Validate current state after import
+    console.log('Import Summary:');
+    console.log('- Options:', decisionData.options.length);
+    console.log('- Criteria:', decisionData.criteria.length);
+    console.log('- Weights:', Object.keys(decisionData.weights).length);
+    console.log('- Ratings:', Object.keys(decisionData.ratings).length);
+    console.log('- Normalized Weights:', Object.keys(decisionData.normalizedWeights || {}).length);
+}        
         
         function startOver() {
             if (confirm('Are you sure you want to start a new decision? This will clear all current data.')) {
