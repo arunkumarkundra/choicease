@@ -1224,6 +1224,9 @@
                 description: description
             };
             decisionData.criteria.push(criteria);
+            decisionData.weights[criteria.id] = 3;  // set default rating for a newly added criterion
+            normalizeImportanceWeights();           // recompute normalized weights immediately
+
             displayCriteria();
             document.getElementById('criteriaName').value = '';
             document.getElementById('criteriaDescription').value = '';
@@ -1264,11 +1267,22 @@
         }
 
         function removeCriteria(id) {
-            decisionData.criteria = decisionData.criteria.filter(criteria => criteria.id !== id);
+            // Remove from criteria list
+            decisionData.criteria = decisionData.criteria.filter(c => c.id !== id);
+        
+            // Remove raw weight
             delete decisionData.weights[id];
+        
+            // NEW: Remove normalized weight and recalc
+            if (decisionData.normalizedWeights && decisionData.normalizedWeights[id] !== undefined) {
+                delete decisionData.normalizedWeights[id];
+                normalizeImportanceWeights();
+            }
+        
+            // Update UI
             displayCriteria();
-            checkCriteriaWarning();
         }
+
 
         function checkCriteriaWarning() {
             const warning = document.getElementById('criteriaWarning');
@@ -1281,10 +1295,13 @@ function setupWeightingStep() {
     // Initialize with default rating of 3 if not set
     decisionData.criteria.forEach(criteria => {
         if (!decisionData.weights[criteria.id]) {
-            decisionData.weights[criteria.id] = 3; // Store as rating initially
+            decisionData.weights[criteria.id] = 3; // default rating
         }
     });
-    
+
+    // IMPORTANT: recompute normalized weights now that any missing ratings were filled
+    normalizeImportanceWeights();
+
     container.innerHTML = decisionData.criteria.map(criteria => `
         <div class="criteria-item">
             <h4>${criteria.name}</h4>
@@ -1332,12 +1349,15 @@ function normalizeImportanceWeights() {
     decisionData.normalizedWeights = normalizedWeights;
 }
 
+
 function calculateDisplayWeight(criteriaId) {
-    if (!decisionData.normalizedWeights) {
+    // If normalizedWeights is missing entirely OR doesn't include this id, recalc
+    if (!decisionData.normalizedWeights || decisionData.normalizedWeights[criteriaId] === undefined) {
         normalizeImportanceWeights();
     }
     return Math.round(decisionData.normalizedWeights[criteriaId] || 0);
 }
+
 
 
 
