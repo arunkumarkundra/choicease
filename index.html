@@ -759,6 +759,13 @@
         }
     </style>
 
+    <!-- QR Code generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- QR Code decoding -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
+    <!-- Compression for large payloads -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+   
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -828,6 +835,10 @@
         📁 Import Previous Decision
     </label>
     <input type="file" id="importFile" accept=".json" style="display: none;">
+    <label for="importQR" class="btn btn-secondary" style="cursor: pointer; display: inline-block;">
+        📷 Import from QR Code
+    </label>
+    <input type="file" id="importQR" accept="image/*" style="display: none;">
     <p style="margin-top: 8px; font-size: 0.9rem; color: #666;">Import a previously exported decision analysis</p>
 </div>
             </div>
@@ -928,6 +939,7 @@
     <div style="display: inline-block; position: relative;">
         <button class="btn btn-success" id="exportDropdownBtn" aria-label="Export options">📤 Export Results ▼</button>
         <div class="export-dropdown hidden" id="exportDropdown" style="position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 180px;">
+            <button class="export-option" data-type="qr">📷 Export as QR Code</button>
             <button class="export-option" data-type="json">📁 Export as JSON</button>
             <button class="export-option" data-type="pdf">📄 Export as PDF</button>
             <button class="export-option" data-type="csv">📊 Export as CSV</button>
@@ -1034,6 +1046,7 @@
             document.getElementById('startOverBtn').addEventListener('click', startOver);
             document.getElementById('step6Back').addEventListener('click', previousStep);
             document.getElementById('importFile').addEventListener('change', handleFileImport);
+            document.getElementById('importQR').addEventListener('change', handleQRImport);
             document.getElementById('shareResultsBtn').addEventListener('click', shareResults);
             document.getElementById('howItWorksBtn').addEventListener('click', openModal);
             document.querySelector('.close').addEventListener('click', closeModal);
@@ -1584,6 +1597,53 @@ function exportResults() {
 }
 
 
+function exportResultsAsQR() {
+    // Ensure normalized weights are calculated
+    if (!decisionData.normalizedWeights || Object.keys(decisionData.normalizedWeights).length === 0) {
+        normalizeImportanceWeights();
+    }
+
+    const results = {
+        title: decisionData.title,
+        description: decisionData.description,
+        timestamp: new Date().toISOString(),
+        options: decisionData.options,
+        criteria: decisionData.criteria,
+        weights: decisionData.weights,
+        normalizedWeights: decisionData.normalizedWeights,
+        ratings: decisionData.ratings,
+        version: "1.1"
+    };
+
+    // Serialize and compress
+    const jsonStr = JSON.stringify(results);
+    const compressed = pako.deflate(jsonStr);
+    const base64Data = btoa(String.fromCharCode(...compressed));
+
+    // Generate QR code in a modal window
+    const qrWindow = window.open('', '_blank');
+    qrWindow.document.write(`
+        <html>
+        <head><title>QR Code Export</title></head>
+        <body style="text-align:center; font-family:sans-serif;">
+            <h2>Scan or Save this QR Code</h2>
+            <div id="qrcode"></div>
+            <p>Use "Import from QR Code" in Choicease to load this decision.</p>
+        </body>
+        </html>
+    `);
+
+    const qrDiv = qrWindow.document.getElementById('qrcode');
+    new QRCode(qrDiv, {
+        text: base64Data,
+        width: 300,
+        height: 300,
+        correctLevel: QRCode.CorrectLevel.H
+    });
+}
+
+        
+
 function downloadPDFReport() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -1868,6 +1928,9 @@ function handleExportSelection(type) {
     
     // Call appropriate export function
     switch(type) {
+        case 'qr':
+            exportResultsAsQR();
+            break;
         case 'json':
             exportResults();
             break;
@@ -2256,6 +2319,46 @@ function handleFileImport(event) {
     event.target.value = '';
 }
 
+
+function handleQRImport(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function () {
+        const img = new Image();
+        img.onload = function () {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, canvas.width, canvas.height);
+
+            if (code) {
+                try {
+                    // Decode from Base64 and decompress
+                    const binary = atob(code.data);
+                    const byteArray = Uint8Array.from(binary, c => c.charCodeAt(0));
+                    const decompressed = pako.inflate(byteArray, { to: 'string' });
+                    const parsedData = JSON.parse(decompressed);
+
+                    // Use existing integrity check and loading
+                    loadImportedData(parsedData);
+                } catch (err) {
+                    alert('Invalid or corrupted QR code data.');
+                }
+            } else {
+                alert('No QR code found in image.');
+            }
+        };
+        img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+}
+        
+        
         
 function validateImportedData(data) {
     // Support both old and new formats
