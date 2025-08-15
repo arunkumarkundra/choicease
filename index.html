@@ -2494,6 +2494,13 @@ function updateUIWithImportedData() {
                     weights: {},
                     ratings: {}
                 };
+
+                // Reset QR code-related variables
+                qrCodeData = '';
+                if (document.getElementById('qrCodeImage')) {
+                    document.getElementById('qrCodeImage').src = '';
+                }
+                
                 document.getElementById('decisionTitle').value = '';
                 document.getElementById('decisionDescription').value = '';
                 document.getElementById('optionName').value = '';
