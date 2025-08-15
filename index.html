@@ -1620,25 +1620,44 @@ function exportResultsAsQR() {
     const compressed = pako.deflate(jsonStr);
     const base64Data = btoa(String.fromCharCode(...compressed));
 
-    // Generate QR code as PNG Data URL and trigger download
-    QRCode.toDataURL(base64Data, { errorCorrectionLevel: 'H', width: 300 }, function (err, url) {
-        if (err) {
-            alert('Error generating QR code.');
-            return;
+    // Create a temporary container (not visible)
+    const tempDiv = document.createElement('div');
+    tempDiv.style.position = "absolute";
+    tempDiv.style.left = "-9999px";
+    document.body.appendChild(tempDiv);
+
+    // Generate QR code into tempDiv
+    new QRCode(tempDiv, {
+        text: base64Data,
+        width: 300,
+        height: 300,
+        correctLevel: QRCode.CorrectLevel.H
+    });
+
+    // Give QRCode.js a moment to render the <canvas>
+    setTimeout(() => {
+        const canvas = tempDiv.querySelector('canvas');
+        if (canvas) {
+            const url = canvas.toDataURL("image/png");
+
+            const safeTitle = decisionData.title ? decisionData.title.replace(/\s+/g, "_") : "decision";
+            const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+            const filename = `choicease_QR_${safeTitle}_${timestamp}.png`;
+
+            // Trigger download
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } else {
+            alert("QR generation failed.");
         }
 
-        const safeTitle = decisionData.title ? decisionData.title.replace(/\s+/g, "_") : "decision";
-        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-        const filename = `choicease_QR_${safeTitle}_${timestamp}.png`;
-
-        // Create hidden link and auto-download
-        const link = document.createElement('a');
-        link.download = filename;
-        link.href = url;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    });
+        // Clean up
+        document.body.removeChild(tempDiv);
+    }, 200);
 }
 
         
