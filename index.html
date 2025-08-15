@@ -779,7 +779,28 @@
         text-align: left !important;
       }
     }
+
+    .site-footer {
+        text-align: center;
+        padding: 20px;
+        margin-top: 40px;
+        color: white;
+        font-size: 0.9rem;
+        opacity: 0.9;
+    }
     
+    .site-footer a {
+        color: #fffb; /* slightly translucent white */
+        text-decoration: underline;
+        transition: color 0.3s ease;
+    }
+    
+    .site-footer a:hover {
+        color: #fff; /* brighten on hover */
+    }
+
+
+        
     </style>
 
     <!-- QR Code generation -->
@@ -2729,5 +2750,10 @@ function updateUIWithImportedData() {
         // Initialize app
         document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
+
+    <footer class="site-footer">
+      <p>© 2025 Choicease | <a href="privacy.html">Privacy Policy</a></p>
+    </footer>
+
 </body>
 </html>
