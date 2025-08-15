@@ -1620,25 +1620,24 @@ function exportResultsAsQR() {
     const compressed = pako.deflate(jsonStr);
     const base64Data = btoa(String.fromCharCode(...compressed));
 
-    // Generate QR code in a modal window
-    const qrWindow = window.open('', '_blank');
-    qrWindow.document.write(`
-        <html>
-        <head><title>QR Code Export</title></head>
-        <body style="text-align:center; font-family:sans-serif;">
-            <h2>Scan or Save this QR Code</h2>
-            <div id="qrcode"></div>
-            <p>Use "Import from QR Code" in Choicease to load this decision.</p>
-        </body>
-        </html>
-    `);
+    // Generate QR code as PNG Data URL and trigger download
+    QRCode.toDataURL(base64Data, { errorCorrectionLevel: 'H', width: 300 }, function (err, url) {
+        if (err) {
+            alert('Error generating QR code.');
+            return;
+        }
 
-    const qrDiv = qrWindow.document.getElementById('qrcode');
-    new QRCode(qrDiv, {
-        text: base64Data,
-        width: 300,
-        height: 300,
-        correctLevel: QRCode.CorrectLevel.H
+        const safeTitle = decisionData.title ? decisionData.title.replace(/\s+/g, "_") : "decision";
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const filename = `choicease_QR_${safeTitle}_${timestamp}.png`;
+
+        // Create hidden link and auto-download
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     });
 }
 
