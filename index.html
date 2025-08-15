@@ -988,7 +988,7 @@
                 <li>🛡️100% private — no data stored, your decisions stay yours</li>
                 <li>🔁 Use it again and again — totally <strong>Free</strong></li>
                 <li>📢 Share your results publicly to get feedback in our Reddit community <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a>.</li>
-                <li>🔍 Learn from others — browse decisions posted by the community as QR codes, import them, and adapt to your needs.</li>
+                <li>🔍 Learn from others — browse decisions posted by our Reddit community, import them, and adapt to your needs.</li>
               </ul>
             </div><div>
               <h3>🪜 Step-by-Step Breakdown</h3>
@@ -1644,22 +1644,56 @@ function exportResultsAsQR() {
     // Generate QR code into tempDiv
     new QRCode(tempDiv, {
         text: base64Data,
-        width: 300,
-        height: 300,
+        width: 400,
+        height: 400, // keep square
         correctLevel: QRCode.CorrectLevel.H
     });
 
     // Give QRCode.js a moment to render the <canvas>
     setTimeout(() => {
-        const canvas = tempDiv.querySelector('canvas');
-        if (canvas) {
-            const url = canvas.toDataURL("image/png");
+        const qrCanvas = tempDiv.querySelector('canvas');
+        if (qrCanvas) {
+            const qrSize = qrCanvas.width; // square
 
+            // Prepare header/footer text
+            const headerText = (decisionData.title || 'Choicease Decision').slice(0, 80);
+            const footerText = 'Scan to import into Choicease';
+
+            const padding = 24;          // quiet zone
+            const headerHeight = 56;     // room for header
+            const footerHeight = 44;     // room for footer
+
+            // Create output canvas with room for header + footer
+            const out = document.createElement('canvas');
+            out.width = qrSize + padding * 2;
+            out.height = headerHeight + (qrSize + padding * 2) + footerHeight;
+
+            const octx = out.getContext('2d');
+
+            // White background
+            octx.fillStyle = '#fff';
+            octx.fillRect(0, 0, out.width, out.height);
+
+            // Header
+            octx.fillStyle = '#000';
+            octx.textAlign = 'center';
+            octx.textBaseline = 'middle';
+            octx.font = '600 18px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+            octx.fillText(headerText, out.width / 2, headerHeight / 2);
+
+            // QR image
+            octx.drawImage(qrCanvas, padding, headerHeight + padding);
+
+            // Footer
+            octx.font = '14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+            octx.fillText(footerText, out.width / 2, headerHeight + padding + qrSize + padding + footerHeight / 2);
+
+            // Download final composed image
+            const url = out.toDataURL("image/png");
             const safeTitle = decisionData.title ? decisionData.title.replace(/\s+/g, "_") : "decision";
             const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
             const filename = `choicease_QR_${safeTitle}_${timestamp}.png`;
 
-            // Trigger download
             const link = document.createElement('a');
             link.download = filename;
             link.href = url;
@@ -1672,9 +1706,8 @@ function exportResultsAsQR() {
 
         // Clean up
         document.body.removeChild(tempDiv);
-    }, 200);
+    }, 300);
 }
-
         
 
 function downloadPDFReport() {
