@@ -806,7 +806,7 @@
                         </div>
                     </div>
                 <button id="howItWorksBtn" class="info-button" aria-label="How it works" title="How Choicease Works">
-                    <i class="bi bi-info-circle"></i>
+                    <i class="bi bi-info-circle"><strong>i</strong></i>
                 </button>
             </div>
         </div>
@@ -1655,6 +1655,18 @@ function exportResultsAsQR() {
     // Serialize and compress
     const jsonStr = JSON.stringify(results);
     const compressed = pako.deflate(jsonStr);
+    
+    // Check size before QR code generation
+    const maxQRBytes = 2500; // safe limit for robust scanning
+    if (compressed.length > maxQRBytes) {
+      alert(
+        "This decision is too large to export as a QR code.\n\n" +
+        "Tip: Shorten long descriptions or details to make it scannable.\n" +
+        "Alternatively, export as a JSON file instead."
+      );
+      return;
+    }
+    
     const base64Data = btoa(String.fromCharCode(...compressed));
 
     // Create a temporary container (not visible)
@@ -2449,7 +2461,7 @@ function handleFileImport(event) {
                 const integrity = checkDataIntegrity(importedData);
                 if (integrity.isValid) {
                     loadImportedData(importedData);
-                    alert('Decision data imported successfully!');
+                    showToast('Decision data imported successfully!');
                 } else {
                     alert(`Import completed with warnings:\n${integrity.warnings.join('\n')}\nData may be incomplete.`);
                     loadImportedData(importedData);
@@ -2504,7 +2516,7 @@ function handleQRImport(event) {
 
                     // Use existing integrity check and loading
                     loadImportedData(parsedData);
-                    alert("QR import successful!");
+                    showToast("QR import successful!");
                     event.target.value = ""; // allow re-importing same file later
                 } catch (err) {
                     alert('Invalid or corrupted QR code data.');
@@ -2667,7 +2679,26 @@ function updateUIWithImportedData() {
             }
         }
 
+        function showToast(msg) {
+          const toast = document.createElement("div");
+          toast.textContent = msg;
+          toast.style.position = "fixed";
+          toast.style.bottom = "20px";
+          toast.style.right = "20px";
+          toast.style.background = "#4caf50";
+          toast.style.color = "#fff";
+          toast.style.padding = "10px 16px";
+          toast.style.borderRadius = "6px";
+          toast.style.boxShadow = "0 2px 6px rgba(0,0,0,0.2)";
+          toast.style.zIndex = 9999;
+          document.body.appendChild(toast);
+        
+          setTimeout(() => toast.style.opacity = "0", 2000);
+          setTimeout(() => toast.remove(), 2600);
+        }
 
+
+        
         function openModal() {
             document.getElementById('howItWorksModal').style.display = 'block';
             document.body.style.overflow = 'hidden'; // Prevent background scrolling
