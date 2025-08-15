@@ -2341,22 +2341,13 @@ function handleFileImport(event) {
 
 
 function handleQRImport(event) {
-    console.log("📥 handleQRImport triggered");
-
     const file = event.target.files[0];
-    if (!file) {
-        console.warn("No file selected");
-        return;
-    }
-    console.log("Selected file:", file.name, file.size, "bytes");
+    if (!file) return;
 
     const reader = new FileReader();
     reader.onload = function () {
-        console.log("FileReader.onload fired");
         const img = new Image();
         img.onload = function () {
-            console.log("Image loaded, dimensions:", img.width, "x", img.height);
-
             const canvas = document.createElement('canvas');
             canvas.width = img.width;
             canvas.height = img.height;
@@ -2364,54 +2355,49 @@ function handleQRImport(event) {
             ctx.drawImage(img, 0, 0);
 
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            console.log("ImageData length:", imageData.data.length);
 
             let code;
             try {
                 code = jsQR(imageData.data, canvas.width, canvas.height);
             } catch (err) {
-                console.error("jsQR threw an error:", err);
                 alert("QR decoding error");
+                event.target.value = "";
                 return;
             }
 
             if (code) {
-                console.log("✅ QR detected, raw data:", code.data.substring(0, 100) + "...");
                 try {
                     // Decode from Base64 and decompress
                     const binary = atob(code.data);
                     const byteArray = Uint8Array.from(binary, c => c.charCodeAt(0));
-                    console.log("Binary length:", byteArray.length);
-
                     const decompressed = pako.inflate(byteArray, { to: 'string' });
-                    console.log("Decompressed string length:", decompressed.length);
-
                     const parsedData = JSON.parse(decompressed);
-                    console.log("Parsed decision object keys:", Object.keys(parsedData));
 
                     // Use existing integrity check and loading
                     loadImportedData(parsedData);
                     alert("QR import successful!");
+                    event.target.value = ""; // allow re-importing same file later
                 } catch (err) {
-                    console.error("❌ Error decoding QR:", err);
                     alert('Invalid or corrupted QR code data.');
+                    event.target.value = ""; // allow re-importing same file later
                 }
             } else {
-                console.warn("❌ No QR code found in image.");
                 alert('No QR code found in image.');
+                event.target.value = ""; // allow re-importing same file later
             }
         };
         img.onerror = function () {
-            console.error("❌ Image failed to load");
+            alert("Image failed to load");
+            event.target.value = "";
         };
         img.src = reader.result;
     };
     reader.onerror = function () {
-        console.error("❌ FileReader failed");
+        alert("FileReader failed");
+        event.target.value = "";
     };
     reader.readAsDataURL(file);
 }
-
         
         
         
