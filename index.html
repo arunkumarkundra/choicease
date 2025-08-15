@@ -1658,14 +1658,14 @@ function exportResultsAsQR() {
             const headerTitle = (decisionData.title || 'Choicease Decision').slice(0, 80);
             let description = decisionData.description || '';
             if (description.length > 160) { // approx 2 lines
-                description = description.slice(0, 157) + '...';
+                description = description.slice(0, 150) + '...';
             }
 
             // Footer content
             const generatedAt = new Date().toLocaleString();
             const footerLine1 = `Generated on: ${generatedAt}`;
             const footerLine2 = "Import and review at https://choicease.com";
-            const footerLine3 = "Share publicly on r/choicease";
+            const footerLine3 = "Post publicly on Reddit: https://www.reddit.com/r/choicease/";
 
             const padding = 24;          // quiet zone
             const headerHeight = 100;    // room for title + description
