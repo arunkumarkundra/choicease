@@ -1661,7 +1661,7 @@ function exportResultsAsQR() {
             const generatedAt = new Date().toLocaleString();
             const footerLine1 = `Generated on: ${generatedAt}`;
             const footerLine2 = "Import and review at https://choicease.com";
-            const footerLine3 = "Share publicly on r/choicease";
+            const footerLine3 = "Post publicly on Reddit: https://www.reddit.com/r/choicease/";
 
             const padding = 24;
             const headerHeight = description ? 110 : 70; // extra room if description exists
@@ -1708,7 +1708,7 @@ function exportResultsAsQR() {
 
                 // If more words remain, prefix ellipsis
                 if (words.length > lines.join(" ").split(/\s+/).length) {
-                    lines[lines.length - 1] = "..." + lines[lines.length - 1];
+                    lines[lines.length - 1] = lines[lines.length - 1] + "...";
                 }
 
                 lines.forEach((l, idx) => {
@@ -1726,7 +1726,9 @@ function exportResultsAsQR() {
                 const scale = logo.height ? logoMaxHeight / logo.height : 1;
                 const logoWidth = logo.width * scale;
                 const logoX = padding;
-                const logoY = headerHeight + padding + qrSize + padding + (footerHeight - logoMaxHeight) / 2;
+//                const logoY = headerHeight + padding + qrSize + padding + (footerHeight - logoMaxHeight) / 2;
+                const logoY = headerHeight + padding + qrSize + padding;
+
                 octx.drawImage(logo, logoX, logoY, logoWidth, logoMaxHeight);
 
                 // Footer text (right side)
