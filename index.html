@@ -1427,12 +1427,12 @@ function updateWeightDisplays() {
                         <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #f8f9fa; border-radius: 8px;">
                             <span style="font-weight: 600;">${option.name}</span>
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <span style="font-size: 0.9rem; color: #666;">Poor</span>
+                                <span style="font-size: 0.9rem; color: #666;">[1]</span>
                                 <input type="range" min="1" max="5" value="${currentRating}" 
                                        class="slider" role="slider" aria-label="Rating for ${option.name} on ${criteria.name}"
                                        aria-valuemin="1" aria-valuemax="5" aria-valuenow="${currentRating}"
                                        onchange="updateRating('${ratingKey}', this.value)">
-                                <span style="font-size: 0.9rem; color: #666;">Excellent</span>
+                                <span style="font-size: 0.9rem; color: #666;">[5]</span>
                                 <span id="rating-${ratingKey}" style="font-weight: bold; color: #667eea; min-width: 20px;">${currentRating}</span>
                             </div>
                         </div>
