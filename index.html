@@ -1644,11 +1644,10 @@ function exportResultsAsQR() {
     new QRCode(tempDiv, {
         text: base64Data,
         width: 500,
-        height: 500, // keep square, slightly larger for readability
+        height: 500, // keep square
         correctLevel: QRCode.CorrectLevel.H
     });
 
-    // Give QRCode.js a moment to render the <canvas>
     setTimeout(() => {
         const qrCanvas = tempDiv.querySelector('canvas');
         if (qrCanvas) {
@@ -1656,72 +1655,94 @@ function exportResultsAsQR() {
 
             // Header content
             const headerTitle = (decisionData.title || 'Choicease Decision').slice(0, 80);
-            let description = decisionData.description || '';
-            if (description.length > 160) { // approx 2 lines
-                description = description.slice(0, 150) + '...';
-            }
+            let description = decisionData.description ? decisionData.description.trim() : "";
 
             // Footer content
             const generatedAt = new Date().toLocaleString();
             const footerLine1 = `Generated on: ${generatedAt}`;
             const footerLine2 = "Import and review at https://choicease.com";
-            const footerLine3 = "Post publicly on Reddit: https://www.reddit.com/r/choicease/";
+            const footerLine3 = "Share publicly on r/choicease";
 
-            const padding = 24;          // quiet zone
-            const headerHeight = 100;    // room for title + description
-            const footerHeight = 90;     // room for logo + 3 lines of text
-            const logoSize = 40;         // footer logo
+            const padding = 24;
+            const headerHeight = description ? 110 : 70; // extra room if description exists
+            const footerHeight = 100; // more room for taller logo + text
 
-            // Create output canvas with room for header + footer
+            // Output canvas
             const out = document.createElement('canvas');
             out.width = qrSize + padding * 2;
             out.height = headerHeight + (qrSize + padding * 2) + footerHeight;
-
             const octx = out.getContext('2d');
 
             // White background
             octx.fillStyle = '#fff';
             octx.fillRect(0, 0, out.width, out.height);
 
-            // Header - Title
+            // Header - Title with padding top
             octx.fillStyle = '#000';
             octx.textAlign = 'center';
             octx.textBaseline = 'top';
             octx.font = '600 20px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
-            octx.fillText(headerTitle, out.width / 2, 12);
+            octx.fillText(headerTitle, out.width / 2, padding);
 
-            // Header - Description (smaller, lighter)
-            octx.fillStyle = '#666';
-            octx.font = '14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
-            octx.fillText(description, out.width / 2, 40);
+            // Header - Description (wrap max 2 lines, truncate at word boundary)
+            if (description) {
+                const maxWidth = out.width - padding * 2;
+                const words = description.split(/\s+/);
+                const lines = [];
+                let line = "";
+
+                octx.font = '14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+                octx.fillStyle = '#666';
+
+                for (let i = 0; i < words.length; i++) {
+                    const testLine = line ? line + " " + words[i] : words[i];
+                    if (octx.measureText(testLine).width <= maxWidth) {
+                        line = testLine;
+                    } else {
+                        lines.push(line);
+                        line = words[i];
+                        if (lines.length === 2) break;
+                    }
+                }
+                if (line && lines.length < 2) lines.push(line);
+
+                // If more words remain, prefix ellipsis
+                if (words.length > lines.join(" ").split(/\s+/).length) {
+                    lines[lines.length - 1] = "..." + lines[lines.length - 1];
+                }
+
+                lines.forEach((l, idx) => {
+                    octx.fillText(l, out.width / 2, padding + 28 + idx * 18);
+                });
+            }
 
             // QR image
             octx.drawImage(qrCanvas, padding, headerHeight + padding);
 
-            // Footer - Logo (left)
+            // Footer
             const logo = new Image();
             logo.onload = function () {
-                octx.drawImage(
-                    logo,
-                    padding,
-                    headerHeight + padding + qrSize + padding + (footerHeight - logoSize) / 2,
-                    logoSize,
-                    logoSize
-                );
+                const logoMaxHeight = 60;
+                const scale = logo.height ? logoMaxHeight / logo.height : 1;
+                const logoWidth = logo.width * scale;
+                const logoX = padding;
+                const logoY = headerHeight + padding + qrSize + padding + (footerHeight - logoMaxHeight) / 2;
+                octx.drawImage(logo, logoX, logoY, logoWidth, logoMaxHeight);
 
-                // Footer - Text (right side)
+                // Footer text (right side)
                 const textX = out.width - padding;
                 const baseY = headerHeight + padding + qrSize + padding + 10;
 
                 octx.textAlign = 'right';
+
                 octx.fillStyle = '#666';
                 octx.font = '12px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
                 octx.fillText(footerLine1, textX, baseY);
 
                 octx.fillStyle = '#000';
                 octx.font = '13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
-                octx.fillText(footerLine2, textX, baseY + 18);
-                octx.fillText(footerLine3, textX, baseY + 36);
+                octx.fillText(footerLine2, textX, baseY + 20);
+                octx.fillText(footerLine3, textX, baseY + 38);
 
                 // Download final composed image
                 const url = out.toDataURL("image/png");
@@ -1737,11 +1758,11 @@ function exportResultsAsQR() {
                 document.body.removeChild(link);
             };
             logo.src = "images/Choicease logo.png";
+
         } else {
             alert("QR generation failed.");
         }
 
-        // Clean up
         document.body.removeChild(tempDiv);
     }, 300);
 }
