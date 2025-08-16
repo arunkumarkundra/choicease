@@ -2365,7 +2365,18 @@ function handleFileImport(event) {
 
 
 
-// FIXED VERSION - Replace your generateQRCodes function with this
+
+// MAIN ISSUES AND FIXES:
+
+// 1. ERROR LEVEL TOO HIGH - Changed from CorrectLevel.H to CorrectLevel.M
+// 2. SCANNING WINDOW TOO SMALL - Increased from 450 to match actual QR size
+// 3. MISSING SINGLE QR HANDLING - Added logic for single QR codes
+// 4. TIMING ISSUES - Improved QR generation waiting
+
+// ========================================
+// FIXED QR GENERATION FUNCTION
+// ========================================
+
 function generateQRCodes(qrDataArray, totalChunks) {
     console.log("Generating QR codes...");
     
@@ -2379,75 +2390,97 @@ function generateQRCodes(qrDataArray, totalChunks) {
     
     // Create temporary container
     const tempDiv = document.createElement('div');
-    tempDiv.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:500px;height:500px;';
+    tempDiv.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:600px;height:600px;';
     document.body.appendChild(tempDiv);
 
     const qrPromises = qrDataArray.map((data, index) => {
         return new Promise((resolve, reject) => {
             const qrContainer = document.createElement('div');
-            qrContainer.style.cssText = 'width:400px;height:400px;display:block;';
+            qrContainer.style.cssText = 'width:512px;height:512px;display:block;margin:10px;'; // Increased size
             tempDiv.appendChild(qrContainer);
 
             try {
-                // Add a small delay between QR generations to prevent conflicts
+                // Add delay between QR generations
                 setTimeout(() => {
                     try {
                         console.log(`Creating QR ${index + 1} with ${data.length} characters`);
                         
                         const qr = new QRCode(qrContainer, {
                             text: data,
-                            width: 400,
-                            height: 400,
-                            correctLevel: QRCode.CorrectLevel.M, // Changed from H to M for better compatibility
+                            width: 512,        // Increased from 400
+                            height: 512,       // Increased from 400
+                            correctLevel: QRCode.CorrectLevel.L, // CHANGED: L for large data
                             colorDark: "#000000",
                             colorLight: "#ffffff",
-                            quietZone: 4,
+                            quietZone: 8,      // Increased quiet zone
                             quietZoneColor: "#ffffff"
                         });
 
-                        // Wait longer for QR generation and check multiple times
+                        // Wait longer and check more thoroughly
                         let attempts = 0;
                         const checkForCanvas = () => {
                             attempts++;
                             const canvas = qrContainer.querySelector('canvas');
                             const img = qrContainer.querySelector('img');
                             
-                            if (canvas) {
-                                console.log(`QR ${index + 1}/${totalChunks} generated successfully (canvas)`);
-                                resolve(canvas);
-                            } else if (img) {
-                                // Convert img to canvas
+                            if (canvas && canvas.width > 0 && canvas.height > 0) {
+                                // Verify canvas has actual content
+                                const ctx = canvas.getContext('2d');
+                                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                                const hasContent = imageData.data.some(pixel => pixel < 255);
+                                
+                                if (hasContent) {
+                                    console.log(`QR ${index + 1}/${totalChunks} generated successfully (canvas)`);
+                                    
+                                    // Add readability test here
+                                    testQRReadability(canvas).then(readable => {
+                                        console.log(`QR ${index + 1} is readable: ${readable}`);
+                                        if (!readable) {
+                                            console.warn(`QR ${index + 1} failed readability test!`);
+                                        }
+                                    });
+                                    
+                                    resolve(canvas);
+                                } else if (attempts < 15) {
+                                    setTimeout(checkForCanvas, 300);
+                                } else {
+                                    reject(new Error(`Canvas generated but appears empty for QR ${index + 1}`));
+                                }
+                            } else if (img && img.complete && img.naturalWidth > 0) {
+                                // Convert img to canvas with proper size
                                 const canvas = document.createElement('canvas');
-                                canvas.width = 400;
-                                canvas.height = 400;
+                                canvas.width = 512;
+                                canvas.height = 512;
                                 const ctx = canvas.getContext('2d');
                                 
-                                img.onload = () => {
-                                    ctx.drawImage(img, 0, 0, 400, 400);
-                                    console.log(`QR ${index + 1}/${totalChunks} generated successfully (img->canvas)`);
-                                    resolve(canvas);
-                                };
+                                ctx.fillStyle = '#ffffff';
+                                ctx.fillRect(0, 0, 512, 512);
+                                ctx.drawImage(img, 0, 0, 512, 512);
                                 
-                                if (img.complete) {
-                                    ctx.drawImage(img, 0, 0, 400, 400);
-                                    console.log(`QR ${index + 1}/${totalChunks} generated successfully (img complete->canvas)`);
-                                    resolve(canvas);
-                                }
-                            } else if (attempts < 10) {
-                                // Try again in 200ms
-                                setTimeout(checkForCanvas, 200);
+                                // Add readability test for img->canvas conversion too
+                                testQRReadability(canvas).then(readable => {
+                                    console.log(`QR ${index + 1} (img->canvas) is readable: ${readable}`);
+                                    if (!readable) {
+                                        console.warn(`QR ${index + 1} (img->canvas) failed readability test!`);
+                                    }
+                                });
+                                
+                                console.log(`QR ${index + 1}/${totalChunks} generated successfully (img->canvas)`);
+                                resolve(canvas);
+                            } else if (attempts < 15) {
+                                setTimeout(checkForCanvas, 300);
                             } else {
-                                reject(new Error(`No canvas or image found for QR ${index + 1} after ${attempts} attempts`));
+                                reject(new Error(`No valid QR found for chunk ${index + 1} after ${attempts} attempts`));
                             }
                         };
                         
-                        // Start checking after initial delay
-                        setTimeout(checkForCanvas, 300);
+                        // Start checking after longer initial delay
+                        setTimeout(checkForCanvas, 500);
 
                     } catch (innerError) {
                         reject(new Error(`QR library error for chunk ${index + 1}: ${innerError.message}`));
                     }
-                }, index * 100); // Stagger creation by 100ms per QR
+                }, index * 150); // Longer stagger
 
             } catch (error) {
                 reject(new Error(`Failed to create QR ${index + 1}: ${error.message}`));
@@ -2455,7 +2488,7 @@ function generateQRCodes(qrDataArray, totalChunks) {
         });
     });
 
-    // Generate all QR codes with better error handling
+    // Generate all QR codes
     Promise.all(qrPromises)
         .then(canvases => {
             console.log("All QR codes generated successfully, creating final image...");
@@ -2463,7 +2496,7 @@ function generateQRCodes(qrDataArray, totalChunks) {
         })
         .catch(error => {
             console.error("QR generation failed:", error);
-            alert("Failed to generate QR codes: " + error.message + "\n\nTry reducing the amount of data (fewer options/criteria) or export as JSON instead.");
+            alert("Failed to generate QR codes: " + error.message + "\n\nTry reducing data or export as JSON.");
         })
         .finally(() => {
             // Cleanup
@@ -2473,7 +2506,208 @@ function generateQRCodes(qrDataArray, totalChunks) {
         });
 }
 
-// ALSO UPDATE the main export function - replace the chunking part
+// ========================================
+// IMPROVED QR SCANNING FUNCTION
+// ========================================
+
+function scanImageForQRCodes(img) {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+
+    const codes = [];
+    const minQRSize = 400;  // Minimum expected QR size
+    const maxQRSize = 600;  // Maximum expected QR size
+    
+    console.log(`Scanning image ${img.width}x${img.height} for QR codes...`);
+
+    // STRATEGY 1: Try different scan window sizes
+    const scanSizes = [512, 480, 450, 400, 350]; // Multiple sizes to try
+    
+    for (const scanSize of scanSizes) {
+        const stepSize = Math.max(20, Math.floor(scanSize * 0.1)); // Smaller steps for better coverage
+        
+        console.log(`Trying scan size: ${scanSize}x${scanSize}`);
+        
+        for (let y = 0; y <= img.height - scanSize; y += stepSize) {
+            for (let x = 0; x <= img.width - scanSize; x += stepSize) {
+                try {
+                    const imageData = ctx.getImageData(x, y, 
+                        Math.min(scanSize, img.width - x), 
+                        Math.min(scanSize, img.height - y)
+                    );
+                    
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "dontInvert", // Speed up scanning
+                    });
+                    
+                    if (code && code.data && code.data.length > 10) {
+                        // Check for duplicates with more generous threshold
+                        const isDuplicate = codes.some(existingCode => {
+                            const dx = Math.abs(existingCode.location.topLeftCorner.x - (code.location.topLeftCorner.x + x));
+                            const dy = Math.abs(existingCode.location.topLeftCorner.y - (code.location.topLeftCorner.y + y));
+                            return dx < 50 && dy < 50; // More generous duplicate detection
+                        });
+                        
+                        if (!isDuplicate) {
+                            console.log(`QR code found at (${x}, ${y}) with scan size ${scanSize}`);
+                            console.log(`QR data length: ${code.data.length} chars`);
+                            codes.push({
+                                data: code.data,
+                                location: {
+                                    topLeftCorner: {
+                                        x: code.location.topLeftCorner.x + x,
+                                        y: code.location.topLeftCorner.y + y
+                                    }
+                                }
+                            });
+                            
+                            // If we found QR codes with this size, continue with this size
+                            if (codes.length > 0) break;
+                        }
+                    }
+                } catch (scanError) {
+                    // Continue scanning even if individual scans fail
+                    console.warn(`Scan error at (${x}, ${y}) size ${scanSize}:`, scanError.message);
+                }
+            }
+            if (codes.length > 0) break; // Break outer loop too
+        }
+        if (codes.length > 0) break; // Found QRs with this size, stop trying other sizes
+    }
+
+    // STRATEGY 2: If no codes found, try full image scan
+    if (codes.length === 0) {
+        console.log("No QR codes found with windowed scanning, trying full image...");
+        try {
+            const fullImageData = ctx.getImageData(0, 0, img.width, img.height);
+            const code = jsQR(fullImageData.data, fullImageData.width, fullImageData.height, {
+                inversionAttempts: "attemptBoth", // Try both normal and inverted
+            });
+            
+            if (code && code.data && code.data.length > 10) {
+                console.log("QR code found in full image scan");
+                codes.push({
+                    data: code.data,
+                    location: code.location
+                });
+            }
+        } catch (error) {
+            console.warn("Full image scan failed:", error);
+        }
+    }
+
+    // Sort by Y position (top to bottom) to maintain chunk order
+    codes.sort((a, b) => a.location.topLeftCorner.y - b.location.topLeftCorner.y);
+    
+    console.log(`Scanning complete. Found ${codes.length} QR codes.`);
+    return codes;
+}
+
+// ========================================
+// IMPROVED FINAL IMAGE CREATION
+// ========================================
+
+function createFinalImage(qrCanvases, totalChunks) {
+    const qrSize = 512; // Match the new QR size
+    const padding = 40;
+    const headerHeight = 120;
+    const footerHeight = 100;
+    const qrSpacing = 20; // More space between QRs
+    
+    // Calculate canvas dimensions
+    const canvasWidth = qrSize + (padding * 2);
+    const canvasHeight = headerHeight + (qrSize * totalChunks) + (qrSpacing * Math.max(0, totalChunks - 1)) + footerHeight + (padding * 2);
+
+    // Create output canvas
+    const outputCanvas = document.createElement('canvas');
+    outputCanvas.width = canvasWidth;
+    outputCanvas.height = canvasHeight;
+    const ctx = outputCanvas.getContext('2d');
+
+    // White background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // Add border for better QR detection
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(1, 1, canvasWidth - 2, canvasHeight - 2);
+
+    // Header
+    ctx.fillStyle = '#000000';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 24px Arial, sans-serif';
+    
+    const title = (decisionData.title || 'Choicease Decision').substring(0, 50);
+    ctx.fillText('Choicease Decision Analysis', canvasWidth / 2, padding + 25);
+    
+    ctx.font = '18px Arial, sans-serif';
+    ctx.fillText(title, canvasWidth / 2, padding + 55);
+    
+    if (decisionData.description && decisionData.description.length > 0) {
+        ctx.font = '14px Arial, sans-serif';
+        ctx.fillStyle = '#666666';
+        const desc = decisionData.description.substring(0, 80) + (decisionData.description.length > 80 ? '...' : '');
+        ctx.fillText(desc, canvasWidth / 2, padding + 80);
+    }
+
+    // Add chunk info
+    ctx.fillStyle = '#333333';
+    ctx.font = 'bold 14px Arial, sans-serif';
+    ctx.fillText(`${totalChunks} QR Code${totalChunks > 1 ? 's' : ''} - Scan all to import`, canvasWidth / 2, padding + 105);
+
+    // Draw QR codes with borders
+    let yOffset = headerHeight + padding;
+    qrCanvases.forEach((canvas, index) => {
+        // Add chunk label
+        ctx.fillStyle = '#666666';
+        ctx.font = 'bold 16px Arial, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(`Part ${index + 1} of ${totalChunks}`, padding, yOffset - 10);
+        
+        // Draw border around QR code area
+        ctx.strokeStyle = '#cccccc';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(padding - 2, yOffset - 2, qrSize + 4, qrSize + 4);
+        
+        // Draw QR code
+        ctx.drawImage(canvas, padding, yOffset, qrSize, qrSize);
+        yOffset += qrSize + qrSpacing;
+    });
+
+    // Footer
+    const footerY = canvasHeight - footerHeight;
+    ctx.fillStyle = '#333333';
+    ctx.textAlign = 'center';
+    ctx.font = '12px Arial, sans-serif';
+    ctx.fillText('Generated: ' + new Date().toLocaleString(), canvasWidth / 2, footerY + 20);
+    ctx.fillText('Import at: https://choicease.com', canvasWidth / 2, footerY + 40);
+    ctx.fillText('Share at: https://reddit.com/r/choicease', canvasWidth / 2, footerY + 60);
+
+    // Download with better quality
+    const url = outputCanvas.toDataURL('image/png', 1.0);
+    const safeTitle = (decisionData.title || 'decision').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+    const filename = `choicease_QR_${safeTitle}_${timestamp}.png`;
+
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    console.log("QR export completed successfully");
+    showToast(`QR code exported: ${filename}`);
+}
+
+// ========================================
+// IMPROVED CHUNKING STRATEGY
+// ========================================
+
 function exportResultsAsQR() {
     console.log("Starting QR export...");
     
@@ -2506,22 +2740,29 @@ function exportResultsAsQR() {
         const base64Data = btoa(String.fromCharCode.apply(null, compressed));
         console.log(`Base64 size: ${base64Data.length} bytes`);
 
-        // IMPROVED CHUNKING - smaller chunks for reliability
-        const maxChunkSize = 1800; // Much smaller chunks
+        // IMPROVED CHUNKING - More conservative for reliability
+        const maxChunkSize = 1500; // Smaller chunks for L error correction
         const chunks = [];
-        for (let i = 0; i < base64Data.length; i += maxChunkSize) {
-            chunks.push(base64Data.slice(i, i + maxChunkSize));
+        
+        if (base64Data.length <= maxChunkSize) {
+            // Single chunk - no need to split
+            chunks.push(base64Data);
+        } else {
+            // Multiple chunks
+            for (let i = 0; i < base64Data.length; i += maxChunkSize) {
+                chunks.push(base64Data.slice(i, i + maxChunkSize));
+            }
         }
         
         const totalChunks = chunks.length;
         console.log(`Total chunks needed: ${totalChunks}`);
 
-        if (totalChunks > 25) {
+        if (totalChunks > 20) {
             alert("Data is too large for QR export. Please try:\n1. Export as JSON instead\n2. Remove some options or criteria\n3. Shorten descriptions");
             return;
         }
 
-        // Prepare QR data with metadata - SHORTER KEYS
+        // Prepare QR data with metadata
         const qrDataArray = chunks.map((chunk, index) => {
             const metadata = {
                 i: index,       // chunk index
@@ -2534,7 +2775,7 @@ function exportResultsAsQR() {
             console.log(`Chunk ${index + 1} total size: ${fullData.length} characters`);
             
             // Final safety check
-            if (fullData.length > 2900) {
+            if (fullData.length > 2800) { // More conservative limit
                 throw new Error(`Chunk ${index + 1} too large: ${fullData.length} chars`);
             }
             
@@ -2548,89 +2789,27 @@ function exportResultsAsQR() {
         alert("Failed to prepare data for QR export: " + error.message);
     }
 }
-// Helper function to create final image
-function createFinalImage(qrCanvases, totalChunks) {
-    const qrSize = 400;
-    const padding = 30;
-    const headerHeight = 120;
-    const footerHeight = 100;
-    const qrSpacing = 15;
-    
-    // Calculate canvas dimensions
-    const canvasWidth = qrSize + (padding * 2);
-    const canvasHeight = headerHeight + (qrSize * totalChunks) + (qrSpacing * Math.max(0, totalChunks - 1)) + footerHeight + (padding * 2);
 
-    // Create output canvas
-    const outputCanvas = document.createElement('canvas');
-    outputCanvas.width = canvasWidth;
-    outputCanvas.height = canvasHeight;
-    const ctx = outputCanvas.getContext('2d');
+// ========================================
+// TEST FUNCTION TO VERIFY QR READABILITY
+// ========================================
 
-    // White background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-    // Header
-    ctx.fillStyle = '#000000';
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 24px Arial, sans-serif';
-    
-    const title = (decisionData.title || 'Choicease Decision').substring(0, 50);
-    ctx.fillText('Choicease Decision Analysis', canvasWidth / 2, padding + 25);
-    
-    ctx.font = '18px Arial, sans-serif';
-    ctx.fillText(title, canvasWidth / 2, padding + 55);
-    
-    if (decisionData.description && decisionData.description.length > 0) {
-        ctx.font = '14px Arial, sans-serif';
-        ctx.fillStyle = '#666666';
-        const desc = decisionData.description.substring(0, 80) + (decisionData.description.length > 80 ? '...' : '');
-        ctx.fillText(desc, canvasWidth / 2, padding + 80);
-    }
-
-    // Add chunk info
-    ctx.fillStyle = '#333333';
-    ctx.font = '12px Arial, sans-serif';
-    ctx.fillText(`${totalChunks} QR Code${totalChunks > 1 ? 's' : ''} - Scan all to import`, canvasWidth / 2, padding + 105);
-
-    // Draw QR codes
-    let yOffset = headerHeight + padding;
-    qrCanvases.forEach((canvas, index) => {
-        // Add chunk label
-        ctx.fillStyle = '#666666';
-        ctx.font = 'bold 14px Arial, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(`Part ${index + 1} of ${totalChunks}`, padding, yOffset - 5);
+function testQRReadability(canvas) {
+    return new Promise((resolve) => {
+        const ctx = canvas.getContext('2d');
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         
-        // Draw QR code
-        ctx.drawImage(canvas, padding, yOffset, qrSize, qrSize);
-        yOffset += qrSize + qrSpacing;
+        try {
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+            resolve(code && code.data && code.data.length > 10);
+        } catch (error) {
+            resolve(false);
+        }
     });
-
-    // Footer
-    const footerY = canvasHeight - footerHeight;
-    ctx.fillStyle = '#333333';
-    ctx.textAlign = 'center';
-    ctx.font = '12px Arial, sans-serif';
-    ctx.fillText('Generated: ' + new Date().toLocaleString(), canvasWidth / 2, footerY + 20);
-    ctx.fillText('Import at: https://choicease.com', canvasWidth / 2, footerY + 40);
-    ctx.fillText('Share at: https://reddit.com/r/choicease', canvasWidth / 2, footerY + 60);
-
-    // Download
-    const url = outputCanvas.toDataURL('image/png', 1.0);
-    const safeTitle = decisionData.title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
-    const filename = `choicease_QR_${safeTitle}_${timestamp}.png`;
-
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = url;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    console.log("QR export completed successfully");
 }
+        
+        
+        // Helper function to create final image
 
 // ========================================
 // REVISED QR IMPORT FUNCTION  
@@ -2691,57 +2870,6 @@ function handleQRImport(event) {
     event.target.value = '';
 }
 
-// Helper function to scan image for QR codes
-function scanImageForQRCodes(img) {
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
-
-    const codes = [];
-    const scanSize = 450; // Slightly larger than our QR size for better detection
-    const stepSize = 50;  // Overlap to ensure we don't miss any
-
-    // Scan the entire image with overlapping windows
-    for (let y = 0; y <= img.height - scanSize; y += stepSize) {
-        for (let x = 0; x <= img.width - scanSize; x += stepSize) {
-            try {
-                const imageData = ctx.getImageData(x, y, Math.min(scanSize, img.width - x), Math.min(scanSize, img.height - y));
-                const code = jsQR(imageData.data, imageData.width, imageData.height);
-                
-                if (code) {
-                    // Check if we already found this QR code (avoid duplicates from overlapping scans)
-                    const isDuplicate = codes.some(existingCode => 
-                        Math.abs(existingCode.location.topLeftCorner.x - (code.location.topLeftCorner.x + x)) < 30 &&
-                        Math.abs(existingCode.location.topLeftCorner.y - (code.location.topLeftCorner.y + y)) < 30
-                    );
-                    
-                    if (!isDuplicate) {
-                        console.log(`QR code found at (${x}, ${y})`);
-                        codes.push({
-                            data: code.data,
-                            location: {
-                                topLeftCorner: {
-                                    x: code.location.topLeftCorner.x + x,
-                                    y: code.location.topLeftCorner.y + y
-                                }
-                            }
-                        });
-                    }
-                }
-            } catch (scanError) {
-                // Continue scanning even if individual scans fail
-                console.warn(`Scan error at (${x}, ${y}):`, scanError.message);
-            }
-        }
-    }
-
-    // Sort by Y position (top to bottom) to maintain chunk order
-    codes.sort((a, b) => a.location.topLeftCorner.y - b.location.topLeftCorner.y);
-    
-    return codes;
-}
 
 // Helper function to reassemble QR data
 function reassembleQRData(qrCodes) {
