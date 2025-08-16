@@ -2363,10 +2363,117 @@ function handleFileImport(event) {
 }
 
 
-// ========================================
-// REVISED QR EXPORT FUNCTION
-// ========================================
 
+
+// FIXED VERSION - Replace your generateQRCodes function with this
+function generateQRCodes(qrDataArray, totalChunks) {
+    console.log("Generating QR codes...");
+    
+    // Validate data first
+    for (let i = 0; i < qrDataArray.length; i++) {
+        if (qrDataArray[i].length > 2900) {
+            throw new Error(`Chunk ${i + 1} is too large (${qrDataArray[i].length} chars). Max is 2900.`);
+        }
+        console.log(`Chunk ${i + 1} size: ${qrDataArray[i].length} characters`);
+    }
+    
+    // Create temporary container
+    const tempDiv = document.createElement('div');
+    tempDiv.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:500px;height:500px;';
+    document.body.appendChild(tempDiv);
+
+    const qrPromises = qrDataArray.map((data, index) => {
+        return new Promise((resolve, reject) => {
+            const qrContainer = document.createElement('div');
+            qrContainer.style.cssText = 'width:400px;height:400px;display:block;';
+            tempDiv.appendChild(qrContainer);
+
+            try {
+                // Add a small delay between QR generations to prevent conflicts
+                setTimeout(() => {
+                    try {
+                        console.log(`Creating QR ${index + 1} with ${data.length} characters`);
+                        
+                        const qr = new QRCode(qrContainer, {
+                            text: data,
+                            width: 400,
+                            height: 400,
+                            correctLevel: QRCode.CorrectLevel.M, // Changed from H to M for better compatibility
+                            colorDark: "#000000",
+                            colorLight: "#ffffff",
+                            quietZone: 4,
+                            quietZoneColor: "#ffffff"
+                        });
+
+                        // Wait longer for QR generation and check multiple times
+                        let attempts = 0;
+                        const checkForCanvas = () => {
+                            attempts++;
+                            const canvas = qrContainer.querySelector('canvas');
+                            const img = qrContainer.querySelector('img');
+                            
+                            if (canvas) {
+                                console.log(`QR ${index + 1}/${totalChunks} generated successfully (canvas)`);
+                                resolve(canvas);
+                            } else if (img) {
+                                // Convert img to canvas
+                                const canvas = document.createElement('canvas');
+                                canvas.width = 400;
+                                canvas.height = 400;
+                                const ctx = canvas.getContext('2d');
+                                
+                                img.onload = () => {
+                                    ctx.drawImage(img, 0, 0, 400, 400);
+                                    console.log(`QR ${index + 1}/${totalChunks} generated successfully (img->canvas)`);
+                                    resolve(canvas);
+                                };
+                                
+                                if (img.complete) {
+                                    ctx.drawImage(img, 0, 0, 400, 400);
+                                    console.log(`QR ${index + 1}/${totalChunks} generated successfully (img complete->canvas)`);
+                                    resolve(canvas);
+                                }
+                            } else if (attempts < 10) {
+                                // Try again in 200ms
+                                setTimeout(checkForCanvas, 200);
+                            } else {
+                                reject(new Error(`No canvas or image found for QR ${index + 1} after ${attempts} attempts`));
+                            }
+                        };
+                        
+                        // Start checking after initial delay
+                        setTimeout(checkForCanvas, 300);
+
+                    } catch (innerError) {
+                        reject(new Error(`QR library error for chunk ${index + 1}: ${innerError.message}`));
+                    }
+                }, index * 100); // Stagger creation by 100ms per QR
+
+            } catch (error) {
+                reject(new Error(`Failed to create QR ${index + 1}: ${error.message}`));
+            }
+        });
+    });
+
+    // Generate all QR codes with better error handling
+    Promise.all(qrPromises)
+        .then(canvases => {
+            console.log("All QR codes generated successfully, creating final image...");
+            createFinalImage(canvases, totalChunks);
+        })
+        .catch(error => {
+            console.error("QR generation failed:", error);
+            alert("Failed to generate QR codes: " + error.message + "\n\nTry reducing the amount of data (fewer options/criteria) or export as JSON instead.");
+        })
+        .finally(() => {
+            // Cleanup
+            if (tempDiv.parentNode === document.body) {
+                document.body.removeChild(tempDiv);
+            }
+        });
+}
+
+// ALSO UPDATE the main export function - replace the chunking part
 function exportResultsAsQR() {
     console.log("Starting QR export...");
     
@@ -2388,19 +2495,19 @@ function exportResultsAsQR() {
     };
 
     try {
-        // Serialize and compress - use Uint8Array for proper binary handling
+        // Serialize and compress
         const jsonStr = JSON.stringify(results);
         console.log(`Original JSON size: ${jsonStr.length} bytes`);
         
         const compressed = pako.deflate(jsonStr);
         console.log(`Compressed size: ${compressed.length} bytes`);
         
-        // Convert to base64 for reliable QR encoding
+        // Convert to base64
         const base64Data = btoa(String.fromCharCode.apply(null, compressed));
         console.log(`Base64 size: ${base64Data.length} bytes`);
 
-        // Calculate chunks - QR codes can handle ~2,900 alphanumeric chars reliably
-        const maxChunkSize = 2800; // Conservative size for High error correction
+        // IMPROVED CHUNKING - smaller chunks for reliability
+        const maxChunkSize = 1800; // Much smaller chunks
         const chunks = [];
         for (let i = 0; i < base64Data.length; i += maxChunkSize) {
             chunks.push(base64Data.slice(i, i + maxChunkSize));
@@ -2409,19 +2516,29 @@ function exportResultsAsQR() {
         const totalChunks = chunks.length;
         console.log(`Total chunks needed: ${totalChunks}`);
 
-        if (totalChunks > 20) {
-            alert("Data is too large for QR export. Please try exporting as JSON instead.");
+        if (totalChunks > 25) {
+            alert("Data is too large for QR export. Please try:\n1. Export as JSON instead\n2. Remove some options or criteria\n3. Shorten descriptions");
             return;
         }
 
-        // Prepare QR data with metadata
+        // Prepare QR data with metadata - SHORTER KEYS
         const qrDataArray = chunks.map((chunk, index) => {
             const metadata = {
-                i: index,           // chunk index (shortened key)
-                t: totalChunks,     // total chunks (shortened key)  
-                v: "1.1"           // version (shortened key)
+                i: index,       // chunk index
+                t: totalChunks, // total chunks  
+                v: "1.1"       // version
             };
-            return JSON.stringify(metadata) + "|" + chunk;
+            const metaStr = JSON.stringify(metadata);
+            const fullData = metaStr + "|" + chunk;
+            
+            console.log(`Chunk ${index + 1} total size: ${fullData.length} characters`);
+            
+            // Final safety check
+            if (fullData.length > 2900) {
+                throw new Error(`Chunk ${index + 1} too large: ${fullData.length} chars`);
+            }
+            
+            return fullData;
         });
 
         generateQRCodes(qrDataArray, totalChunks);
@@ -2431,66 +2548,6 @@ function exportResultsAsQR() {
         alert("Failed to prepare data for QR export: " + error.message);
     }
 }
-
-// Helper function to generate QR codes
-function generateQRCodes(qrDataArray, totalChunks) {
-    console.log("Generating QR codes...");
-    
-    // Create temporary container
-    const tempDiv = document.createElement('div');
-    tempDiv.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
-    document.body.appendChild(tempDiv);
-
-    const qrPromises = qrDataArray.map((data, index) => {
-        return new Promise((resolve, reject) => {
-            const qrContainer = document.createElement('div');
-            tempDiv.appendChild(qrContainer);
-
-            try {
-                const qr = new QRCode(qrContainer, {
-                    text: data,
-                    width: 400,
-                    height: 400,
-                    correctLevel: QRCode.CorrectLevel.H, // High error correction
-                    colorDark: "#000000",
-                    colorLight: "#ffffff"
-                });
-
-                // Wait for QR generation
-                setTimeout(() => {
-                    const canvas = qrContainer.querySelector('canvas');
-                    if (canvas) {
-                        console.log(`QR ${index + 1}/${totalChunks} generated successfully`);
-                        resolve(canvas);
-                    } else {
-                        reject(new Error(`Canvas not found for QR ${index + 1}`));
-                    }
-                }, 100);
-
-            } catch (error) {
-                reject(new Error(`Failed to create QR ${index + 1}: ${error.message}`));
-            }
-        });
-    });
-
-    // Generate all QR codes
-    Promise.all(qrPromises)
-        .then(canvases => {
-            console.log("All QR codes generated, creating final image...");
-            createFinalImage(canvases, totalChunks);
-        })
-        .catch(error => {
-            console.error("QR generation failed:", error);
-            alert("Failed to generate QR codes: " + error.message);
-        })
-        .finally(() => {
-            // Cleanup
-            if (tempDiv.parentNode === document.body) {
-                document.body.removeChild(tempDiv);
-            }
-        });
-}
-
 // Helper function to create final image
 function createFinalImage(qrCanvases, totalChunks) {
     const qrSize = 400;
