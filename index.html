@@ -2818,7 +2818,10 @@ function scanImageForQRCodes(img) {
       codes.push({ data: code.data, location: code.location });
 
       // Update expected
-      if (expected === Infinity  && codes.length) expected = readT(code[0].data);
+        if (expected === Infinity && codes.length) {
+          expected = readT(code.data);
+        }
+
         if (codes.length >= expected) {
           console.log(`✓ Found all ${codes.length}/${expected} codes`);
           break;
