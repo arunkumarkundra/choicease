@@ -2813,20 +2813,22 @@ function scanImageForQRCodes(img) {
 
     // Deduplicate
     const isDuplicate = codes.some((c) => c.data === code.data);
-    if (!isDuplicate) {
-      console.log(`✓ Found QR ${codes.length + 1}: ${code.data.substring(0, 50)}...`);
+    if (isDuplicate) {
+      console.log(`⚠️ Duplicate QR detected, continuing scan...`);
+    } else {
+      console.log(`✓ Found QR ${codes.length + 1}: ...`);
       codes.push({ data: code.data, location: code.location });
-
+    
       // Update expected
-        if (expected === Infinity && codes.length) {
-          expected = readT(code.data);
-        }
-
-        if (codes.length >= expected) {
-          console.log(`✓ Found all ${codes.length}/${expected} codes`);
-          break;
-        } 
+      if (expected === Infinity && codes.length) {
+        expected = readT(code.data);
+      }
+      if (codes.length >= expected) {
+        console.log(`✓ Found all ${codes.length}/${expected} codes`);
+        break;
+      }
     }
+
 
     // Mask out this QR (fill its bounding box with white)
     const minX = Math.min(
@@ -2855,7 +2857,15 @@ function scanImageForQRCodes(img) {
     );
 
     ctx.fillStyle = "white";
-    ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
+    
+    // Add padding so we don’t mask into the next QR
+    const padding = 5;
+    ctx.fillRect(
+      minX + padding,
+      minY + padding,
+      (maxX - minX) - 2 * padding,
+      (maxY - minY) - 2 * padding
+    );
   }
 
   // Sort by Y to preserve chunk order
