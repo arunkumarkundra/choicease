@@ -29,7 +29,19 @@
     <p>Choicease is hosted on GitHub Pages. GitHub may collect minimal technical information such as IP addresses and request logs for security and operational purposes, in accordance with their own <a href="https://docs.github.com/en/site-policy/privacy-policies/github-privacy-statement" target="_blank">Privacy Statement</a>.</p>
 
     <h2>5. Contact Us</h2>
-    <p>If you have any questions about this Privacy Policy, please contact us at <a href="mailto:contact@choicease.com">contact@choicease.com</a>.</p>
+    <p>If you have any questions about this Privacy Policy, please contact us at 
+       <a id="emailLink"></a>.
+    </p>
   </div>
+<script>
+  const user = "contact";
+  const domain = "choicease.com";
+  const email = user + "@" + domain;
+  const link = document.getElementById("emailLink");
+  link.href = "mailto:" + email;
+  link.innerText = email;
+</script>
+
+  
 </body>
 </html>
