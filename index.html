@@ -1694,7 +1694,7 @@ function exportResultsAsQR() {
     const compressed = pako.deflate(jsonStr);
     
     // Check size before QR code generation
-    const maxQRBytes = 2048; // safe limit for robust scanning
+    const maxQRBytes = 1024; // safe limit for robust scanning
     if (compressed.length > maxQRBytes) {
       alert(
         "This decision is too large to export as a QR code.\n\n" +
