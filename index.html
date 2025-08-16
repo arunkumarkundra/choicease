@@ -1690,157 +1690,157 @@ function exportResultsAsQR() {
     };
 
     // Serialize and compress
-    const jsonStr = JSON.stringify(results);
-    const compressed = pako.deflate(jsonStr);
-    
-    // Check size before QR code generation
-    const maxQRBytes = 1024; // safe limit for robust scanning
-    if (compressed.length > maxQRBytes) {
-      alert(
-        "This decision is too large to export as a QR code.\n\n" +
-        "Tip: Shorten long descriptions or details to make it scannable.\n" +
-        "Alternatively, export as a JSON file instead."
-      );
-      return;
+    const jsonStr = JSON.stringify(results, null, 0); // Minify JSON (no spaces)
+    const compressed = pako.deflate(jsonStr, { to: 'string' }); // Ensure binary string
+    const maxQRBytes = 2000; // ~2KB per QR for robust scanning
+    const chunks = [];
+    for (let i = 0; i < compressed.length; i += maxQRBytes) {
+        chunks.push(compressed.slice(i, i + maxQRBytes));
     }
-    
-    const base64Data = btoa(String.fromCharCode(...compressed));
+    const totalChunks = chunks.length;
 
-    // Create a temporary container (not visible)
+    // Add metadata to each chunk
+    const qrData = chunks.map((chunk, index) => {
+        const metadata = JSON.stringify({
+            chunkIndex: index,
+            totalChunks: totalChunks,
+            version: "1.1"
+        });
+        // Combine metadata and chunk (use a delimiter to separate)
+        return `${metadata}|${chunk}`;
+    });
+
+    // Create temporary container
     const tempDiv = document.createElement('div');
     tempDiv.style.position = "absolute";
     tempDiv.style.left = "-9999px";
     document.body.appendChild(tempDiv);
 
-    // Generate QR code into tempDiv
-    new QRCode(tempDiv, {
-        text: base64Data,
-        width: 500,
-        height: 500, // keep square
-        correctLevel: QRCode.CorrectLevel.H
-    });
+    // Generate QR codes for each chunk
+    const qrCanvases = [];
+    for (const data of qrData) {
+        const qrDiv = document.createElement('div');
+        tempDiv.appendChild(qrDiv);
+        new QRCode(qrDiv, {
+            text: data, // Use binary string directly (ensure QRCode.js supports byte mode)
+            width: 500,
+            height: 500,
+            correctLevel: QRCode.CorrectLevel.H
+        });
+        const canvas = qrDiv.querySelector('canvas');
+        qrCanvases.push(canvas);
+    }
 
+    // Wait for QR generation
     setTimeout(() => {
-        const qrCanvas = tempDiv.querySelector('canvas');
-        if (qrCanvas) {
-            const qrSize = qrCanvas.width; // square
+        if (qrCanvases.length === 0 || qrCanvases.some(c => !c)) {
+            alert("QR generation failed.");
+            document.body.removeChild(tempDiv);
+            return;
+        }
 
-            // Header content
-            const headerTitle = (decisionData.title || 'Choicease Decision').slice(0, 80);
-            let description = decisionData.description ? decisionData.description.trim() : "";
+        const qrSize = 500; // Square QR size
+        const padding = 24;
+        const headerHeight = decisionData.description ? 110 : 70;
+        const footerHeight = 100;
+        const qrSpacing = 20; // Space between QRs
+        const totalHeight = headerHeight + (qrSize * totalChunks) + (qrSpacing * (totalChunks - 1)) + (padding * 2) + footerHeight;
 
-            // Footer content
+        // Output canvas
+        const out = document.createElement('canvas');
+        out.width = qrSize + padding * 2;
+        out.height = totalHeight;
+        const octx = out.getContext('2d');
+
+        // White background
+        octx.fillStyle = '#fff';
+        octx.fillRect(0, 0, out.width, out.height);
+
+        // Header - Title and Description (unchanged from your code)
+        octx.fillStyle = '#000';
+        octx.textAlign = 'center';
+        octx.textBaseline = 'top';
+        octx.font = '600 20px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+        const headerTitle = (decisionData.title || 'Choicease Decision').slice(0, 80);
+        octx.fillText(headerTitle, out.width / 2, padding);
+
+        if (decisionData.description) {
+            const maxWidth = out.width - padding * 2;
+            const words = decisionData.description.trim().split(/\s+/);
+            const lines = [];
+            let line = "";
+            octx.font = '14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+            octx.fillStyle = '#666';
+            for (let i = 0; i < words.length; i++) {
+                const testLine = line ? line + " " + words[i] : words[i];
+                if (octx.measureText(testLine).width <= maxWidth) {
+                    line = testLine;
+                } else {
+                    lines.push(line);
+                    line = words[i];
+                    if (lines.length === 2) break;
+                }
+            }
+            if (line && lines.length < 2) lines.push(line);
+            if (words.length > lines.join(" ").split(/\s+/).length) {
+                lines[lines.length - 1] = lines[lines.length - 1] + "...";
+            }
+            lines.forEach((l, idx) => {
+                octx.fillText(l, out.width / 2, padding + 28 + idx * 18);
+            });
+        }
+
+        // Draw QRs vertically
+        qrCanvases.forEach((canvas, index) => {
+            const yOffset = headerHeight + padding + (index * (qrSize + qrSpacing));
+            octx.drawImage(canvas, padding, yOffset);
+        });
+
+        // Footer (modified for new canvas height)
+        const logo = new Image();
+        logo.onload = function () {
+            const logoMaxHeight = 60;
+            const scale = logo.height ? logoMaxHeight / logo.height : 1;
+            const logoWidth = logo.width * scale;
+            const logoX = padding;
+            const logoY = headerHeight + padding + (qrSize * totalChunks) + (qrSpacing * (totalChunks - 1)) + padding;
+
+            octx.drawImage(logo, logoX, logoY, logoWidth, logoMaxHeight);
+
+            const textX = out.width - padding;
+            const baseY = logoY + 10;
             const generatedAt = new Date().toLocaleString();
             const footerLine1 = `Generated on: ${generatedAt}`;
             const footerLine2 = "Import and review at https://choicease.com";
             const footerLine3 = "Post on https://www.reddit.com/r/choicease/";
 
-            const padding = 24;
-            const headerHeight = description ? 110 : 70; // extra room if description exists
-            const footerHeight = 100; // more room for taller logo + text
-
-            // Output canvas
-            const out = document.createElement('canvas');
-            out.width = qrSize + padding * 2;
-            out.height = headerHeight + (qrSize + padding * 2) + footerHeight;
-            const octx = out.getContext('2d');
-
-            // White background
-            octx.fillStyle = '#fff';
-            octx.fillRect(0, 0, out.width, out.height);
-
-            // Header - Title with padding top
+            octx.textAlign = 'right';
+            octx.fillStyle = '#666';
+            octx.font = '12px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+            octx.fillText(footerLine1, textX, baseY);
             octx.fillStyle = '#000';
-            octx.textAlign = 'center';
-            octx.textBaseline = 'top';
-            octx.font = '600 20px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
-            octx.fillText(headerTitle, out.width / 2, padding);
+            octx.font = '13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+            octx.fillText(footerLine2, textX, baseY + 20);
+            octx.fillText(footerLine3, textX, baseY + 38);
 
-            // Header - Description (wrap max 2 lines, truncate at word boundary)
-            if (description) {
-                const maxWidth = out.width - padding * 2;
-                const words = description.split(/\s+/);
-                const lines = [];
-                let line = "";
+            // Download
+            const url = out.toDataURL("image/png");
+            const safeTitle = decisionData.title ? decisionData.title.replace(/\s+/g, "_") : "decision";
+            const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+            const filename = `choicease_QR_${safeTitle}_${timestamp}.png`;
 
-                octx.font = '14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
-                octx.fillStyle = '#666';
-
-                for (let i = 0; i < words.length; i++) {
-                    const testLine = line ? line + " " + words[i] : words[i];
-                    if (octx.measureText(testLine).width <= maxWidth) {
-                        line = testLine;
-                    } else {
-                        lines.push(line);
-                        line = words[i];
-                        if (lines.length === 2) break;
-                    }
-                }
-                if (line && lines.length < 2) lines.push(line);
-
-                // If more words remain, prefix ellipsis
-                if (words.length > lines.join(" ").split(/\s+/).length) {
-                    lines[lines.length - 1] = lines[lines.length - 1] + "...";
-                }
-
-                lines.forEach((l, idx) => {
-                    octx.fillText(l, out.width / 2, padding + 28 + idx * 18);
-                });
-            }
-
-            // QR image
-            octx.drawImage(qrCanvas, padding, headerHeight + padding);
-
-            // Footer
-            const logo = new Image();
-            logo.onload = function () {
-                const logoMaxHeight = 60;
-                const scale = logo.height ? logoMaxHeight / logo.height : 1;
-                const logoWidth = logo.width * scale;
-                const logoX = padding;
-//                const logoY = headerHeight + padding + qrSize + padding + (footerHeight - logoMaxHeight) / 2;
-                const logoY = headerHeight + padding + qrSize + padding;
-
-                octx.drawImage(logo, logoX, logoY, logoWidth, logoMaxHeight);
-
-                // Footer text (right side)
-                const textX = out.width - padding;
-                const baseY = headerHeight + padding + qrSize + padding + 10;
-
-                octx.textAlign = 'right';
-
-                octx.fillStyle = '#666';
-                octx.font = '12px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
-                octx.fillText(footerLine1, textX, baseY);
-
-                octx.fillStyle = '#000';
-                octx.font = '13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
-                octx.fillText(footerLine2, textX, baseY + 20);
-                octx.fillText(footerLine3, textX, baseY + 38);
-
-                // Download final composed image
-                const url = out.toDataURL("image/png");
-                const safeTitle = decisionData.title ? decisionData.title.replace(/\s+/g, "_") : "decision";
-                const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-                const filename = `choicease_QR_${safeTitle}_${timestamp}.png`;
-
-                const link = document.createElement('a');
-                link.download = filename;
-                link.href = url;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            };
-            logo.src = "images/Choicease logo.png";
-
-        } else {
-            alert("QR generation failed.");
-        }
+            const link = document.createElement('a');
+            link.download = filename;
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+        logo.src = "images/Choicease logo.png";
 
         document.body.removeChild(tempDiv);
     }, 300);
-}
-        
+}        
 
 function downloadPDFReport() {
     const { jsPDF } = window.jspdf;
@@ -2533,35 +2533,61 @@ function handleQRImport(event) {
             ctx.drawImage(img, 0, 0);
 
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const codes = [];
 
-            let code;
-            try {
-                code = jsQR(imageData.data, canvas.width, canvas.height);
-            } catch (err) {
-                alert("QR decoding error");
+            // Scan for multiple QRs using a sliding window
+            const qrSize = 500; // Match export QR size
+            const stepSize = 50; // Adjust for overlap detection
+            for (let y = 0; y < canvas.height; y += stepSize) {
+                for (let x = 0; x < canvas.width; x += stepSize) {
+                    const windowData = ctx.getImageData(x, y, Math.min(qrSize, canvas.width - x), Math.min(qrSize, canvas.height - y));
+                    try {
+                        const code = jsQR(windowData.data, windowData.width, windowData.height);
+                        if (code) {
+                            codes.push({ data: code.data, location: code.location });
+                        }
+                    } catch (err) {
+                        // Ignore errors in windowed scan
+                    }
+                }
+            }
+
+            if (codes.length === 0) {
+                alert('No QR codes found in image.');
                 event.target.value = "";
                 return;
             }
 
-            if (code) {
-                try {
-                    // Decode from Base64 and decompress
-                    const binary = atob(code.data);
-                    const byteArray = Uint8Array.from(binary, c => c.charCodeAt(0));
-                    const decompressed = pako.inflate(byteArray, { to: 'string' });
-                    const parsedData = JSON.parse(decompressed);
-
-                    // Use existing integrity check and loading
-                    loadImportedData(parsedData);
-                    showToast("QR import successful!");
-                    event.target.value = ""; // allow re-importing same file later
-                } catch (err) {
-                    alert('Invalid or corrupted QR code data.');
-                    event.target.value = ""; // allow re-importing same file later
+            try {
+                // Process QR codes
+                const chunks = [];
+                let totalChunks = 0;
+                for (const code of codes) {
+                    const [metadataStr, chunk] = code.data.split('|');
+                    const metadata = JSON.parse(metadataStr);
+                    if (metadata.version !== "1.1") {
+                        throw new Error("Unsupported QR version");
+                    }
+                    totalChunks = metadata.totalChunks;
+                    chunks[metadata.chunkIndex] = chunk;
                 }
-            } else {
-                alert('No QR code found in image.');
-                event.target.value = ""; // allow re-importing same file later
+
+                if (chunks.length !== totalChunks || chunks.some(c => !c)) {
+                    throw new Error("Missing or invalid QR chunks");
+                }
+
+                // Reassemble and decompress
+                const compressed = chunks.join('');
+                const decompressed = pako.inflate(Uint8Array.from(compressed, c => c.charCodeAt(0)), { to: 'string' });
+                const parsedData = JSON.parse(decompressed);
+
+                // Use existing integrity check and loading
+                loadImportedData(parsedData);
+                showToast("QR import successful!");
+                event.target.value = ""; // Allow re-importing
+            } catch (err) {
+                alert('Invalid or corrupted QR code data: ' + err.message);
+                event.target.value = "";
             }
         };
         img.onerror = function () {
@@ -2575,8 +2601,7 @@ function handleQRImport(event) {
         event.target.value = "";
     };
     reader.readAsDataURL(file);
-}
-        
+}        
         
         
 function validateImportedData(data) {
