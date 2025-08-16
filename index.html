@@ -821,7 +821,7 @@
     </style>
 
     <!-- QR Code generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs-extended@master/qrcode.min.js"></script>
     <!-- QR Code decoding -->
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
@@ -1694,7 +1694,7 @@ function exportResultsAsQR() {
     const compressed = pako.deflate(jsonStr);
     
     // Check size before QR code generation
-    const maxQRBytes = 1024; // safe limit for robust scanning
+    const maxQRBytes = 2048; // safe limit for robust scanning
     if (compressed.length > maxQRBytes) {
       alert(
         "This decision is too large to export as a QR code.\n\n" +
