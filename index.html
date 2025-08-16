@@ -2506,105 +2506,7 @@ function generateQRCodes(qrDataArray, totalChunks) {
         });
 }
 
-// ========================================
-// IMPROVED QR SCANNING FUNCTION
-// ========================================
 
-function scanImageForQRCodes(img) {
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
-
-    const codes = [];
-    const minQRSize = 400;  // Minimum expected QR size
-    const maxQRSize = 600;  // Maximum expected QR size
-    
-    console.log(`Scanning image ${img.width}x${img.height} for QR codes...`);
-
-    // STRATEGY 1: Try different scan window sizes
-    const scanSizes = [512, 480, 450, 400, 350]; // Multiple sizes to try
-    
-    for (const scanSize of scanSizes) {
-        const stepSize = Math.max(20, Math.floor(scanSize * 0.1)); // Smaller steps for better coverage
-        
-        console.log(`Trying scan size: ${scanSize}x${scanSize}`);
-        
-        for (let y = 0; y <= img.height - scanSize; y += stepSize) {
-            for (let x = 0; x <= img.width - scanSize; x += stepSize) {
-                try {
-                    const imageData = ctx.getImageData(x, y, 
-                        Math.min(scanSize, img.width - x), 
-                        Math.min(scanSize, img.height - y)
-                    );
-                    
-                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                        inversionAttempts: "dontInvert", // Speed up scanning
-                    });
-                    
-                    if (code && code.data && code.data.length > 10) {
-                        // Check for duplicates with more generous threshold
-                        const isDuplicate = codes.some(existingCode => {
-                            const dx = Math.abs(existingCode.location.topLeftCorner.x - (code.location.topLeftCorner.x + x));
-                            const dy = Math.abs(existingCode.location.topLeftCorner.y - (code.location.topLeftCorner.y + y));
-                            return dx < 50 && dy < 50; // More generous duplicate detection
-                        });
-                        
-                        if (!isDuplicate) {
-                            console.log(`QR code found at (${x}, ${y}) with scan size ${scanSize}`);
-                            console.log(`QR data length: ${code.data.length} chars`);
-                            codes.push({
-                                data: code.data,
-                                location: {
-                                    topLeftCorner: {
-                                        x: code.location.topLeftCorner.x + x,
-                                        y: code.location.topLeftCorner.y + y
-                                    }
-                                }
-                            });
-                            
-                            // If we found QR codes with this size, continue with this size
-                            if (codes.length > 0) break;
-                        }
-                    }
-                } catch (scanError) {
-                    // Continue scanning even if individual scans fail
-                    console.warn(`Scan error at (${x}, ${y}) size ${scanSize}:`, scanError.message);
-                }
-            }
-            if (codes.length > 0) break; // Break outer loop too
-        }
-        if (codes.length > 0) break; // Found QRs with this size, stop trying other sizes
-    }
-
-    // STRATEGY 2: If no codes found, try full image scan
-    if (codes.length === 0) {
-        console.log("No QR codes found with windowed scanning, trying full image...");
-        try {
-            const fullImageData = ctx.getImageData(0, 0, img.width, img.height);
-            const code = jsQR(fullImageData.data, fullImageData.width, fullImageData.height, {
-                inversionAttempts: "attemptBoth", // Try both normal and inverted
-            });
-            
-            if (code && code.data && code.data.length > 10) {
-                console.log("QR code found in full image scan");
-                codes.push({
-                    data: code.data,
-                    location: code.location
-                });
-            }
-        } catch (error) {
-            console.warn("Full image scan failed:", error);
-        }
-    }
-
-    // Sort by Y position (top to bottom) to maintain chunk order
-    codes.sort((a, b) => a.location.topLeftCorner.y - b.location.topLeftCorner.y);
-    
-    console.log(`Scanning complete. Found ${codes.length} QR codes.`);
-    return codes;
-}
 
 // ========================================
 // IMPROVED FINAL IMAGE CREATION
@@ -2615,11 +2517,17 @@ function createFinalImage(qrCanvases, totalChunks) {
     const padding = 40;
     const headerHeight = 120;
     const footerHeight = 100;
-    const qrSpacing = 20; // More space between QRs
+    const qrSpacing = 60; // INCREASED: More space between QRs (was 20)
+    const labelHeight = 30; // NEW: Dedicated space for labels
     
-    // Calculate canvas dimensions
+    // Calculate canvas dimensions with proper spacing for labels
     const canvasWidth = qrSize + (padding * 2);
-    const canvasHeight = headerHeight + (qrSize * totalChunks) + (qrSpacing * Math.max(0, totalChunks - 1)) + footerHeight + (padding * 2);
+    const canvasHeight = headerHeight + 
+                        (qrSize * totalChunks) + 
+                        (labelHeight * totalChunks) + // NEW: Space for labels
+                        (qrSpacing * Math.max(0, totalChunks - 1)) + 
+                        footerHeight + 
+                        (padding * 2);
 
     // Create output canvas
     const outputCanvas = document.createElement('canvas');
@@ -2659,26 +2567,31 @@ function createFinalImage(qrCanvases, totalChunks) {
     ctx.font = 'bold 14px Arial, sans-serif';
     ctx.fillText(`${totalChunks} QR Code${totalChunks > 1 ? 's' : ''} - Scan all to import`, canvasWidth / 2, padding + 105);
 
-    // Draw QR codes with borders
+    // Draw QR codes with proper spacing and labels
     let yOffset = headerHeight + padding;
     qrCanvases.forEach((canvas, index) => {
-        // Add chunk label
-        ctx.fillStyle = '#666666';
+        // FIXED: Add chunk label ABOVE the QR code with proper spacing
+        ctx.fillStyle = '#333333';
         ctx.font = 'bold 16px Arial, sans-serif';
-        ctx.textAlign = 'left';
-        ctx.fillText(`Part ${index + 1} of ${totalChunks}`, padding, yOffset - 10);
+        ctx.textAlign = 'center';
+        ctx.fillText(`Part ${index + 1} of ${totalChunks}`, canvasWidth / 2, yOffset + 20);
         
-        // Draw border around QR code area
+        // Move QR code position down to accommodate label
+        const qrYPosition = yOffset + labelHeight;
+        
+        // Draw border around QR code area with more generous spacing
         ctx.strokeStyle = '#cccccc';
         ctx.lineWidth = 1;
-        ctx.strokeRect(padding - 2, yOffset - 2, qrSize + 4, qrSize + 4);
+        ctx.strokeRect(padding - 5, qrYPosition - 5, qrSize + 10, qrSize + 10);
         
         // Draw QR code
-        ctx.drawImage(canvas, padding, yOffset, qrSize, qrSize);
-        yOffset += qrSize + qrSpacing;
+        ctx.drawImage(canvas, padding, qrYPosition, qrSize, qrSize);
+        
+        // Move to next position with proper spacing
+        yOffset += qrSize + labelHeight + qrSpacing;
     });
 
-    // Footer
+    // Footer (adjust position based on new layout)
     const footerY = canvasHeight - footerHeight;
     ctx.fillStyle = '#333333';
     ctx.textAlign = 'center';
@@ -2704,6 +2617,7 @@ function createFinalImage(qrCanvases, totalChunks) {
     showToast(`QR code exported: ${filename}`);
 }
 
+        
 // ========================================
 // IMPROVED CHUNKING STRATEGY
 // ========================================
@@ -2871,26 +2785,159 @@ function handleQRImport(event) {
 }
 
 
-// Helper function to reassemble QR data
+
+// Improved scanning function with better error handling
+function scanImageForQRCodes(img) {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+
+    const codes = [];
+    console.log(`Scanning image ${img.width}x${img.height} for QR codes...`);
+
+    // STRATEGY 1: Try different scan window sizes (more conservative)
+    const scanSizes = [550, 512, 480, 450, 400]; // Start larger
+    
+    for (const scanSize of scanSizes) {
+        const stepSize = Math.floor(scanSize * 0.15); // Larger steps for speed
+        
+        console.log(`Trying scan size: ${scanSize}x${scanSize} with step ${stepSize}`);
+        
+        for (let y = 0; y <= img.height - scanSize; y += stepSize) {
+            for (let x = 0; x <= img.width - scanSize; x += stepSize) {
+                try {
+                    const imageData = ctx.getImageData(x, y, 
+                        Math.min(scanSize, img.width - x), 
+                        Math.min(scanSize, img.height - y)
+                    );
+                    
+                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                        inversionAttempts: "dontInvert", // Speed up scanning
+                    });
+                    
+                    if (code && code.data && code.data.length > 50) { // More stringent length check
+                        // Check for duplicates with proper threshold
+                        const isDuplicate = codes.some(existingCode => {
+                            const dx = Math.abs(existingCode.location.topLeftCorner.x - (code.location.topLeftCorner.x + x));
+                            const dy = Math.abs(existingCode.location.topLeftCorner.y - (code.location.topLeftCorner.y + y));
+                            return dx < 100 && dy < 100; // Generous duplicate detection
+                        });
+                        
+                        if (!isDuplicate) {
+                            console.log(`✓ QR code found at (${x}, ${y}) with scan size ${scanSize}`);
+                            console.log(`  Data length: ${code.data.length} chars`);
+                            console.log(`  Data preview: ${code.data.substring(0, 50)}...`);
+                            
+                            codes.push({
+                                data: code.data,
+                                location: {
+                                    topLeftCorner: {
+                                        x: code.location.topLeftCorner.x + x,
+                                        y: code.location.topLeftCorner.y + y
+                                    }
+                                }
+                            });
+                        }
+                    }
+                } catch (scanError) {
+                    // Silently continue - scanning errors are common
+                    continue;
+                }
+            }
+        }
+        
+        // If we found codes with this size, we're done
+        if (codes.length > 0) {
+            console.log(`✓ Found ${codes.length} codes with scan size ${scanSize}`);
+            break;
+        }
+    }
+
+    // STRATEGY 2: If no codes found, try full image scan with both inversions
+    if (codes.length === 0) {
+        console.log("⚠️ No QR codes found with windowed scanning, trying full image...");
+        try {
+            const fullImageData = ctx.getImageData(0, 0, img.width, img.height);
+            
+            // Try both normal and inverted
+            for (const inversion of ["dontInvert", "attemptBoth"]) {
+                const code = jsQR(fullImageData.data, fullImageData.width, fullImageData.height, {
+                    inversionAttempts: inversion,
+                });
+                
+                if (code && code.data && code.data.length > 50) {
+                    console.log(`✓ QR code found in full image scan (${inversion})`);
+                    codes.push({
+                        data: code.data,
+                        location: code.location
+                    });
+                    break; // Found one, stop trying
+                }
+            }
+        } catch (error) {
+            console.warn("❌ Full image scan failed:", error);
+        }
+    }
+
+    // Sort by Y position (top to bottom) to maintain chunk order
+    codes.sort((a, b) => a.location.topLeftCorner.y - b.location.topLeftCorner.y);
+    
+    console.log(`🔍 Scanning complete. Found ${codes.length} QR codes.`);
+    
+    // Log details of found codes
+    codes.forEach((code, index) => {
+        console.log(`  Code ${index + 1}: ${code.data.length} chars, pos (${code.location.topLeftCorner.x}, ${code.location.topLeftCorner.y})`);
+    });
+    
+    return codes;
+}
+
+// Improved reassembly with better error messages
 function reassembleQRData(qrCodes) {
+    if (qrCodes.length === 0) {
+        throw new Error('No QR codes provided for reassembly.');
+    }
+
     const chunks = [];
     let totalChunks = 0;
     let version = null;
+    const errors = [];
+
+    console.log(`📦 Reassembling ${qrCodes.length} QR codes...`);
 
     // Parse each QR code
-    for (const qrCode of qrCodes) {
+    for (let i = 0; i < qrCodes.length; i++) {
+        const qrCode = qrCodes[i];
         try {
-            const [metadataStr, chunkData] = qrCode.data.split('|', 2);
+            console.log(`  Processing QR ${i + 1}: ${qrCode.data.length} chars`);
+            
+            const separatorIndex = qrCode.data.indexOf('|');
+            if (separatorIndex === -1) {
+                errors.push(`QR ${i + 1}: No separator found`);
+                continue;
+            }
+
+            const metadataStr = qrCode.data.substring(0, separatorIndex);
+            const chunkData = qrCode.data.substring(separatorIndex + 1);
+            
             if (!chunkData) {
-                console.warn("Invalid QR format (no separator found):", qrCode.data.substring(0, 100));
+                errors.push(`QR ${i + 1}: No data after separator`);
                 continue;
             }
 
             const metadata = JSON.parse(metadataStr);
+            console.log(`    Metadata: chunk ${metadata.i + 1}/${metadata.t}, version ${metadata.v}`);
             
             // Validate metadata
             if (typeof metadata.i !== 'number' || typeof metadata.t !== 'number') {
-                console.warn("Invalid metadata:", metadata);
+                errors.push(`QR ${i + 1}: Invalid metadata format`);
+                continue;
+            }
+
+            if (metadata.i < 0 || metadata.i >= metadata.t) {
+                errors.push(`QR ${i + 1}: Invalid chunk index ${metadata.i} for total ${metadata.t}`);
                 continue;
             }
 
@@ -2898,37 +2945,53 @@ function reassembleQRData(qrCodes) {
             if (version === null) {
                 version = metadata.v;
                 totalChunks = metadata.t;
-            } else if (metadata.v !== version || metadata.t !== totalChunks) {
-                console.warn("Metadata mismatch:", metadata);
+                console.log(`  📋 Expecting ${totalChunks} chunks total, version ${version}`);
+            } else if (metadata.v !== version) {
+                errors.push(`QR ${i + 1}: Version mismatch (expected ${version}, got ${metadata.v})`);
+                continue;
+            } else if (metadata.t !== totalChunks) {
+                errors.push(`QR ${i + 1}: Total chunks mismatch (expected ${totalChunks}, got ${metadata.t})`);
+                continue;
+            }
+
+            // Check for duplicate chunks
+            if (chunks[metadata.i] !== undefined) {
+                errors.push(`QR ${i + 1}: Duplicate chunk ${metadata.i}`);
                 continue;
             }
 
             // Store chunk
             chunks[metadata.i] = chunkData;
-            console.log(`Chunk ${metadata.i + 1}/${metadata.t} processed`);
+            console.log(`    ✓ Chunk ${metadata.i + 1}/${metadata.t} stored (${chunkData.length} chars)`);
 
         } catch (error) {
-            console.warn("Failed to parse QR code:", error.message);
+            errors.push(`QR ${i + 1}: Parse error - ${error.message}`);
             continue;
         }
     }
 
+    // Report errors if any
+    if (errors.length > 0) {
+        console.warn(`⚠️ QR parsing errors:`, errors);
+    }
+
     // Validate we have all chunks
-    if (chunks.length !== totalChunks) {
-        throw new Error(`Missing chunks: expected ${totalChunks}, found ${chunks.length}`);
-    }
+    const foundChunks = chunks.filter(chunk => chunk !== undefined).length;
+    console.log(`📊 Chunks found: ${foundChunks}/${totalChunks}`);
 
-    for (let i = 0; i < totalChunks; i++) {
-        if (!chunks[i]) {
-            throw new Error(`Missing chunk ${i + 1} of ${totalChunks}`);
+    if (foundChunks !== totalChunks) {
+        const missing = [];
+        for (let i = 0; i < totalChunks; i++) {
+            if (!chunks[i]) missing.push(i + 1);
         }
+        throw new Error(`Missing chunks: ${missing.join(', ')} (found ${foundChunks}/${totalChunks})`);
     }
 
-    console.log("All chunks found, reassembling data...");
+    console.log("✓ All chunks found, reassembling data...");
 
     // Reassemble base64 data
     const base64Data = chunks.join('');
-    console.log(`Reassembled base64 size: ${base64Data.length} bytes`);
+    console.log(`📝 Reassembled base64 size: ${base64Data.length} bytes`);
 
     // Decode base64 and decompress
     try {
@@ -2939,16 +3002,15 @@ function reassembleQRData(qrCodes) {
         }
 
         const decompressed = pako.inflate(compressedData, { to: 'string' });
-        console.log(`Decompressed size: ${decompressed.length} bytes`);
+        console.log(`📦 Decompressed size: ${decompressed.length} bytes`);
+        console.log("✅ QR reassembly successful!");
         
         return decompressed;
 
     } catch (error) {
         throw new Error(`Failed to decompress data: ${error.message}`);
     }
-}
-
-        
+}        
         
 function validateImportedData(data) {
     // Support both old and new formats
