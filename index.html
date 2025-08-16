@@ -816,7 +816,17 @@
         color: #fff; /* brighten on hover */
     }
 
-
+    .qr-loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.8);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        z-index: 9999;
+    }
         
     </style>
 
@@ -1673,216 +1683,6 @@ function exportResults() {
     URL.revokeObjectURL(url);
 }
 
-function exportResultsAsQR() {
-    // Ensure normalized weights are calculated
-    if (!decisionData.normalizedWeights || Object.keys(decisionData.normalizedWeights).length === 0) {
-        normalizeImportanceWeights();
-    }
-
-    const results = {
-        title: decisionData.title,
-        description: decisionData.description,
-        timestamp: new Date().toISOString(),
-        options: decisionData.options,
-        criteria: decisionData.criteria,
-        weights: decisionData.weights,
-        ratings: decisionData.ratings,
-        version: "1.1"
-    };
-
-    // Serialize and compress
-    const jsonStr = JSON.stringify(results, null, 0); // Minify JSON
-    const compressed = pako.deflate(jsonStr, { to: 'string' }); // Binary string
-    console.log(`Compressed data size: ${compressed.length} bytes`);
-    const maxQRBytes = 1024; // Smaller chunk size for robust scanning
-    const chunks = [];
-    for (let i = 0; i < compressed.length; i += maxQRBytes) {
-        chunks.push(compressed.slice(i, i + maxQRBytes));
-    }
-    const totalChunks = chunks.length;
-    console.log(`Total chunks: ${totalChunks}`);
-
-    // Limit chunks to avoid overly large PNGs
-    if (totalChunks > 10) {
-        alert("Data too large for QR export. Try exporting as JSON instead.");
-        return;
-    }
-
-    // Add metadata to each chunk
-    const qrData = chunks.map((chunk, index) => {
-        const metadata = JSON.stringify({
-            chunkIndex: index,
-            totalChunks: totalChunks,
-            version: "1.1"
-        });
-        return `${metadata}|${chunk}`;
-    });
-
-    // Create temporary container
-    let tempDiv = null;
-    try {
-        tempDiv = document.createElement('div');
-        tempDiv.style.position = "absolute";
-        tempDiv.style.left = "-9999px";
-        document.body.appendChild(tempDiv);
-
-        // Generate QR codes asynchronously
-        const generateQRs = async () => {
-            if (typeof QRCode === 'undefined') {
-                throw new Error("QRCode.js library not loaded. Ensure the script is included.");
-            }
-            const qrCanvases = [];
-            for (const data of qrData) {
-                const qrDiv = document.createElement('div');
-                tempDiv.appendChild(qrDiv);
-                try {
-                    await new Promise((resolve, reject) => {
-                        new QRCode(qrDiv, {
-                            text: data,
-                            width: 500,
-                            height: 500,
-                            correctLevel: QRCode.CorrectLevel.H
-                        });
-                        const canvas = qrDiv.querySelector('canvas');
-                        if (canvas) {
-                            console.log(`QR ${qrCanvases.length + 1} generated`);
-                            qrCanvases.push(canvas);
-                            resolve();
-                        } else {
-                            reject(new Error("QR canvas not found"));
-                        }
-                    });
-                } catch (err) {
-                    throw new Error(`Failed to generate QR code: ${err.message}`);
-                }
-            }
-            return qrCanvases;
-        };
-
-        // Execute QR generation and rendering
-        generateQRs().then(qrCanvases => {
-            if (!qrCanvases || qrCanvases.length === 0 || qrCanvases.some(c => !c)) {
-                throw new Error("No valid QR canvases generated");
-            }
-
-            const qrSize = 500;
-            const padding = 24;
-            const headerHeight = decisionData.description ? 110 : 70;
-            const footerHeight = 100;
-            const qrSpacing = 20;
-            const totalHeight = headerHeight + (qrSize * totalChunks) + (qrSpacing * (totalChunks - 1)) + (padding * 2) + footerHeight;
-
-            // Output canvas
-            const out = document.createElement('canvas');
-            out.width = qrSize + padding * 2;
-            out.height = totalHeight;
-            const octx = out.getContext('2d');
-
-            // White background
-            octx.fillStyle = '#fff';
-            octx.fillRect(0, 0, out.width, out.height);
-
-            // Header - Title and Description
-            octx.fillStyle = '#000';
-            octx.textAlign = 'center';
-            octx.textBaseline = 'top';
-            octx.font = '600 20px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
-            const headerTitle = (decisionData.title || 'Choicease Decision').slice(0, 80);
-            octx.fillText(headerTitle, out.width / 2, padding);
-
-            if (decisionData.description) {
-                const maxWidth = out.width - padding * 2;
-                const words = decisionData.description.trim().split(/\s+/);
-                const lines = [];
-                let line = "";
-                octx.font = '14px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
-                octx.fillStyle = '#666';
-                for (let i = 0; i < words.length; i++) {
-                    const testLine = line ? line + " " + words[i] : words[i];
-                    if (octx.measureText(testLine).width <= maxWidth) {
-                        line = testLine;
-                    } else {
-                        lines.push(line);
-                        line = words[i];
-                        if (lines.length === 2) break;
-                    }
-                }
-                if (line && lines.length < 2) lines.push(line);
-                if (words.length > lines.join(" ").split(/\s+/).length) {
-                    lines[lines.length - 1] = lines[lines.length - 1] + "...";
-                }
-                lines.forEach((l, idx) => {
-                    octx.fillText(l, out.width / 2, padding + 28 + idx * 18);
-                });
-            }
-
-            // Draw QRs vertically
-            qrCanvases.forEach((canvas, index) => {
-                const yOffset = headerHeight + padding + (index * (qrSize + qrSpacing));
-                octx.drawImage(canvas, padding, yOffset);
-            });
-
-            // Footer
-            const logo = new Image();
-            logo.onload = function () {
-                const logoMaxHeight = 60;
-                const scale = logo.height ? logoMaxHeight / logo.height : 1;
-                const logoWidth = logo.width * scale;
-                const logoX = padding;
-                const logoY = headerHeight + padding + (qrSize * totalChunks) + (qrSpacing * (totalChunks - 1)) + padding;
-
-                octx.drawImage(logo, logoX, logoY, logoWidth, logoMaxHeight);
-
-                const textX = out.width - padding;
-                const baseY = logoY + 10;
-                const generatedAt = new Date().toLocaleString();
-                const footerLine1 = `Generated on: ${generatedAt}`;
-                const footerLine2 = "Import and review at https://choicease.com";
-                const footerLine3 = "Post on https://www.reddit.com/r/choicease/";
-
-                octx.textAlign = 'right';
-                octx.fillStyle = '#666';
-                octx.font = '12px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
-                octx.fillText(footerLine1, textX, baseY);
-                octx.fillStyle = '#000';
-                octx.font = '13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
-                octx.fillText(footerLine2, textX, baseY + 20);
-                octx.fillText(footerLine3, textX, baseY + 38);
-
-                // Download
-                const url = out.toDataURL("image/png");
-                const safeTitle = decisionData.title ? decisionData.title.replace(/\s+/g, "_") : "decision";
-                const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-                const filename = `choicease_QR_${safeTitle}_${timestamp}.png`;
-
-                const link = document.createElement('a');
-                link.download = filename;
-                link.href = url;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            };
-            logo.onerror = function () {
-                console.error("Logo failed to load");
-                alert("Failed to load logo image. Check 'images/Choicease logo.png'.");
-            };
-            logo.src = "images/Choicease logo.png";
-        }).catch(err => {
-            console.error("Export error:", err);
-            alert("QR export failed: " + err.message);
-        }).finally(() => {
-            if (tempDiv && tempDiv.parentNode === document.body) {
-                document.body.removeChild(tempDiv);
-            }
-        });
-    } catch (err) {
-        console.error("Setup error:", err);
-        alert("QR export setup failed: " + err.message);
-        if (tempDiv && tempDiv.parentNode === document.body) {
-            document.body.removeChild(tempDiv);
-        }
-    }
-}
 
         
 
@@ -2562,97 +2362,408 @@ function handleFileImport(event) {
     event.target.value = '';
 }
 
+
+// ========================================
+// REVISED QR EXPORT FUNCTION
+// ========================================
+
+function exportResultsAsQR() {
+    console.log("Starting QR export...");
+    
+    // Ensure normalized weights are calculated
+    if (!decisionData.normalizedWeights || Object.keys(decisionData.normalizedWeights).length === 0) {
+        normalizeImportanceWeights();
+    }
+
+    const results = {
+        title: decisionData.title,
+        description: decisionData.description,
+        timestamp: new Date().toISOString(),
+        options: decisionData.options,
+        criteria: decisionData.criteria,
+        weights: decisionData.weights,
+        normalizedWeights: decisionData.normalizedWeights,
+        ratings: decisionData.ratings,
+        version: "1.1"
+    };
+
+    try {
+        // Serialize and compress - use Uint8Array for proper binary handling
+        const jsonStr = JSON.stringify(results);
+        console.log(`Original JSON size: ${jsonStr.length} bytes`);
+        
+        const compressed = pako.deflate(jsonStr);
+        console.log(`Compressed size: ${compressed.length} bytes`);
+        
+        // Convert to base64 for reliable QR encoding
+        const base64Data = btoa(String.fromCharCode.apply(null, compressed));
+        console.log(`Base64 size: ${base64Data.length} bytes`);
+
+        // Calculate chunks - QR codes can handle ~2,900 alphanumeric chars reliably
+        const maxChunkSize = 2800; // Conservative size for High error correction
+        const chunks = [];
+        for (let i = 0; i < base64Data.length; i += maxChunkSize) {
+            chunks.push(base64Data.slice(i, i + maxChunkSize));
+        }
+        
+        const totalChunks = chunks.length;
+        console.log(`Total chunks needed: ${totalChunks}`);
+
+        if (totalChunks > 20) {
+            alert("Data is too large for QR export. Please try exporting as JSON instead.");
+            return;
+        }
+
+        // Prepare QR data with metadata
+        const qrDataArray = chunks.map((chunk, index) => {
+            const metadata = {
+                i: index,           // chunk index (shortened key)
+                t: totalChunks,     // total chunks (shortened key)  
+                v: "1.1"           // version (shortened key)
+            };
+            return JSON.stringify(metadata) + "|" + chunk;
+        });
+
+        generateQRCodes(qrDataArray, totalChunks);
+
+    } catch (error) {
+        console.error("Export preparation failed:", error);
+        alert("Failed to prepare data for QR export: " + error.message);
+    }
+}
+
+// Helper function to generate QR codes
+function generateQRCodes(qrDataArray, totalChunks) {
+    console.log("Generating QR codes...");
+    
+    // Create temporary container
+    const tempDiv = document.createElement('div');
+    tempDiv.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
+    document.body.appendChild(tempDiv);
+
+    const qrPromises = qrDataArray.map((data, index) => {
+        return new Promise((resolve, reject) => {
+            const qrContainer = document.createElement('div');
+            tempDiv.appendChild(qrContainer);
+
+            try {
+                const qr = new QRCode(qrContainer, {
+                    text: data,
+                    width: 400,
+                    height: 400,
+                    correctLevel: QRCode.CorrectLevel.H, // High error correction
+                    colorDark: "#000000",
+                    colorLight: "#ffffff"
+                });
+
+                // Wait for QR generation
+                setTimeout(() => {
+                    const canvas = qrContainer.querySelector('canvas');
+                    if (canvas) {
+                        console.log(`QR ${index + 1}/${totalChunks} generated successfully`);
+                        resolve(canvas);
+                    } else {
+                        reject(new Error(`Canvas not found for QR ${index + 1}`));
+                    }
+                }, 100);
+
+            } catch (error) {
+                reject(new Error(`Failed to create QR ${index + 1}: ${error.message}`));
+            }
+        });
+    });
+
+    // Generate all QR codes
+    Promise.all(qrPromises)
+        .then(canvases => {
+            console.log("All QR codes generated, creating final image...");
+            createFinalImage(canvases, totalChunks);
+        })
+        .catch(error => {
+            console.error("QR generation failed:", error);
+            alert("Failed to generate QR codes: " + error.message);
+        })
+        .finally(() => {
+            // Cleanup
+            if (tempDiv.parentNode === document.body) {
+                document.body.removeChild(tempDiv);
+            }
+        });
+}
+
+// Helper function to create final image
+function createFinalImage(qrCanvases, totalChunks) {
+    const qrSize = 400;
+    const padding = 30;
+    const headerHeight = 120;
+    const footerHeight = 100;
+    const qrSpacing = 15;
+    
+    // Calculate canvas dimensions
+    const canvasWidth = qrSize + (padding * 2);
+    const canvasHeight = headerHeight + (qrSize * totalChunks) + (qrSpacing * Math.max(0, totalChunks - 1)) + footerHeight + (padding * 2);
+
+    // Create output canvas
+    const outputCanvas = document.createElement('canvas');
+    outputCanvas.width = canvasWidth;
+    outputCanvas.height = canvasHeight;
+    const ctx = outputCanvas.getContext('2d');
+
+    // White background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // Header
+    ctx.fillStyle = '#000000';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 24px Arial, sans-serif';
+    
+    const title = (decisionData.title || 'Choicease Decision').substring(0, 50);
+    ctx.fillText('Choicease Decision Analysis', canvasWidth / 2, padding + 25);
+    
+    ctx.font = '18px Arial, sans-serif';
+    ctx.fillText(title, canvasWidth / 2, padding + 55);
+    
+    if (decisionData.description && decisionData.description.length > 0) {
+        ctx.font = '14px Arial, sans-serif';
+        ctx.fillStyle = '#666666';
+        const desc = decisionData.description.substring(0, 80) + (decisionData.description.length > 80 ? '...' : '');
+        ctx.fillText(desc, canvasWidth / 2, padding + 80);
+    }
+
+    // Add chunk info
+    ctx.fillStyle = '#333333';
+    ctx.font = '12px Arial, sans-serif';
+    ctx.fillText(`${totalChunks} QR Code${totalChunks > 1 ? 's' : ''} - Scan all to import`, canvasWidth / 2, padding + 105);
+
+    // Draw QR codes
+    let yOffset = headerHeight + padding;
+    qrCanvases.forEach((canvas, index) => {
+        // Add chunk label
+        ctx.fillStyle = '#666666';
+        ctx.font = 'bold 14px Arial, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(`Part ${index + 1} of ${totalChunks}`, padding, yOffset - 5);
+        
+        // Draw QR code
+        ctx.drawImage(canvas, padding, yOffset, qrSize, qrSize);
+        yOffset += qrSize + qrSpacing;
+    });
+
+    // Footer
+    const footerY = canvasHeight - footerHeight;
+    ctx.fillStyle = '#333333';
+    ctx.textAlign = 'center';
+    ctx.font = '12px Arial, sans-serif';
+    ctx.fillText('Generated: ' + new Date().toLocaleString(), canvasWidth / 2, footerY + 20);
+    ctx.fillText('Import at: https://choicease.com', canvasWidth / 2, footerY + 40);
+    ctx.fillText('Share at: https://reddit.com/r/choicease', canvasWidth / 2, footerY + 60);
+
+    // Download
+    const url = outputCanvas.toDataURL('image/png', 1.0);
+    const safeTitle = decisionData.title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+    const filename = `choicease_QR_${safeTitle}_${timestamp}.png`;
+
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    console.log("QR export completed successfully");
+}
+
+// ========================================
+// REVISED QR IMPORT FUNCTION  
+// ========================================
+
 function handleQRImport(event) {
     const file = event.target.files[0];
     if (!file) return;
 
+    console.log("Starting QR import...");
+
     const reader = new FileReader();
-    reader.onload = function () {
+    reader.onload = function(e) {
         const img = new Image();
-        img.onload = function () {
-            const canvas = document.createElement('canvas');
-            canvas.width = img.width;
-            canvas.height = img.height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0);
-
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const codes = [];
-
-            // Scan for multiple QRs using a sliding window
-            const qrSize = 500; // Match export QR size
-            const stepSize = 50; // Adjust for overlap detection
-            for (let y = 0; y < canvas.height; y += stepSize) {
-                for (let x = 0; x < canvas.width; x += stepSize) {
-                    const windowData = ctx.getImageData(x, y, Math.min(qrSize, canvas.width - x), Math.min(qrSize, canvas.height - y));
-                    try {
-                        const code = jsQR(windowData.data, windowData.width, windowData.height);
-                        if (code) {
-                            console.log(`Found QR at x:${x}, y:${y}`);
-                            codes.push({ data: code.data, location: code.location });
-                        }
-                    } catch (err) {
-                        console.warn(`QR scan error at x:${x}, y:${y}`, err);
-                    }
-                }
-            }
-
-            if (codes.length === 0) {
-                console.error("No QR codes detected");
-                alert('No QR codes found in image.');
-                event.target.value = "";
-                return;
-            }
-
+        img.onload = function() {
+            console.log(`Image loaded: ${img.width}x${img.height}`);
+            
             try {
-                // Process QR codes
-                const chunks = [];
-                let totalChunks = 0;
-                for (const code of codes) {
-                    const [metadataStr, chunk] = code.data.split('|');
-                    const metadata = JSON.parse(metadataStr);
-                    if (metadata.version !== "1.1") {
-                        throw new Error("Unsupported QR version");
-                    }
-                    totalChunks = metadata.totalChunks;
-                    chunks[metadata.chunkIndex] = chunk;
+                const qrCodes = scanImageForQRCodes(img);
+                console.log(`Found ${qrCodes.length} QR codes`);
+                
+                if (qrCodes.length === 0) {
+                    throw new Error('No QR codes detected in the image.');
                 }
 
-                if (chunks.length !== totalChunks || chunks.some(c => !c)) {
-                    throw new Error("Missing or invalid QR chunks");
+                const reassembledData = reassembleQRData(qrCodes);
+                const parsedData = JSON.parse(reassembledData);
+
+                if (validateImportedData(parsedData)) {
+                    loadImportedData(parsedData);
+                    showToast(`Successfully imported decision: ${parsedData.title || parsedData.decision}`);
+                } else {
+                    throw new Error('Invalid data format in QR codes.');
                 }
 
-                // Reassemble and decompress
-                const compressed = chunks.join('');
-                const decompressed = pako.inflate(Uint8Array.from(compressed, c => c.charCodeAt(0)), { to: 'string' });
-                const parsedData = JSON.parse(decompressed);
-
-                // Use existing integrity check and loading
-                loadImportedData(parsedData);
-                showToast("QR import successful!");
-                event.target.value = "";
-            } catch (err) {
-                console.error("QR import error:", err);
-                alert('Invalid or corrupted QR code data: ' + err.message);
-                event.target.value = "";
+            } catch (error) {
+                console.error("QR import failed:", error);
+                alert('QR import failed: ' + error.message);
             }
         };
-        img.onerror = function () {
-            console.error("Image load error");
-            alert("Image failed to load");
-            event.target.value = "";
+
+        img.onerror = function() {
+            console.error("Failed to load image");
+            alert('Failed to load the selected image.');
         };
-        img.src = reader.result;
+
+        img.src = e.target.result;
     };
-    reader.onerror = function () {
+
+    reader.onerror = function() {
         console.error("FileReader error");
-        alert("FileReader failed");
-        event.target.value = "";
+        alert('Failed to read the selected file.');
     };
+
     reader.readAsDataURL(file);
+    
+    // Reset file input
+    event.target.value = '';
 }
 
+// Helper function to scan image for QR codes
+function scanImageForQRCodes(img) {
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
 
+    const codes = [];
+    const scanSize = 450; // Slightly larger than our QR size for better detection
+    const stepSize = 50;  // Overlap to ensure we don't miss any
+
+    // Scan the entire image with overlapping windows
+    for (let y = 0; y <= img.height - scanSize; y += stepSize) {
+        for (let x = 0; x <= img.width - scanSize; x += stepSize) {
+            try {
+                const imageData = ctx.getImageData(x, y, Math.min(scanSize, img.width - x), Math.min(scanSize, img.height - y));
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+                
+                if (code) {
+                    // Check if we already found this QR code (avoid duplicates from overlapping scans)
+                    const isDuplicate = codes.some(existingCode => 
+                        Math.abs(existingCode.location.topLeftCorner.x - (code.location.topLeftCorner.x + x)) < 30 &&
+                        Math.abs(existingCode.location.topLeftCorner.y - (code.location.topLeftCorner.y + y)) < 30
+                    );
+                    
+                    if (!isDuplicate) {
+                        console.log(`QR code found at (${x}, ${y})`);
+                        codes.push({
+                            data: code.data,
+                            location: {
+                                topLeftCorner: {
+                                    x: code.location.topLeftCorner.x + x,
+                                    y: code.location.topLeftCorner.y + y
+                                }
+                            }
+                        });
+                    }
+                }
+            } catch (scanError) {
+                // Continue scanning even if individual scans fail
+                console.warn(`Scan error at (${x}, ${y}):`, scanError.message);
+            }
+        }
+    }
+
+    // Sort by Y position (top to bottom) to maintain chunk order
+    codes.sort((a, b) => a.location.topLeftCorner.y - b.location.topLeftCorner.y);
+    
+    return codes;
+}
+
+// Helper function to reassemble QR data
+function reassembleQRData(qrCodes) {
+    const chunks = [];
+    let totalChunks = 0;
+    let version = null;
+
+    // Parse each QR code
+    for (const qrCode of qrCodes) {
+        try {
+            const [metadataStr, chunkData] = qrCode.data.split('|', 2);
+            if (!chunkData) {
+                console.warn("Invalid QR format (no separator found):", qrCode.data.substring(0, 100));
+                continue;
+            }
+
+            const metadata = JSON.parse(metadataStr);
+            
+            // Validate metadata
+            if (typeof metadata.i !== 'number' || typeof metadata.t !== 'number') {
+                console.warn("Invalid metadata:", metadata);
+                continue;
+            }
+
+            // Set/verify version and total chunks
+            if (version === null) {
+                version = metadata.v;
+                totalChunks = metadata.t;
+            } else if (metadata.v !== version || metadata.t !== totalChunks) {
+                console.warn("Metadata mismatch:", metadata);
+                continue;
+            }
+
+            // Store chunk
+            chunks[metadata.i] = chunkData;
+            console.log(`Chunk ${metadata.i + 1}/${metadata.t} processed`);
+
+        } catch (error) {
+            console.warn("Failed to parse QR code:", error.message);
+            continue;
+        }
+    }
+
+    // Validate we have all chunks
+    if (chunks.length !== totalChunks) {
+        throw new Error(`Missing chunks: expected ${totalChunks}, found ${chunks.length}`);
+    }
+
+    for (let i = 0; i < totalChunks; i++) {
+        if (!chunks[i]) {
+            throw new Error(`Missing chunk ${i + 1} of ${totalChunks}`);
+        }
+    }
+
+    console.log("All chunks found, reassembling data...");
+
+    // Reassemble base64 data
+    const base64Data = chunks.join('');
+    console.log(`Reassembled base64 size: ${base64Data.length} bytes`);
+
+    // Decode base64 and decompress
+    try {
+        const binaryString = atob(base64Data);
+        const compressedData = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            compressedData[i] = binaryString.charCodeAt(i);
+        }
+
+        const decompressed = pako.inflate(compressedData, { to: 'string' });
+        console.log(`Decompressed size: ${decompressed.length} bytes`);
+        
+        return decompressed;
+
+    } catch (error) {
+        throw new Error(`Failed to decompress data: ${error.message}`);
+    }
+}
+
+        
         
 function validateImportedData(data) {
     // Support both old and new formats
@@ -2791,24 +2902,29 @@ function updateUIWithImportedData() {
             }
         }
 
-        function showToast(msg) {
-          const toast = document.createElement("div");
-          toast.textContent = msg;
-          toast.style.position = "fixed";
-          toast.style.bottom = "20px";
-          toast.style.right = "20px";
-          toast.style.background = "#4caf50";
-          toast.style.color = "#fff";
-          toast.style.padding = "10px 16px";
-          toast.style.borderRadius = "6px";
-          toast.style.boxShadow = "0 2px 6px rgba(0,0,0,0.2)";
-          toast.style.zIndex = 9999;
-          document.body.appendChild(toast);
-        
-          setTimeout(() => toast.style.opacity = "0", 2000);
-          setTimeout(() => toast.remove(), 2600);
-        }
-
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#4caf50' : '#f44336'};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 10000;
+        font-weight: 500;
+        max-width: 300px;
+        word-wrap: break-word;
+        transition: opacity 0.3s ease;
+    `;
+    
+    document.body.appendChild(toast);
+    setTimeout(() => toast.style.opacity = '0', 3000);
+    setTimeout(() => toast.remove(), 3500);
+}
 
         
         function openModal() {
