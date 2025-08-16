@@ -2789,7 +2789,7 @@ function scanImageForQRCodes(img) {
   const canvas = document.createElement("canvas");
   canvas.width = img.width;
   canvas.height = img.height;
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
   ctx.drawImage(img, 0, 0);
 
   const codes = [];
@@ -2803,23 +2803,47 @@ function scanImageForQRCodes(img) {
     }
   }
 
-  while (true) {
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  function parseMeta(s) {
+    try {
+      return JSON.parse(s.split("|", 1)[0]);
+    } catch {
+      return null;
+    }
+  }
+
+  let y = 0;
+  while (y < img.height) {
+    const imageData = ctx.getImageData(0, y, img.width, img.height - y);
     const code = jsQR(imageData.data, imageData.width, imageData.height, {
       inversionAttempts: "dontInvert",
     });
 
-    if (!code || !code.data) break; // no more codes found
+    if (!code || !code.data) {
+      break; // no more QR codes found below this point
+    }
 
-    // Deduplicate
+    // Deduplicate by data
     const isDuplicate = codes.some((c) => c.data === code.data);
     if (isDuplicate) {
-      console.log(`⚠️ Duplicate QR detected, continuing scan...`);
+      console.log(`⚠️ Duplicate QR detected at y=${y}, skipping...`);
     } else {
-      console.log(`✓ Found QR ${codes.length + 1}: ...`);
+      const meta = parseMeta(code.data);
+      if (meta) {
+        console.log(
+          `✓ Found QR ${codes.length + 1}: chunk i=${meta.i}, t=${meta.t}, v=${meta.v}`
+        );
+      } else {
+        console.log(
+          `✓ Found QR ${codes.length + 1} (metadata parse failed): ${code.data.substring(
+            0,
+            50
+          )}...`
+        );
+      }
+
       codes.push({ data: code.data, location: code.location });
-    
-      // Update expected
+
+      // Update expected count
       if (expected === Infinity && codes.length) {
         expected = readT(code.data);
       }
@@ -2829,50 +2853,15 @@ function scanImageForQRCodes(img) {
       }
     }
 
-
-    // Mask out this QR (fill its bounding box with white)
-    const minX = Math.min(
-      code.location.topLeftCorner.x,
-      code.location.bottomLeftCorner.x,
-      code.location.topRightCorner.x,
-      code.location.bottomRightCorner.x
-    );
-    const maxX = Math.max(
-      code.location.topLeftCorner.x,
-      code.location.bottomLeftCorner.x,
-      code.location.topRightCorner.x,
-      code.location.bottomRightCorner.x
-    );
-    const minY = Math.min(
-      code.location.topLeftCorner.y,
+    // Move y to just below this QR
+    const bottomY = Math.max(
       code.location.bottomLeftCorner.y,
-      code.location.topRightCorner.y,
       code.location.bottomRightCorner.y
     );
-    const maxY = Math.max(
-      code.location.topLeftCorner.y,
-      code.location.bottomLeftCorner.y,
-      code.location.topRightCorner.y,
-      code.location.bottomRightCorner.y
-    );
-
-    ctx.fillStyle = "white";
-    
-    // Add padding so we don’t mask into the next QR
-    const padding = 5;
-    ctx.fillRect(
-      minX + padding,
-      minY + padding,
-      (maxX - minX) - 2 * padding,
-      (maxY - minY) - 2 * padding
-    );
+    y += bottomY + 10; // add margin so we don't overlap
   }
 
-  // Sort by Y to preserve chunk order
-  codes.sort((a, b) => a.location.topLeftCorner.y - b.location.topLeftCorner.y);
-
   console.log(`🔍 Scanning complete. Found ${codes.length}/${expected} QR codes.`);
-
   return codes;
 }
 
