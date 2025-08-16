@@ -1691,13 +1691,21 @@ function exportResultsAsQR() {
 
     // Serialize and compress
     const jsonStr = JSON.stringify(results, null, 0); // Minify JSON (no spaces)
-    const compressed = pako.deflate(jsonStr, { to: 'string' }); // Ensure binary string
-    const maxQRBytes = 2000; // ~2KB per QR for robust scanning
+    const compressed = pako.deflate(jsonStr, { to: 'string' }); // Binary string
+    console.log(`Compressed data size: ${compressed.length} bytes`); // Debug log
+    const maxQRBytes = 1024; // Smaller chunk size for robust scanning
     const chunks = [];
     for (let i = 0; i < compressed.length; i += maxQRBytes) {
         chunks.push(compressed.slice(i, i + maxQRBytes));
     }
     const totalChunks = chunks.length;
+    console.log(`Total chunks: ${totalChunks}`); // Debug log
+
+    // Limit chunks to avoid overly large PNGs
+    if (totalChunks > 10) {
+        alert("Data too large for QR export. Try exporting as JSON instead.");
+        return;
+    }
 
     // Add metadata to each chunk
     const qrData = chunks.map((chunk, index) => {
@@ -1706,8 +1714,7 @@ function exportResultsAsQR() {
             totalChunks: totalChunks,
             version: "1.1"
         });
-        // Combine metadata and chunk (use a delimiter to separate)
-        return `${metadata}|${chunk}`;
+        return `${metadata}|${chunk}`; // Combine metadata and chunk
     });
 
     // Create temporary container
@@ -1716,34 +1723,52 @@ function exportResultsAsQR() {
     tempDiv.style.left = "-9999px";
     document.body.appendChild(tempDiv);
 
-    // Generate QR codes for each chunk
-    const qrCanvases = [];
-    for (const data of qrData) {
-        const qrDiv = document.createElement('div');
-        tempDiv.appendChild(qrDiv);
-        new QRCode(qrDiv, {
-            text: data, // Use binary string directly (ensure QRCode.js supports byte mode)
-            width: 500,
-            height: 500,
-            correctLevel: QRCode.CorrectLevel.H
-        });
-        const canvas = qrDiv.querySelector('canvas');
-        qrCanvases.push(canvas);
-    }
+    // Generate QR codes asynchronously
+    const generateQRs = async () => {
+        const qrCanvases = [];
+        for (const data of qrData) {
+            const qrDiv = document.createElement('div');
+            tempDiv.appendChild(qrDiv);
+            try {
+                await new Promise((resolve, reject) => {
+                    new QRCode(qrDiv, {
+                        text: data,
+                        width: 500,
+                        height: 500,
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                    const canvas = qrDiv.querySelector('canvas');
+                    if (canvas) {
+                        console.log(`QR ${qrCanvases.length + 1} generated`); // Debug log
+                        qrCanvases.push(canvas);
+                        resolve();
+                    } else {
+                        reject(new Error("QR canvas not found"));
+                    }
+                });
+            } catch (err) {
+                console.error("QR generation error:", err);
+                alert("Failed to generate QR code: " + err.message);
+                document.body.removeChild(tempDiv);
+                return null;
+            }
+        }
+        return qrCanvases;
+    };
 
-    // Wait for QR generation
-    setTimeout(() => {
-        if (qrCanvases.length === 0 || qrCanvases.some(c => !c)) {
-            alert("QR generation failed.");
+    // Execute QR generation and rendering
+    generateQRs().then(qrCanvases => {
+        if (!qrCanvases || qrCanvases.length === 0 || qrCanvases.some(c => !c)) {
+            alert("QR generation failed. Check console for details.");
             document.body.removeChild(tempDiv);
             return;
         }
 
-        const qrSize = 500; // Square QR size
+        const qrSize = 500;
         const padding = 24;
         const headerHeight = decisionData.description ? 110 : 70;
         const footerHeight = 100;
-        const qrSpacing = 20; // Space between QRs
+        const qrSpacing = 20;
         const totalHeight = headerHeight + (qrSize * totalChunks) + (qrSpacing * (totalChunks - 1)) + (padding * 2) + footerHeight;
 
         // Output canvas
@@ -1756,7 +1781,7 @@ function exportResultsAsQR() {
         octx.fillStyle = '#fff';
         octx.fillRect(0, 0, out.width, out.height);
 
-        // Header - Title and Description (unchanged from your code)
+        // Header - Title and Description
         octx.fillStyle = '#000';
         octx.textAlign = 'center';
         octx.textBaseline = 'top';
@@ -1796,7 +1821,7 @@ function exportResultsAsQR() {
             octx.drawImage(canvas, padding, yOffset);
         });
 
-        // Footer (modified for new canvas height)
+        // Footer
         const logo = new Image();
         logo.onload = function () {
             const logoMaxHeight = 60;
@@ -1836,12 +1861,17 @@ function exportResultsAsQR() {
             link.click();
             document.body.removeChild(link);
         };
+        logo.onerror = function () {
+            console.error("Logo failed to load");
+            alert("Failed to load logo image. Check 'images/Choicease logo.png'.");
+            document.body.removeChild(tempDiv);
+        };
         logo.src = "images/Choicease logo.png";
+    });
+}
 
-        document.body.removeChild(tempDiv);
-    }, 300);
-}        
 
+        
 function downloadPDFReport() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -2517,7 +2547,6 @@ function handleFileImport(event) {
     event.target.value = '';
 }
 
-
 function handleQRImport(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -2544,15 +2573,17 @@ function handleQRImport(event) {
                     try {
                         const code = jsQR(windowData.data, windowData.width, windowData.height);
                         if (code) {
+                            console.log(`Found QR at x:${x}, y:${y}`); // Debug log
                             codes.push({ data: code.data, location: code.location });
                         }
                     } catch (err) {
-                        // Ignore errors in windowed scan
+                        console.warn(`QR scan error at x:${x}, y:${y}`, err);
                     }
                 }
             }
 
             if (codes.length === 0) {
+                console.error("No QR codes detected");
                 alert('No QR codes found in image.');
                 event.target.value = "";
                 return;
@@ -2586,23 +2617,25 @@ function handleQRImport(event) {
                 showToast("QR import successful!");
                 event.target.value = ""; // Allow re-importing
             } catch (err) {
+                console.error("QR import error:", err);
                 alert('Invalid or corrupted QR code data: ' + err.message);
                 event.target.value = "";
             }
         };
         img.onerror = function () {
+            console.error("Image load error");
             alert("Image failed to load");
             event.target.value = "";
         };
         img.src = reader.result;
     };
     reader.onerror = function () {
+        console.error("FileReader error");
         alert("FileReader failed");
         event.target.value = "";
     };
     reader.readAsDataURL(file);
 }        
-        
         
 function validateImportedData(data) {
     // Support both old and new formats
