@@ -2785,128 +2785,80 @@ function handleQRImport(event) {
 }
 
 
-
-// Improved scanning function with better error handling
 function scanImageForQRCodes(img) {
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0);
 
-    const codes = [];
-    console.log(`Scanning image ${img.width}x${img.height} for QR codes...`);
+  const codes = [];
+  let expected = Infinity;
 
-    // STRATEGY 1: Try different scan window sizes (more conservative)
-    const scanSizes = [550, 512, 480, 450, 400]; // Start larger
-
-    let expected = Infinity;
-    
-    function readT(s) {
-      try {
-        return JSON.parse(s.split('|', 1)[0]).t || 1;
-      } catch {
-        return 1;
-      }
+  function readT(s) {
+    try {
+      return JSON.parse(s.split("|", 1)[0]).t || 1;
+    } catch {
+      return 1;
     }
+  }
 
-    
-    for (const scanSize of scanSizes) {
-        const stepSize = Math.floor(scanSize * 0.15); // Larger steps for speed
-        
-        console.log(`Trying scan size: ${scanSize}x${scanSize} with step ${stepSize}`);
-        
-        for (let y = 0; y <= img.height - scanSize; y += stepSize) {
-            for (let x = 0; x <= img.width - scanSize; x += stepSize) {
-                try {
-                    const imageData = ctx.getImageData(x, y, 
-                        Math.min(scanSize, img.width - x), 
-                        Math.min(scanSize, img.height - y)
-                    );
-                    
-                    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-                        inversionAttempts: "dontInvert", // Speed up scanning
-                    });
-                    
-                    if (code && code.data && code.data.length > 50) { // More stringent length check
-                        // Check for duplicates with proper threshold
-                        const isDuplicate = codes.some(existingCode => {
-                            const dx = Math.abs(existingCode.location.topLeftCorner.x - (code.location.topLeftCorner.x + x));
-                            const dy = Math.abs(existingCode.location.topLeftCorner.y - (code.location.topLeftCorner.y + y));
-                            return dx < 100 && dy < 100; // Generous duplicate detection
-                        });
-                        
-                        if (!isDuplicate) {
-                            console.log(`✓ QR code found at (${x}, ${y}) with scan size ${scanSize}`);
-                            console.log(`  Data length: ${code.data.length} chars`);
-                            console.log(`  Data preview: ${code.data.substring(0, 50)}...`);
-                            
-                            codes.push({
-                                data: code.data,
-                                location: {
-                                    topLeftCorner: {
-                                        x: code.location.topLeftCorner.x + x,
-                                        y: code.location.topLeftCorner.y + y
-                                    }
-                                }
-                            });
-                        }
-                    }
-                } catch (scanError) {
-                    // Silently continue - scanning errors are common
-                    continue;
-                }
-            }
-        }
-        
-        if (expected === Infinity && codes.length) {
-          expected = readT(codes[0].data);
-        }
-        if (codes.length >= expected) {
-          console.log(`✓ Found all ${codes.length}/${expected} codes`);
-          break;
-        }
-
-    }
-
-    // STRATEGY 2: If no codes found, try full image scan with both inversions
-    if (codes.length === 0) {
-        console.log("⚠️ No QR codes found with windowed scanning, trying full image...");
-        try {
-            const fullImageData = ctx.getImageData(0, 0, img.width, img.height);
-            
-            // Try both normal and inverted
-            for (const inversion of ["dontInvert", "attemptBoth"]) {
-                const code = jsQR(fullImageData.data, fullImageData.width, fullImageData.height, {
-                    inversionAttempts: inversion,
-                });
-                
-                if (code && code.data && code.data.length > 50) {
-                    console.log(`✓ QR code found in full image scan (${inversion})`);
-                    codes.push({
-                        data: code.data,
-                        location: code.location
-                    });
-                    break; // Found one, stop trying
-                }
-            }
-        } catch (error) {
-            console.warn("❌ Full image scan failed:", error);
-        }
-    }
-
-    // Sort by Y position (top to bottom) to maintain chunk order
-    codes.sort((a, b) => a.location.topLeftCorner.y - b.location.topLeftCorner.y);
-    
-    console.log(`🔍 Scanning complete. Found ${codes.length} QR codes.`);
-    
-    // Log details of found codes
-    codes.forEach((code, index) => {
-        console.log(`  Code ${index + 1}: ${code.data.length} chars, pos (${code.location.topLeftCorner.x}, ${code.location.topLeftCorner.y})`);
+  while (true) {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: "dontInvert",
     });
-    
-    return codes;
+
+    if (!code || !code.data) break; // no more codes found
+
+    // Deduplicate
+    const isDuplicate = codes.some((c) => c.data === code.data);
+    if (!isDuplicate) {
+      console.log(`✓ Found QR ${codes.length + 1}: ${code.data.substring(0, 50)}...`);
+      codes.push({ data: code.data, location: code.location });
+
+      // Update expected
+      if (expected === Infinity) expected = readT(code.data);
+    }
+
+    // Mask out this QR (fill its bounding box with white)
+    const minX = Math.min(
+      code.location.topLeftCorner.x,
+      code.location.bottomLeftCorner.x,
+      code.location.topRightCorner.x,
+      code.location.bottomRightCorner.x
+    );
+    const maxX = Math.max(
+      code.location.topLeftCorner.x,
+      code.location.bottomLeftCorner.x,
+      code.location.topRightCorner.x,
+      code.location.bottomRightCorner.x
+    );
+    const minY = Math.min(
+      code.location.topLeftCorner.y,
+      code.location.bottomLeftCorner.y,
+      code.location.topRightCorner.y,
+      code.location.bottomRightCorner.y
+    );
+    const maxY = Math.max(
+      code.location.topLeftCorner.y,
+      code.location.bottomLeftCorner.y,
+      code.location.topRightCorner.y,
+      code.location.bottomRightCorner.y
+    );
+
+    ctx.fillStyle = "white";
+    ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
+  }
+
+  // Sort by Y to preserve chunk order
+  codes.sort((a, b) => a.location.topLeftCorner.y - b.location.topLeftCorner.y);
+
+  console.log(`🔍 Scanning complete. Found ${codes.length}/${expected} QR codes.`);
+
+  return codes;
 }
+
 
 // Improved reassembly with better error messages
 function reassembleQRData(qrCodes) {
