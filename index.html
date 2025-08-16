@@ -2799,6 +2799,17 @@ function scanImageForQRCodes(img) {
 
     // STRATEGY 1: Try different scan window sizes (more conservative)
     const scanSizes = [550, 512, 480, 450, 400]; // Start larger
+
+    let expected = Infinity;
+    
+    function readT(s) {
+      try {
+        return JSON.parse(s.split('|', 1)[0]).t || 1;
+      } catch {
+        return 1;
+      }
+    }
+
     
     for (const scanSize of scanSizes) {
         const stepSize = Math.floor(scanSize * 0.15); // Larger steps for speed
@@ -2848,11 +2859,14 @@ function scanImageForQRCodes(img) {
             }
         }
         
-        // If we found codes with this size, we're done
-        if (codes.length > 0) {
-            console.log(`✓ Found ${codes.length} codes with scan size ${scanSize}`);
-            break;
+        if (expected === Infinity && codes.length) {
+          expected = readT(codes[0].data);
         }
+        if (codes.length >= expected) {
+          console.log(`✓ Found all ${codes.length}/${expected} codes`);
+          break;
+        }
+
     }
 
     // STRATEGY 2: If no codes found, try full image scan with both inversions
