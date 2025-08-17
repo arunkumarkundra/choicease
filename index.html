@@ -2827,6 +2827,7 @@ function scanImageForQRCodes(img) {
     }
     
     const imageData = ctx.getImageData(0, y, img.width, scanHeight);
+      imageData.height = 700; // just for debugging
     const code = jsQR(imageData.data, imageData.width, imageData.height, {
       inversionAttempts: "dontInvert",
     });
