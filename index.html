@@ -2817,11 +2817,10 @@ function scanImageForQRCodes(img) {
   
   while (y < img.height) {
     // Scan in square windows of image width
-    const scanHeight = Math.min(img.width+100, img.height - y); // +100 added for debugging
+    const scanHeight = Math.min(img.width, img.height - y);
 
-    console.log(`y=${y}, height=${scanHeight}`);
-
-      
+    console.log(`y=${y}, height=${scanHeight}`); // debug log
+     
     if (scanHeight < qrSize / 2) {
       break; // Not enough space for a QR code
     }
@@ -2877,7 +2876,7 @@ function scanImageForQRCodes(img) {
       code.location.bottomLeftCorner.y,
       code.location.bottomRightCorner.y
     );
-    y += 512 + 10;
+    y += 250 + 10; // debugging
   }
   
   // Strategy 2: If we didn't find enough codes, try advanced scanning
