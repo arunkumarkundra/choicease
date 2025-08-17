@@ -2782,7 +2782,6 @@ function handleQRImport(event) {
 }
 
 
-
 function scanImageForQRCodes(img) {
   const canvas = document.createElement("canvas");
   canvas.width = img.width;
@@ -2810,35 +2809,33 @@ function scanImageForQRCodes(img) {
   }
 
   console.log(`📐 Image dimensions: ${img.width} × ${img.height}`);
-  console.log(`🔍 Starting scan in vertical blocks of ${img.width} × ${img.width}`);
+  console.log(`🔍 Scanning in blocks of ${img.width} × ${img.width}`);
 
   let y = 0;
-  while (y + 100 <= img.height) {
-    console.log(`➡️ Scanning block y=${y} → y=${img.height}`);
+  while (y + img.width < img.height) {
+    console.log(`➡️ Scanning block y=${y} → y=${y + img.width}`);
 
-    const imageData = ctx.getImageData(0, y, img.width, img.height); // changed: scan till the end 
+    const imageData = ctx.getImageData(0, y, img.width, img.width); // fixed: scan only one block
     const code = jsQR(imageData.data, imageData.width, imageData.height, {
       inversionAttempts: "dontInvert",
     });
 
     if (code && code.data) {
-          console.log(
-            `✅ Found QR ${codes.length + 1} at y=${y}`
-          );
-      
-        // Deduplicate check
+      console.log(`✅ Found QR at y=${y}`);
+
+      // Deduplicate check
       const isDuplicate = codes.some((c) => c.data === code.data);
       if (isDuplicate) {
-        console.log(`⚠️ Duplicate QR detected at block starting y=${y}, skipping...`);
+        console.log(`⚠️ Duplicate QR detected at block y=${y}, skipping...`);
       } else {
         const meta = parseMeta(code.data);
         if (meta) {
           console.log(
-            `✅ Found QR ${codes.length + 1} at y=${y}: chunk i=${meta.i}, t=${meta.t}, v=${meta.v}`
+            `📦 QR ${codes.length + 1}: chunk i=${meta.i}, t=${meta.t}, v=${meta.v}`
           );
         } else {
           console.log(
-            `✅ Found QR ${codes.length + 1} at y=${y} (metadata parse failed): ${code.data.substring(0, 50)}...`
+            `📦 QR ${codes.length + 1} (metadata parse failed): ${code.data.substring(0, 50)}...`
           );
         }
 
@@ -2855,13 +2852,16 @@ function scanImageForQRCodes(img) {
           break;
         }
       }
-        y += 200; // moving y by a bigger number is anything is found
+
+      // Move y to just below this QR
+      const bottomY = Math.max(
+        code.location.bottomLeftCorner.y,
+        code.location.bottomRightCorner.y
+      );
     } else {
       console.log(`❌ No QR detected in block y=${y} → y=${y + img.width}`);
     }
-
-    // Move down to the next block
-    y += 10;
+  y = bottomY + 20; //small step
   }
 
   console.log(`🔍 Scanning complete. Found ${codes.length}/${expected} QR codes.`);
