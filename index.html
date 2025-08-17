@@ -2851,6 +2851,7 @@ function scanImageForQRCodes(img) {
           break;
         }
       }
+        y += 200; // moving y by a bigger number is anything is found
     } else {
       console.log(`❌ No QR detected in block y=${y} → y=${y + img.width}`);
     }
