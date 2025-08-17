@@ -2630,34 +2630,27 @@ function createFinalImage(qrCanvases, totalChunks) {
         yOffset += qrSize + labelHeight + qrSpacing;
     });
 
-
-
-    // Footer
+    
+    // Footer (adjust position based on new layout)
     const footerY = canvasHeight - footerHeight;
+    
+    // Logo on left - with proper loading
     const logo = new Image();
-    logo.src = 'images/Choicease logo.png';
-    logo.onload = function () {
-        const logoMaxHeight = 60;
-        const scale = logo.height ? logoMaxHeight / logo.height : 1;
-        const logoWidth = logo.width * scale;
-        const logoX = padding;
-        ctx.drawImage(logo, logoX, footerY, logoWidth, logoMaxHeight);
-    
-        // Footer text (right side)
-        const textX = canvasWidth - padding;
-        const baseY = footerY + 10;
-    
+    logo.onload = function() {
+        const logoHeight = 60;
+        const logoWidth = logo.width * (logoHeight / logo.height); // Maintain aspect ratio
+        ctx.drawImage(logo, padding, footerY, logoWidth, logoHeight);
+        
+        // Text on right - moved inside onload to ensure logo loads first
+        ctx.fillStyle = '#333333';
         ctx.textAlign = 'right';
-        ctx.fillStyle = '#666';
-        ctx.font = '12px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
-        ctx.fillText('Generated: ' + new Date().toLocaleString(), textX, baseY);
+        ctx.font = '12px Arial, sans-serif';
+        const rightAlignX = canvasWidth - padding;
+        ctx.fillText('Generated: ' + new Date().toLocaleString(), rightAlignX, footerY + 20);
+        ctx.fillText('Import at: https://choicease.com', rightAlignX, footerY + 40);
+        ctx.fillText('Share at: https://reddit.com/r/choicease', rightAlignX, footerY + 60);
     
-        ctx.fillStyle = '#000';
-        ctx.font = '13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
-        ctx.fillText('Import at: https://choicease.com', textX, baseY + 20);
-        ctx.fillText('Share at: https://reddit.com/r/choicease', textX, baseY + 38);
-    
-        // Download final composed image
+        // Download with better quality - moved inside onload
         const url = outputCanvas.toDataURL('image/png', 1.0);
         const safeTitle = (decisionData.title || 'decision').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
@@ -2669,44 +2662,11 @@ function createFinalImage(qrCanvases, totalChunks) {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-    
+        
         console.log("QR export completed successfully");
-        resolve();
     };
-    logo.onerror = () => {
-        console.error("Failed to load logo image at 'images/Choicease logo.png'");
-        // Proceed with text even if logo fails
-        const textX = canvasWidth - padding;
-        const baseY = footerY + 10;
-    
-        ctx.textAlign = 'right';
-        ctx.fillStyle = '#666';
-        ctx.font = '12px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
-        ctx.fillText('Generated: ' + new Date().toLocaleString(), textX, baseY);
-    
-        ctx.fillStyle = '#000';
-        ctx.font = '13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
-        ctx.fillText('Import at: https://choicease.com', textX, baseY + 20);
-        ctx.fillText('Share at: https://reddit.com/r/choicease', textX, baseY + 38);
-    
-        const url = outputCanvas.toDataURL('image/png', 1.0);
-        const safeTitle = (decisionData.title || 'decision').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
-        const filename = `choicease_QR_${safeTitle}_${timestamp}.png`;
-    
-        const link = document.createElement('a');
-        link.download = filename;
-        link.href = url;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    
-        console.log("QR export completed successfully (without logo)");
-        resolve();
-    };
-
-    
-    
+    logo.src = "images/Choicease logo.png";    
+        
 
     // Download with better quality
     const url = outputCanvas.toDataURL('image/png', 1.0);
