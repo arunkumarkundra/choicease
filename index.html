@@ -2844,10 +2844,9 @@ function scanImageForQRCodes(img) {
   canvas.height = img.height;
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   ctx.drawImage(img, 0, 0);
-
   const codes = [];
   let expected = Infinity;
-
+  
   function readT(s) {
     try {
       return JSON.parse(s.split("|", 1)[0]).t || 1;
@@ -2855,7 +2854,7 @@ function scanImageForQRCodes(img) {
       return 1;
     }
   }
-
+  
   function parseMeta(s) {
     try {
       return JSON.parse(s.split("|", 1)[0]);
@@ -2865,24 +2864,46 @@ function scanImageForQRCodes(img) {
   }
 
   console.log(`📐 Image dimensions: ${img.width} × ${img.height}`);
+  
+  // Strategy 1: Try scanning the full image first
+  console.log(`🔍 Attempting full image scan...`);
+  const fullImageData = ctx.getImageData(0, 0, img.width, img.height);
+  const fullScanResult = jsQR(fullImageData.data, fullImageData.width, fullImageData.height, {
+    inversionAttempts: "attemptBoth", // Try both normal and inverted
+  });
+  
+  if (fullScanResult && fullScanResult.data) {
+    console.log(`✅ Found QR in full scan`);
+    codes.push({ data: fullScanResult.data, location: fullScanResult.location });
+    expected = readT(fullScanResult.data);
+    console.log(`📦 Expected total QRs = ${expected}`);
+  }
 
+  // Strategy 2: Sliding window scan with smaller, overlapping windows
   let y = 0;
-  const coarseStep = 50; // coarse scanning step
-  const scanHeight = Math.floor(img.width * 0.9); // narrower band to increase detection chance
-
-  while (y < img.height) {
-    const blockHeight = Math.min(scanHeight, img.height - y);
+  const windowHeight = Math.min(600, Math.floor(img.height / 3)); // Smaller scan windows
+  const step = Math.floor(windowHeight * 0.7); // 30% overlap between scans
+  
+  while (y < img.height && codes.length < expected) {
+    const blockHeight = Math.min(windowHeight, img.height - y);
+    
+    // Skip if this area is too small to contain a QR code
+    if (blockHeight < 100) {
+      y += step;
+      continue;
+    }
+    
+    console.log(`➡️ Scanning window y=${y} → y=${y + blockHeight} (${blockHeight}px high)`);
+    
     const imageData = ctx.getImageData(0, y, img.width, blockHeight);
-    console.log(`➡️ Scanning band y=${y} → y=${y + blockHeight}`);
-
     const code = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: "dontInvert",
+      inversionAttempts: "attemptBoth", // Try both normal and inverted
     });
-
+    
     if (code && code.data) {
-      console.log(`✅ Found QR at approx y=${y}`);
-
-      // Dedup check
+      console.log(`✅ Found QR at window y=${y}`);
+      
+      // Check for duplicates
       if (!codes.some((c) => c.data === code.data)) {
         const meta = parseMeta(code.data);
         if (meta) {
@@ -2891,33 +2912,67 @@ function scanImageForQRCodes(img) {
           console.log(`📦 QR ${codes.length + 1} (metadata parse failed): ${code.data.substring(0, 50)}...`);
         }
         codes.push({ data: code.data, location: code.location });
-
+        
         if (expected === Infinity) {
           expected = readT(code.data);
-          console.log(`📦 Expected total QRs = ${expected}`);
+          console.log(`📦 Updated expected total QRs = ${expected}`);
         }
+        
+        // Adjust the absolute position of the QR location
+        code.location.topLeftCorner.y += y;
+        code.location.topRightCorner.y += y;
+        code.location.bottomLeftCorner.y += y;
+        code.location.bottomRightCorner.y += y;
+        
+        // Skip past this QR to avoid re-detection
+        const bottomY = Math.max(
+          code.location.bottomLeftCorner.y,
+          code.location.bottomRightCorner.y
+        );
+        y = Math.floor(bottomY + 30); // Move past the QR with small buffer
+        continue;
       }
-
-      // Jump below this QR
-      const bottomY = Math.max(
-        code.location.bottomLeftCorner.y,
-        code.location.bottomRightCorner.y
-      );
-      y = Math.floor(bottomY + 50); // skip directly past it
-    } else {
-      y += coarseStep; // keep coarse scanning
     }
+    
+    y += step;
+  }
 
-    if (codes.length >= expected) {
-      console.log(`🎯 Found all ${codes.length}/${expected} codes, stopping early.`);
-      break;
+  // Strategy 3: If still missing QRs, try smaller overlapping scans
+  if (codes.length < expected && expected !== Infinity) {
+    console.log(`🔄 Missing QRs, trying fine-grained scan...`);
+    y = 0;
+    const fineWindowHeight = Math.min(400, Math.floor(img.height / 4));
+    const fineStep = Math.floor(fineWindowHeight * 0.5); // 50% overlap
+    
+    while (y < img.height && codes.length < expected) {
+      const blockHeight = Math.min(fineWindowHeight, img.height - y);
+      
+      if (blockHeight < 100) {
+        y += fineStep;
+        continue;
+      }
+      
+      const imageData = ctx.getImageData(0, y, img.width, blockHeight);
+      const code = jsQR(imageData.data, imageData.width, imageData.height, {
+        inversionAttempts: "attemptBoth",
+      });
+      
+      if (code && code.data && !codes.some((c) => c.data === code.data)) {
+        console.log(`✅ Found additional QR at fine scan y=${y}`);
+        const meta = parseMeta(code.data);
+        if (meta) {
+          console.log(`📦 QR ${codes.length + 1}: chunk i=${meta.i}, t=${meta.t}, v=${meta.v}`);
+        }
+        codes.push({ data: code.data, location: code.location });
+      }
+      
+      y += fineStep;
     }
   }
 
   console.log(`🔍 Scanning complete. Found ${codes.length}/${expected} QR codes.`);
   return codes;
-}
-        
+}        
 
         
 // Improved reassembly with better error messages
