@@ -2815,7 +2815,8 @@ function scanImageForQRCodes(img) {
   while (y + img.width < img.height) {
     console.log(`➡️ Scanning block y=${y} → y=${y + img.width}`);
 
-    const imageData = ctx.getImageData(0, y, img.width, img.width); // fixed: scan only one block
+    const blockSize = img.width; // QR is square, same as width
+    const imageData = ctx.getImageData(0, y, img.width, Math.min(blockSize, img.height - y)); // fixed: scan only one block
     const code = jsQR(imageData.data, imageData.width, imageData.height, {
       inversionAttempts: "dontInvert",
     });
@@ -2860,9 +2861,9 @@ function scanImageForQRCodes(img) {
       );
         y = bottomY;
     } else {
-      console.log(`❌ No QR detected in block y=${y} → y=${y + img.width}`);
+      console.log(`❌ No QR detected in block y=${y} → ${imageData.height}`);
     }
-  y += 20; //small step
+  y = Math.floor(y + 20); //small step
   }
 
   console.log(`🔍 Scanning complete. Found ${codes.length}/${expected} QR codes.`);
