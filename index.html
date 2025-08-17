@@ -2548,13 +2548,13 @@ function createFinalImage(qrCanvases, totalChunks) {
 //    const title = (decisionData.title || 'Choicease Decision').substring(0, 50);
     ctx.fillText('Choicease Decision Analysis', canvasWidth / 2, padding + 25);
 
-    // Truncate title at word boundary (max 30 chars)
+    // Truncate title at word boundary (max 60 chars)
     let title = decisionData.title || 'Choicease Decision';
-    if (title.length > 30) {
+    if (title.length > 60) {
         const words = title.split(' ');
         let truncated = '';
         for (let word of words) {
-            if ((truncated + word).length <= 27) {
+            if ((truncated + word).length <= 57) {
                 truncated += (truncated ? ' ' : '') + word;
             } else {
                 break;
@@ -2571,7 +2571,7 @@ function createFinalImage(qrCanvases, totalChunks) {
         ctx.font = '14px Arial, sans-serif';
         ctx.fillStyle = '#666666';
             
-        const maxCharsPerLine = 50;
+        const maxCharsPerLine = 80;
         const words = decisionData.description.split(' ');
         let line1 = '';
         let line2 = '';
@@ -2604,7 +2604,7 @@ function createFinalImage(qrCanvases, totalChunks) {
     // Add chunk info
     ctx.fillStyle = '#333333';
     ctx.font = 'bold 14px Arial, sans-serif';
-    ctx.fillText(`${totalChunks} QR Code${totalChunks > 1 ? 's' : ''}`, canvasWidth / 2, padding + 115);
+    ctx.fillText(`${totalChunks} QR Code${totalChunks > 1 ? 's' : ''}`, canvasWidth / 2, padding + 120);
 
     // Draw QR codes with proper spacing and labels
     let yOffset = headerHeight + padding;
