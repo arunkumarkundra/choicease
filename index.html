@@ -2782,7 +2782,6 @@ function handleQRImport(event) {
 
 
 
-
 function scanImageForQRCodes(img) {
   const canvas = document.createElement("canvas");
   canvas.width = img.width;
@@ -2816,6 +2815,7 @@ function scanImageForQRCodes(img) {
   let scanCount = 0;
   
   while (y < img.height - 50) { // Leave some margin at bottom
+    y = Math.floor(y); // Ensure y is always an integer
     scanCount++;
     const remainingHeight = img.height - y;
     
@@ -2895,14 +2895,25 @@ function scanImageForQRCodes(img) {
       }
     }
     
-    // Move past this QR code
-    const bottomY = Math.max(
+    // Move past this QR code - use a smaller jump to be safe
+    const qrBottom = Math.max(
       code.location.bottomLeftCorner.y,
       code.location.bottomRightCorner.y
     );
     
-    const nextY = y + bottomY + 30; // More generous margin
-    console.log(`⬇️ Moving from y=${y} to y=${nextY} (QR bottom was at ${bottomY})`);
+    // Calculate QR height and use it for a more reliable jump
+    const qrTop = Math.min(
+      code.location.topLeftCorner.y,
+      code.location.topRightCorner.y
+    );
+    const qrHeight = qrBottom - qrTop;
+    
+    // Jump by QR height + small margin, but cap it to avoid huge jumps
+    const jumpDistance = Math.min(qrHeight + 50, 600); // Max 600px jump
+    const nextY = Math.floor(y + jumpDistance);
+    
+    console.log(`⬇️ QR spans y=${qrTop} to y=${qrBottom} (height=${qrHeight})`);
+    console.log(`⬇️ Moving from y=${y} to y=${nextY} (jump=${jumpDistance})`);
     y = nextY;
   }
   
@@ -2948,8 +2959,7 @@ function scanImageForQRCodes(img) {
   }
   
   return codes;
-}
-        
+}        
 
         
 
