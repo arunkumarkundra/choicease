@@ -896,11 +896,11 @@
             <div class="section" id="section1">
                 <div class="section-title">Let's Define Your Decision</div>
                 <div class="input-group">
-                    <label for="decisionTitle">What decision are you making?</label>
+                    <label for="decisionTitle">What's the decision on your mind?</label>
                     <input type="text" id="decisionTitle" placeholder="e.g., Choose the best laptop for work">
                 </div>
                 <div class="input-group">
-                    <label for="decisionDescription">Describe the context (optional)</label>
+                    <label for="decisionDescription">Add some context if you like (optional)</label>
                     <textarea id="decisionDescription" rows="3" placeholder="Any additional context that might help..."></textarea>
                 </div>
                 <button class="btn" id="step1Continue" aria-label="Continue to next step">Continue</button>
@@ -929,7 +929,7 @@
                     <input type="text" id="optionName" placeholder="e.g., MacBook Pro 14-inch">
                 </div>
                 <div class="input-group">
-                    <label for="optionDescription">Description (optional)</label>
+                    <label for="optionDescription">Quick description (optional)</label>
                     <textarea id="optionDescription" rows="2" placeholder="Brief description..."></textarea>
                 </div>
                 <button class="btn" id="addOptionBtn" aria-label="Add new option">Add Option</button>
@@ -976,7 +976,7 @@
 <!-- Step 4: Criteria Importance -->
 <div class="section hidden" id="section4">
     <div class="section-title">Let's Weigh What Matters</div>
-    <p style="margin-bottom: 20px; color: #666;">Rate how important each criteria is to your decision (1 = least important, 5 = most important). The weights will automatically be calculated and normalized to 100%.</p>
+    <p style="margin-bottom: 20px; color: #666;">Select the importance for each one (1 = meh, 5 = must-have!). We'll crunch the numbers and normalize to 100% behind the scenes.</p>
     
     <div class="criteria-list" id="weightingList"></div>
     
@@ -993,7 +993,7 @@
             <!-- Step 5: Rate Options -->
             <div class="section hidden" id="section5">
                 <div class="section-title">Let's Rate Your Options</div>
-                <p style="margin-bottom: 20px; color: #666;">For each criteria, rate how well each option performs (1 = Poor, 5 = Excellent).</p>
+                <p style="margin-bottom: 20px; color: #666;">Rate how each option stacks up (1 = Not great, 5 = Awesome!).</p>
                 
                 <div id="ratingMatrix"></div>
 
