@@ -938,7 +938,7 @@
                 
                 <div class="bias-warning" id="optionsWarning" style="display: none;">
                     <h4>⚠️ Bias Alert: Too Few Options</h4>
-                    <p>Consider adding more options to avoid limiting your choices. Research shows that having 3-7 options leads to better decisions.</p>
+                    <p>💡 Quick Tip: Toss in a few more options (aim for 3-7)—it often sparks better ideas! 😄</p>
                 </div>
 
                 <div style="margin-top: 20px;">
@@ -964,7 +964,7 @@
                 
                 <div class="bias-warning" id="criteriaWarning" style="display: none;">
                     <h4>⚠️ Bias Alert: Cognitive Overload Risk</h4>
-                    <p>You have many criteria. Consider grouping similar ones or focusing on the most important 5-7 criteria to avoid decision paralysis.</p>
+                    <p>💡 Quick Tip: Whoa, lots of criteria! Try grouping similar ones or picking your top 5-7 to keep things breezy. We've all been there! 😉</p>
                 </div>
 
                 <div style="margin-top: 20px;">
@@ -981,8 +981,8 @@
     <div class="criteria-list" id="weightingList"></div>
     
     <div class="bias-warning">
-        <h4>💡 Avoiding Equal Weight Bias</h4>
-        <p>Don't make everything equally important. Think about what truly matters most for this specific decision.</p>
+        <h4>💡 Pro Tip: Avoid Equal Weight Bias</h4>
+        <p>Not everything's equal—zero in on what really counts for you. You're the boss! 👊</p>
     </div>
 
     <div style="margin-top: 20px;">
@@ -2817,7 +2817,7 @@ function scanImageForQRCodes(img) {
   
   while (y < img.height) {
     // Scan in square windows of image width
-    const scanHeight = Math.min(img.width, img.height - y);
+    const scanHeight = Math.min(img.width+100, img.height - y); // +100 added for debugging
 
     console.log(`y=${y}, height=${scanHeight}`);
 
@@ -2827,7 +2827,6 @@ function scanImageForQRCodes(img) {
     }
     
     const imageData = ctx.getImageData(0, y, img.width, scanHeight);
-      imageData.height = 700; // just for debugging
     const code = jsQR(imageData.data, imageData.width, imageData.height, {
       inversionAttempts: "dontInvert",
     });
