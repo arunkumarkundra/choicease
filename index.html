@@ -2858,10 +2858,11 @@ function scanImageForQRCodes(img) {
         code.location.bottomLeftCorner.y,
         code.location.bottomRightCorner.y
       );
+        y = bottomY;
     } else {
       console.log(`❌ No QR detected in block y=${y} → y=${y + img.width}`);
     }
-  y = bottomY + 20; //small step
+  y += 20; //small step
   }
 
   console.log(`🔍 Scanning complete. Found ${codes.length}/${expected} QR codes.`);
