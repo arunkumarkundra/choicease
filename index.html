@@ -851,7 +851,7 @@
                         <img src="images/choicease-decision-making-tool.png" alt="Choicease - Smart Choices, Made Easy" style="max-width: 80px; height: auto;">
                         <div style="text-align: center;">
                             <h1 style="margin: 0; font-size: 2.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">Choicease <span class="beta-badge">Beta</span></h1>
-                            <p style="margin: 8px 0 0 0; font-size: 1.1rem; opacity: 0.9;"><strong>Smart Choices, Made Easy</strong>:<br> Make confident decisions with our step-by-step decision-making tool—totally free.</p>
+                            <p style="margin: 8px 0 0 0; font-size: 1.1rem; opacity: 0.9;"><strong>Smart Choices, Made Easy</strong>:<br> Let&apos;s nail that decision together—step by step, and totally free! 😊</p>
                         </div>
                     </div>
                 <button id="howItWorksBtn" class="info-button" aria-label="How it works" title="How Choicease Works">
@@ -894,51 +894,49 @@
 
             <!-- Step 1: Define Decision -->
             <div class="section" id="section1">
-                <div class="section-title">Define Your Decision</div>
+                <div class="section-title">Let&apos;s Define Your Decision</div>
                 <div class="input-group">
-                    <label for="decisionTitle">What decision are you making?</label>
+                    <label for="decisionTitle">What&apos;s the decision on your mind?</label>
                     <input type="text" id="decisionTitle" placeholder="e.g., Choose the best laptop for work">
                 </div>
                 <div class="input-group">
-                    <label for="decisionDescription">Describe the context (optional)</label>
+                    <label for="decisionDescription">Add some context if you like (optional)</label>
                     <textarea id="decisionDescription" rows="3" placeholder="Any additional context that might help..."></textarea>
                 </div>
-                <button class="btn" id="step1Continue" aria-label="Continue to next step">Continue</button>
+                <button class="btn" id="step1Continue" aria-label="Continue to next step">Let&apos;s Go!</button>
 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
     <label for="importFile" class="btn btn-secondary" style="cursor: pointer; display: inline-block;">
-        📁 Import Previous Decision
+        📁 Import a Saved Decision JSON
     </label>
     <input type="file" id="importFile" accept=".json" style="display: none;">
     <label for="importQR" class="btn btn-secondary" style="cursor: pointer; display: inline-block;">
-        📷 Import from QR Code
+        📷 Import from a QR Code
     </label>
     <input type="file" id="importQR" accept="image/*" style="display: none;">
     <p style="margin-top: 8px; font-size: 0.9rem; color: #666;">
-        Import a previously exported decision analysis.
-        <span class="separator">•</span>
-        You can also browse decision analyses shared as QR codes by our Reddit community on <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a>.
+        Bring back a saved decision, or check out cool ones shared as QR codes by our Reddit community on <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a>!
     </p>
 </div>
             </div>
 
             <!-- Step 2: Add Options -->
             <div class="section hidden" id="section2">
-                <div class="section-title">Add Your Options</div>
+                <div class="section-title">Let&apos;s Add Your Options</div>
                 <div class="input-group">
                     <label for="optionName">Option Name</label>
                     <input type="text" id="optionName" placeholder="e.g., MacBook Pro 14-inch">
                 </div>
                 <div class="input-group">
-                    <label for="optionDescription">Description (optional)</label>
+                    <label for="optionDescription">Quick description (optional)</label>
                     <textarea id="optionDescription" rows="2" placeholder="Brief description..."></textarea>
                 </div>
-                <button class="btn" id="addOptionBtn" aria-label="Add new option">Add Option</button>
+                <button class="btn" id="addOptionBtn" aria-label="Add new option">Add This Option</button>
                 
                 <div class="options-list" id="optionsList"></div>
                 
                 <div class="bias-warning" id="optionsWarning" style="display: none;">
                     <h4>⚠️ Bias Alert: Too Few Options</h4>
-                    <p>Consider adding more options to avoid limiting your choices. Research shows that having 3-7 options leads to better decisions.</p>
+                    <p>💡 Quick Tip: Toss in a few more options (aim for 3-7)—it often sparks better ideas! 😄</p>
                 </div>
 
                 <div style="margin-top: 20px;">
@@ -949,7 +947,7 @@
 
             <!-- Step 3: Set Criteria -->
             <div class="section hidden" id="section3">
-                <div class="section-title">Define Decision Criteria</div>
+                <div class="section-title">Let&apos;s Set Your Criteria</div>
                 <div class="input-group">
                     <label for="criteriaName">Criteria Name</label>
                     <input type="text" id="criteriaName" placeholder="e.g., Price, Performance, Battery Life">
@@ -958,13 +956,13 @@
                     <label for="criteriaDescription">Description (optional)</label>
                     <textarea id="criteriaDescription" rows="2" placeholder="What does this criteria measure?"></textarea>
                 </div>
-                <button class="btn" id="addCriteriaBtn" aria-label="Add new criteria">Add Criteria</button>
+                <button class="btn" id="addCriteriaBtn" aria-label="Add new criteria">Add This Criterion</button>
                 
                 <div class="criteria-list" id="criteriaList"></div>
                 
                 <div class="bias-warning" id="criteriaWarning" style="display: none;">
                     <h4>⚠️ Bias Alert: Cognitive Overload Risk</h4>
-                    <p>You have many criteria. Consider grouping similar ones or focusing on the most important 5-7 criteria to avoid decision paralysis.</p>
+                    <p>💡 Quick Tip: Whoa, lots of criteria! Try grouping similar ones or picking your top 5-7 to keep things breezy. We've all been there! 😉</p>
                 </div>
 
                 <div style="margin-top: 20px;">
@@ -975,14 +973,14 @@
 
 <!-- Step 4: Criteria Importance -->
 <div class="section hidden" id="section4">
-    <div class="section-title">Criteria Importance</div>
-    <p style="margin-bottom: 20px; color: #666;">Rate how important each criteria is to your decision (1 = least important, 5 = most important). The weights will automatically be calculated and normalized to 100%.</p>
+    <div class="section-title">Let&apos;s Weigh What Matters</div>
+    <p style="margin-bottom: 20px; color: #666;">Select the importance for each one (1 = meh, 5 = must-have!). We&apos;ll crunch the numbers and normalize to 100% behind the scenes.</p>
     
     <div class="criteria-list" id="weightingList"></div>
     
     <div class="bias-warning">
-        <h4>💡 Avoiding Equal Weight Bias</h4>
-        <p>Don't make everything equally important. Think about what truly matters most for this specific decision.</p>
+        <h4>💡 Pro Tip: Avoid Equal Weight Bias</h4>
+        <p>Not everything's equal—zero in on what really counts for you. You're the boss! 👊</p>
     </div>
 
     <div style="margin-top: 20px;">
@@ -992,20 +990,20 @@
 </div>
             <!-- Step 5: Rate Options -->
             <div class="section hidden" id="section5">
-                <div class="section-title">Rate Each Option</div>
-                <p style="margin-bottom: 20px; color: #666;">For each criteria, rate how well each option performs (1 = Poor, 5 = Excellent).</p>
+                <div class="section-title">Let&apos;s Rate Your Options</div>
+                <p style="margin-bottom: 20px; color: #666;">Rate how each option stacks up (1 = Not great, 5 = Awesome!).</p>
                 
                 <div id="ratingMatrix"></div>
 
                 <div style="margin-top: 20px;">
                     <button class="btn btn-secondary" id="step5Back" aria-label="Go back to previous step">Back</button>
-                    <button class="btn" id="step5Calculate" aria-label="Calculate and view results">View Results</button>
+                    <button class="btn" id="step5Calculate" aria-label="Calculate and view results">See Your Results!</button>
                 </div>
             </div>
 
             <!-- Step 6: Results -->
             <div class="section hidden" id="section6">
-                <div class="section-title">Decision Results</div>
+                <div class="section-title">Your Results Are In! 🎉</div>
                 <div class="results-grid" id="resultsGrid"></div>
                 <div id="shareCanvas" style="position: absolute; left: -9999px; top: -9999px; width: 800px; background: white; padding: 40px; font-family: 'Segoe UI', sans-serif;">
                     <!-- This will be populated dynamically -->
@@ -1013,20 +1011,20 @@
                 
 <div style="margin-top: 30px; text-align: center;">
     <button class="btn btn-secondary" id="step6Back" aria-label="Go back to previous step">Back</button>
-    <button class="btn btn-success" id="shareResultsBtn" aria-label="Share results">↗️ Share Results</button>
+    <button class="btn btn-success" id="shareResultsBtn" aria-label="Share results">↗️ Share Your Results</button>
     <div style="display: inline-block; position: relative;">
-        <button class="btn btn-success" id="exportDropdownBtn" aria-label="Export options">📤 Export Results ▼</button>
+        <button class="btn btn-success" id="exportDropdownBtn" aria-label="Export options">📤 Save Results ▼</button>
         <div class="export-dropdown hidden" id="exportDropdown" style="position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 180px;">
-            <button class="export-option" data-type="qr">📷 Export as QR Code</button>
-            <button class="export-option" data-type="json">📁 Export as JSON</button>
-            <button class="export-option" data-type="pdf">📄 Export as PDF</button>
-            <button class="export-option" data-type="csv">📊 Export as CSV</button>
+            <button class="export-option" data-type="qr">📷 QR Code</button>
+            <button class="export-option" data-type="json">📁 JSON File</button>
+            <button class="export-option" data-type="pdf">📄 PDF Report</button>
+            <button class="export-option" data-type="csv">📊 CSV Data</button>
         </div>
     </div>
-    <button class="btn btn-secondary" id="startOverBtn" aria-label="Start a new decision">Start New Decision</button>
+    <button class="btn btn-secondary" id="startOverBtn" aria-label="Start a new decision">Start Fresh!</button>
 </div>
                 <div id="redditShareNote" class="muted" style="margin-top:12px">
-                  Want feedback or to help others? You can post this decision analysis, as a QR Code, publicly in our Reddit community <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a>.
+                  Craving feedback or want to inspire others? Share your QR on <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a>—it&apos;s a fun community on Reddit! 🚀
                 </div>
 
             </div>
@@ -1039,49 +1037,47 @@
         <div class="modal-header">
             <span class="close">&times;</span>
             <h2 style="margin: 0; font-size: 1.8rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
-                🧭 How Choicease Works
+                🧭 How We Roll at Choicease
             </h2>
             <p style="margin: 8px 0 0 0; opacity: 0.9; font-size: 1rem;">
-                Smart Choices Made Easy
+                Smart Choices, Made Easy
             </p>
         </div>
         
         <div class="modal-body">
             <div>
-                <h3>🤔 Stuck between options?</h3>
-              <p>Choicease helps you decide faster — and more confidently — by guiding you step-by-step through your options.</p>
+                <h3>🤔 Stuck in decision limbo?</h3>
+              <p>We&apos;re here to guide you out step-by-step—faster and with more confidence!</p>
             </div><div>
-              <h3>🧠 Why Use Choicease?</h3>
+              <h3>🧠 Why You&apos;ll Love Choicease:</h3>
               <ul>
-                <li>✅ Breaks down complex decisions into manageable steps</li>
-                <li>🚶‍♂️ Guides you through one step at a time</li>
-                <li>📊 Visual results that make it easy to compare</li>
-                <li>💾 Export & import your decisions — revisit or revise later</li>
-                <li>🛡️100% private — no data stored, your decisions stay yours</li>
-                <li>🔁 Use it again and again — totally <strong>Free</strong></li>
-                <li>📢 Share your results publicly to get feedback in our Reddit community <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a>.</li>
-                <li>🔍 Learn from others — browse decisions on our Reddit community. Import and adapt them to your needs.</li>
+                <li>✅ Breaks down tough choices into easy steps</li>
+                <li>🚶‍♂️ Guides you one fun step at a time</li>
+                <li>📊 Super-clear results to compare options</li>
+                <li>💾 Save, import, or tweak anytime</li>
+                <li>🛡️Totally private—your stuff stays yours</li>
+                <li>🔁 Free forever, use it anytime!</li>
+                <li>📢 Share and get feedback from our Reddit community <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a>.</li>
+                <li>🔍 Get inspired on our Reddit community! Browse through cool ideas, import and adapt them to your needs.</li>
               </ul>
             </div><div>
-              <h3>🪜 Step-by-Step Breakdown</h3>
+              <h3>🪜 Our Simple Steps:</h3>
               <ol>
-                <li><strong>Define the Decision:</strong> Tell us what you're deciding — big or small.</li>
-                <li><strong>Start with an Import:</strong> Begin a new decision, import a JSON you exported earlier, or import a QR code shared on <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a>.</li>
-                <li><strong>Add Your Options:</strong> List the choices you're considering.</li>
-                <li><strong>Set Your Criteria:</strong> Decide what matters to you (e.g. cost, reliability).</li>
-                <li><strong>Weigh What Matters Most:</strong> Rate how important each criterion is.</li>
-                <li><strong>Rate the Options:</strong> Score how well each option meets each criterion (1–5).</li>
-                <li><strong>View Results Instantly:</strong> See rankings and breakdowns based on your input.</li>
-                <li><strong>Review results:</strong> See weighted scores, rationale, and sensitivity to your choices.</li>
-                <li><strong>Export & Share:</strong> Download JSON, PDF, or a QR code. Post your QR in <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a> to get feedback; others can import it directly.</li>
+                <li><strong>Kick off:</strong> Tell us your decision (or import one!).</li>
+                <li><strong>List options:</strong> Note down your choices.</li>
+                <li><strong>Set criteria:</strong> What matters in making the choice?</li>
+                <li><strong>Weigh &apos;em:</strong> Rate how important each criterion is.</li>
+                <li><strong>Score options:</strong> How do they measure up on these criteria?</li>
+                <li><strong>Results time:</strong> See the winners, rankings + breakdowns.</li>
+                <li><strong>Share/Save:</strong> Export or post on <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a> for vibes.</li>
               </ol>
             </div><div>
-              <h3>📤 Want to Share or Save?</h3>
-              <p>Easily download your results (PDF, CSV, JSON) or share them — perfect for teams, friends, or future you.</p>
+              <h3>📤 Save or Share?</h3>
+              <p>Grab your results as PDF, CSV, JSON, or QR—great for buddies, teams, or your future self!</p>
             </div>           
             <div style="text-align: center; margin-top: 30px;">
                 <button class="btn" id="closeModalBtn" style="font-size: 1.1rem; padding: 12px 30px;">
-                    🚀 Let's Make a Great Choice!
+                    🚀 Ready to Crush That Decision? Let&apos;s Go!
                 </button>
             </div>
         </div>
@@ -2343,7 +2339,7 @@ function handleFileImport(event) {
                 const integrity = checkDataIntegrity(importedData);
                 if (integrity.isValid) {
                     loadImportedData(importedData);
-                    showToast('Decision data imported successfully!');
+                    showToast('Yay! All set and imported. Let\'s tweak or dive in! 🎊');
                 } else {
                     alert(`Import completed with warnings:\n${integrity.warnings.join('\n')}\nData may be incomplete.`);
                     loadImportedData(importedData);
@@ -2614,7 +2610,7 @@ function createFinalImage(qrCanvases, totalChunks) {
     document.body.removeChild(link);
     
     console.log("QR export completed successfully");
-    showToast(`QR code exported: ${filename}`);
+ //   showToast(`QR code exported: ${filename}`);
 }
 
         
@@ -2672,7 +2668,7 @@ function exportResultsAsQR() {
         console.log(`Total chunks needed: ${totalChunks}`);
 
         if (totalChunks > 20) {
-            alert("Data is too large for QR export. Please try:\n1. Export as JSON instead\n2. Remove some options or criteria\n3. Shorten descriptions");
+            alert("Oops! Data is too large for QR export. Please try:\n1. Export as JSON instead\n2. Remove some options or criteria\n3. Shorten descriptions");
             return;
         }
 
@@ -2734,6 +2730,7 @@ function handleQRImport(event) {
     if (!file) return;
 
     console.log("Starting QR import...");
+    showToast('Hang tight—we\&apos;re crunching your decision magic! ✨');
 
     const reader = new FileReader();
     reader.onload = function(e) {
@@ -2754,7 +2751,7 @@ function handleQRImport(event) {
 
                 if (validateImportedData(parsedData)) {
                     loadImportedData(parsedData);
-                    showToast(`Successfully imported decision: ${parsedData.title || parsedData.decision}`);
+                    showToast(`Yay! All set and imported. Let\'s tweak or dive in! 🎊`);
                 } else {
                     throw new Error('Invalid data format in QR codes.');
                 }
@@ -2785,16 +2782,17 @@ function handleQRImport(event) {
 }
 
 
+
 function scanImageForQRCodes(img) {
   const canvas = document.createElement("canvas");
   canvas.width = img.width;
   canvas.height = img.height;
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   ctx.drawImage(img, 0, 0);
-  
+
   const codes = [];
   let expected = Infinity;
-  
+
   function readT(s) {
     try {
       return JSON.parse(s.split("|", 1)[0]).t || 1;
@@ -2802,7 +2800,7 @@ function scanImageForQRCodes(img) {
       return 1;
     }
   }
-  
+
   function parseMeta(s) {
     try {
       return JSON.parse(s.split("|", 1)[0]);
@@ -2810,160 +2808,63 @@ function scanImageForQRCodes(img) {
       return null;
     }
   }
-  
-  console.log("🔍 Starting QR scan with enhanced debugging...");
-  console.log(`Image dimensions: ${img.width}x${img.height}`);
-  
+
   let y = 0;
-  let scanCount = 0;
-  
-  while (y < img.height - 50) { // Leave some margin at bottom
-    y = Math.floor(y); // Ensure y is always an integer
-    scanCount++;
-    const remainingHeight = img.height - y;
-    
-    // Log every 50th scan and all scans after y=600 (where second QR likely is)
-    const shouldLog = scanCount % 50 === 0 || y >= 600;
-    
-    if (shouldLog) {
-      console.log(`🔍 Scan ${scanCount}: y=${y}, remaining=${remainingHeight}`);
-    }
-    
-    const imageData = ctx.getImageData(0, y, img.width, remainingHeight);
-    
-    // Try multiple jsQR configurations
-    const configs = [
-      { inversionAttempts: "dontInvert" },
-      { inversionAttempts: "onlyInvert" },
-      { inversionAttempts: "attemptBoth" },
-    ];
-    
-    let code = null;
-    let usedConfig = null;
-    
-    for (let i = 0; i < configs.length; i++) {
-      code = jsQR(imageData.data, imageData.width, imageData.height, configs[i]);
-      if (code && code.data) {
-        usedConfig = configs[i];
-        break;
-      }
-    }
-    
-    if (!code || !code.data) {
-      // After first QR is found, be more aggressive in logging
-      if (codes.length > 0 && y >= 400 && scanCount % 25 === 0) {
-        console.log(`❌ No QR at y=${y} despite trying all inversion methods`);
-      }
-      y += 5; // Very small steps to not miss anything
-      continue;
-    }
-    
-    console.log(`🎯 QR FOUND at y=${y} using config:`, usedConfig);
-    console.log(`QR data preview: ${code.data.substring(0, 100)}...`);
-    console.log(`QR location:`, {
-      topLeft: code.location.topLeftCorner,
-      topRight: code.location.topRightCorner,
-      bottomLeft: code.location.bottomLeftCorner,
-      bottomRight: code.location.bottomRightCorner
+  while (y < img.height) {
+    const imageData = ctx.getImageData(0, y, img.width, img.height - y);
+    const code = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: "dontInvert",
     });
-    
-    // Calculate QR dimensions
-    const qrWidth = Math.abs(code.location.topRightCorner.x - code.location.topLeftCorner.x);
-    const qrHeight = Math.abs(code.location.bottomLeftCorner.y - code.location.topLeftCorner.y);
-    console.log(`QR dimensions: ${qrWidth}x${qrHeight}`);
-    
-    // Check for duplicates
+
+    if (!code || !code.data) {
+      break; // no more QR codes found below this point
+    }
+
+    // Deduplicate by data
     const isDuplicate = codes.some((c) => c.data === code.data);
     if (isDuplicate) {
-      console.log(`⚠️ Duplicate QR detected, skipping...`);
+      console.log(`⚠️ Duplicate QR detected at y=${y}, skipping...`);
     } else {
       const meta = parseMeta(code.data);
       if (meta) {
-        console.log(`✓ NEW QR ${codes.length + 1}: chunk i=${meta.i}, t=${meta.t}, v=${meta.v}`);
+        console.log(
+          `✓ Found QR ${codes.length + 1}: chunk i=${meta.i}, t=${meta.t}, v=${meta.v}`
+        );
       } else {
-        console.log(`✓ NEW QR ${codes.length + 1} (metadata parse failed)`);
+        console.log(
+          `✓ Found QR ${codes.length + 1} (metadata parse failed): ${code.data.substring(
+            0,
+            50
+          )}...`
+        );
       }
-      
+
       codes.push({ data: code.data, location: code.location });
-      
+
       // Update expected count
       if (expected === Infinity && codes.length) {
         expected = readT(code.data);
-        console.log(`📊 Now expecting ${expected} total QR codes`);
       }
-      
       if (codes.length >= expected) {
-        console.log(`🎉 Found all ${codes.length}/${expected} codes!`);
+        console.log(`✓ Found all ${codes.length}/${expected} codes`);
         break;
       }
     }
-    
-    // Move past this QR code - use a smaller jump to be safe
-    const qrBottom = Math.max(
+
+    // Move y to just below this QR
+    const bottomY = Math.max(
       code.location.bottomLeftCorner.y,
       code.location.bottomRightCorner.y
     );
-    
-    // Calculate QR height and use it for a more reliable jump
-    const qrTop = Math.min(
-      code.location.topLeftCorner.y,
-      code.location.topRightCorner.y
-    );
-    const qrHeight = qrBottom - qrTop;
-    
-    // Jump by QR height + small margin, but cap it to avoid huge jumps
-    const jumpDistance = Math.min(qrHeight + 50, 600); // Max 600px jump
-    const nextY = Math.floor(y + jumpDistance);
-    
-    console.log(`⬇️ QR spans y=${qrTop} to y=${qrBottom} (height=${qrHeight})`);
-    console.log(`⬇️ Moving from y=${y} to y=${nextY} (jump=${jumpDistance})`);
-    y = nextY;
+    y += bottomY + 10; // add margin so we don't overlap
   }
-  
-  console.log(`\n🏁 FINAL RESULTS:`);
-  console.log(`Total scans performed: ${scanCount}`);
-  console.log(`QR codes found: ${codes.length}/${expected}`);
-  console.log(`Image height: ${img.height}`);
-  
-  if (codes.length < expected) {
-    console.log(`\n🔥 DEBUGGING INFO FOR MISSING QR:`);
-    console.log(`- Last scan position: y=${y}`);
-    console.log(`- Image height: ${img.height}`);
-    console.log(`- Remaining unscanned area: ${img.height - y}px`);
-    
-    // Try one final scan of the bottom portion
-    if (y < img.height - 100) {
-      console.log(`🔍 Final attempt: scanning bottom portion from y=${y}`);
-      const finalImageData = ctx.getImageData(0, y, img.width, img.height - y);
-      
-      const finalConfigs = [
-        { inversionAttempts: "attemptBoth" },
-        { inversionAttempts: "dontInvert" },
-        { inversionAttempts: "onlyInvert" },
-      ];
-      
-      for (const config of finalConfigs) {
-        const finalCode = jsQR(finalImageData.data, finalImageData.width, finalImageData.height, config);
-        if (finalCode && finalCode.data) {
-          console.log(`🎯 FINAL SCAN SUCCESS with config:`, config);
-          console.log(`Final QR data: ${finalCode.data.substring(0, 100)}`);
-          console.log(`Final QR location:`, finalCode.location);
-          
-          // Check if it's not a duplicate
-          const isDupe = codes.some((c) => c.data === finalCode.data);
-          if (!isDupe) {
-            codes.push({ data: finalCode.data, location: finalCode.location });
-            console.log(`✅ Added final QR! Total now: ${codes.length}`);
-          }
-          break;
-        }
-      }
-    }
-  }
-  
+
+  console.log(`🔍 Scanning complete. Found ${codes.length}/${expected} QR codes.`);
   return codes;
 }
+        
 
+        
 // Improved reassembly with better error messages
 function reassembleQRData(qrCodes) {
     if (qrCodes.length === 0) {
