@@ -2707,24 +2707,6 @@ function createFinalImage(qrCanvases, totalChunks) {
 
     
     
-    // Footer (adjust position based on new layout)
-    const footerY = canvasHeight - footerHeight;
-    
-    // Logo on left
-    const logo = new Image();
-    logo.src = "images/Choicease logo.png";
-    const logoHeight = 60;
-    const logoWidth = logo.width * (logoHeight / logo.height); // Maintain aspect ratio
-    ctx.drawImage(logo, padding, footerY, logoWidth, logoHeight);
-    
-    // Text on right
-    ctx.fillStyle = '#333333';
-    ctx.textAlign = 'right';
-    ctx.font = '12px Arial, sans-serif';
-    const rightAlignX = canvasWidth - padding;
-    ctx.fillText('Generated: ' + new Date().toLocaleString(), rightAlignX, footerY + 20);
-    ctx.fillText('Import at: https://choicease.com', rightAlignX, footerY + 40);
-    ctx.fillText('Share at: https://reddit.com/r/choicease', rightAlignX, footerY + 60);
 
     // Download with better quality
     const url = outputCanvas.toDataURL('image/png', 1.0);
