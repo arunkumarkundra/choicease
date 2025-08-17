@@ -2561,7 +2561,7 @@ function createFinalImage(qrCanvases, totalChunks) {
     // Add chunk info
     ctx.fillStyle = '#333333';
     ctx.font = 'bold 14px Arial, sans-serif';
-    ctx.fillText(`${totalChunks} QR Code${totalChunks > 1 ? 's' : ''} - Scan all to import`, canvasWidth / 2, padding + 105);
+    ctx.fillText(`${totalChunks} QR Code${totalChunks > 1 ? 's' : ''}`, canvasWidth / 2, padding + 105);
 
     // Draw QR codes with proper spacing and labels
     let yOffset = headerHeight + padding;
@@ -2570,7 +2570,7 @@ function createFinalImage(qrCanvases, totalChunks) {
         ctx.fillStyle = '#333333';
         ctx.font = 'bold 16px Arial, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(`Part ${index + 1} of ${totalChunks}`, canvasWidth / 2, yOffset + 20);
+//        ctx.fillText(`Part ${index + 1} of ${totalChunks}`, canvasWidth / 2, yOffset + 20);
         
         // Move QR code position down to accommodate label
         const qrYPosition = yOffset + labelHeight;
