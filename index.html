@@ -2837,7 +2837,7 @@ function handleQRImport(event) {
     event.target.value = '';
 }
 
-// START OF SCAN IMAGE FUNCTION 
+//  ============ START OF SCAN IMAGE FUNCTION  ============ 
 function scanImageForQRCodes(img) {
   const canvas = document.createElement("canvas");
   canvas.width = img.width;
@@ -2865,7 +2865,31 @@ function scanImageForQRCodes(img) {
 
   console.log(`📐 Image dimensions: ${img.width} × ${img.height}`);
   
-  // Strategy 1: Systematic scan with QR-sized windows (512px + margin)
+  // Strategy 1: Try scanning the full image first (this was working before)
+  console.log(`🔍 Attempting full image scan...`);
+  const fullImageData = ctx.getImageData(0, 0, img.width, img.height);
+  const fullScanResult = jsQR(fullImageData.data, fullImageData.width, fullImageData.height, {
+    inversionAttempts: "attemptBoth",
+  });
+  
+  if (fullScanResult && fullScanResult.data) {
+    console.log(`✅ Found QR in full scan`);
+    const meta = parseMeta(fullScanResult.data);
+    if (meta) {
+      console.log(`📦 QR ${codes.length + 1}: chunk i=${meta.i}, t=${meta.t}, v=${meta.v}`);
+    }
+    codes.push({ data: fullScanResult.data, location: fullScanResult.location });
+    expected = readT(fullScanResult.data);
+    console.log(`📦 Expected total QRs = ${expected}`);
+  }
+
+  // If we found all QRs in full scan, return early
+  if (codes.length >= expected && expected !== Infinity) {
+    console.log(`🎯 Found all ${codes.length}/${expected} codes in full scan!`);
+    return codes;
+  }
+  
+  // Strategy 2: Systematic scan with QR-sized windows (512px + margin)
   const qrSize = 512;
   const margin = 100; // Extra margin around QR
   const windowHeight = qrSize + margin; // 612px window for 512px QR
@@ -3018,7 +3042,8 @@ function scanImageForQRCodes(img) {
   console.log(`🔍 Scanning complete. Found ${codes.length}/${expected} QR codes.`);
   return codes;
 }
-// END OF SCAN IMAGE FUNCTION         
+        
+// ============ END OF SCAN IMAGE FUNCTION ============          
 
         
 // Improved reassembly with better error messages
