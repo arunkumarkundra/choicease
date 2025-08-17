@@ -2813,14 +2813,12 @@ function scanImageForQRCodes(img) {
   // Strategy 1: Simple square window scanning (your proposed logic)
   console.log("🔍 Starting simple square window scan...");
   let y = 0;
-  const qrSize = img.width; // Square QR shape
+  const qrSize = 512; // Known QR size
   
   while (y < img.height) {
     // Scan in square windows of image width
     const scanHeight = Math.min(img.width, img.height - y);
-
-    console.log(`y=${y}, height=${scanHeight}`); // debug log
-     
+    
     if (scanHeight < qrSize / 2) {
       break; // Not enough space for a QR code
     }
@@ -2830,9 +2828,33 @@ function scanImageForQRCodes(img) {
       inversionAttempts: "dontInvert",
     });
     
+    // DEBUG: Save what we're scanning as an image (only for a few key positions)
+    if (y >= 600 && y <= 800 && y % 50 === 0) {
+      const debugCanvas = document.createElement("canvas");
+      debugCanvas.width = img.width;
+      debugCanvas.height = scanHeight;
+      const debugCtx = debugCanvas.getContext("2d");
+      debugCtx.putImageData(imageData, 0, 0);
+      
+      // Convert to blob and create download link
+      debugCanvas.toBlob(blob => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `debug-scan-y${y}-h${scanHeight}.png`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      });
+      
+      console.log(`📷 Debug image saved for y=${y}, scanHeight=${scanHeight}`);
+    }
+    
     if (!code || !code.data) {
       // Move down by QR size to check next position
-      y += 10;
+      y += qrSize;
       continue;
     }
     
@@ -2876,7 +2898,7 @@ function scanImageForQRCodes(img) {
       code.location.bottomLeftCorner.y,
       code.location.bottomRightCorner.y
     );
-    y += 250 + 10; // debugging
+    y += bottomY + 10;
   }
   
   // Strategy 2: If we didn't find enough codes, try advanced scanning
@@ -2934,7 +2956,7 @@ function scanImageForQRCodes(img) {
         code.location.bottomLeftCorner.y,
         code.location.bottomRightCorner.y
       );
-      y += 512 + 10;
+      y += bottomY + 10;
     }
   }
   
@@ -2943,6 +2965,7 @@ function scanImageForQRCodes(img) {
 }
 
 
+        
 
         
 // Improved reassembly with better error messages
