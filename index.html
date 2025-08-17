@@ -2630,6 +2630,50 @@ function createFinalImage(qrCanvases, totalChunks) {
         yOffset += qrSize + labelHeight + qrSpacing;
     });
 
+
+    // Footer
+    const logo = new Image();
+    logo.onload = function () {
+        const logoMaxHeight = 60;
+        const scale = logo.height ? logoMaxHeight / logo.height : 1;
+        const logoWidth = logo.width * scale;
+        const logoX = padding;
+//                const logoY = headerHeight + padding + qrSize + padding + (footerHeight - logoMaxHeight) / 2;
+        const logoY = headerHeight + padding + qrSize + padding;
+
+        octx.drawImage(logo, logoX, logoY, logoWidth, logoMaxHeight);
+
+        // Footer text (right side)
+        const textX = out.width - padding;
+        const baseY = headerHeight + padding + qrSize + padding + 10;
+
+        octx.textAlign = 'right';
+
+        octx.fillStyle = '#666';
+        octx.font = '12px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+        octx.fillText(footerLine1, textX, baseY);
+
+        octx.fillStyle = '#000';
+        octx.font = '13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+        octx.fillText(footerLine2, textX, baseY + 20);
+        octx.fillText(footerLine3, textX, baseY + 38);
+
+        // Download final composed image
+        const url = out.toDataURL("image/png");
+        const safeTitle = decisionData.title ? decisionData.title.replace(/\s+/g, "_") : "decision";
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const filename = `choicease_QR_${safeTitle}_${timestamp}.png`;
+
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+    logo.src = "images/Choicease logo.png";
+
+    
     // Footer (adjust position based on new layout)
     const footerY = canvasHeight - footerHeight;
     
