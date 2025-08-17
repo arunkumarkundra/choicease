@@ -2813,10 +2813,10 @@ function scanImageForQRCodes(img) {
   console.log(`🔍 Starting scan in vertical blocks of ${img.width} × ${img.width}`);
 
   let y = 0;
-  while (y + img.width <= img.height) {
+  while (y + img.width - 200 <= img.height) {
     console.log(`➡️ Scanning block y=${y} → y=${y + img.width}`);
 
-    const imageData = ctx.getImageData(0, y, img.width, img.width);
+    const imageData = ctx.getImageData(0, y, img.width, img.height); // changed: scan till the end 
     const code = jsQR(imageData.data, imageData.width, imageData.height, {
       inversionAttempts: "dontInvert",
     });
@@ -2857,7 +2857,7 @@ function scanImageForQRCodes(img) {
     }
 
     // Move down to the next block
-    y += 1;
+    y += 10;
   }
 
   console.log(`🔍 Scanning complete. Found ${codes.length}/${expected} QR codes.`);
