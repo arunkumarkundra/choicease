@@ -2818,7 +2818,10 @@ function scanImageForQRCodes(img) {
   while (y < img.height) {
     // Scan in square windows of image width
     const scanHeight = Math.min(img.width, img.height - y);
-    
+
+    console.log(`y=${y}`);
+
+      
     if (scanHeight < qrSize / 2) {
       break; // Not enough space for a QR code
     }
