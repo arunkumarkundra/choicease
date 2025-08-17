@@ -2787,14 +2787,12 @@ function handleQRImport(event) {
 
 function scanImageForQRCodes(img) {
   const canvas = document.createElement("canvas");
-  canvas.width = img.width;
-  canvas.height = img.height;
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   ctx.drawImage(img, 0, 0);
-
+  
   const codes = [];
   let expected = Infinity;
-
+  
   function readT(s) {
     try {
       return JSON.parse(s.split("|", 1)[0]).t || 1;
@@ -2802,7 +2800,7 @@ function scanImageForQRCodes(img) {
       return 1;
     }
   }
-
+  
   function parseMeta(s) {
     try {
       return JSON.parse(s.split("|", 1)[0]);
@@ -2810,61 +2808,87 @@ function scanImageForQRCodes(img) {
       return null;
     }
   }
-
+  
+  // Use your proposed logic: scan in square windows
+  const scanWindowSize = img.width; // QR codes span full width
+  const minQRSize = 50; // Minimum expected QR code size (adjust as needed)
+  const stepSize = Math.max(10, Math.floor(minQRSize / 2)); // Adaptive step size
+  
   let y = 0;
+  
   while (y < img.height) {
-    const imageData = ctx.getImageData(0, y, img.width, img.height - y);
+    // Calculate actual scan height (don't exceed image bounds)
+    const scanHeight = Math.min(scanWindowSize, img.height - y);
+    
+    // Only scan if we have enough height for a meaningful QR code
+    if (scanHeight < minQRSize) {
+      break;
+    }
+    
+    console.log(`🔍 Scanning window at y=${y}, size=${img.width}x${scanHeight}`);
+    
+    const imageData = ctx.getImageData(0, y, img.width, scanHeight);
     const code = jsQR(imageData.data, imageData.width, imageData.height, {
       inversionAttempts: "dontInvert",
     });
-
+    
     if (!code || !code.data) {
-      break; // no more QR codes found below this point
+      // No QR code found in this window, move down by step size
+      y += stepSize;
+      continue;
     }
-
+    
     // Deduplicate by data
     const isDuplicate = codes.some((c) => c.data === code.data);
     if (isDuplicate) {
       console.log(`⚠️ Duplicate QR detected at y=${y}, skipping...`);
-    } else {
-      const meta = parseMeta(code.data);
-      if (meta) {
-        console.log(
-          `✓ Found QR ${codes.length + 1}: chunk i=${meta.i}, t=${meta.t}, v=${meta.v}`
-        );
-      } else {
-        console.log(
-          `✓ Found QR ${codes.length + 1} (metadata parse failed): ${code.data.substring(
-            0,
-            50
-          )}...`
-        );
-      }
-
-      codes.push({ data: code.data, location: code.location });
-
-      // Update expected count
-      if (expected === Infinity && codes.length) {
-        expected = readT(code.data);
-      }
-      if (codes.length >= expected) {
-        console.log(`✓ Found all ${codes.length}/${expected} codes`);
-        break;
-      }
+      // Still need to move past this QR to avoid infinite loop
+      const bottomY = Math.max(
+        code.location.bottomLeftCorner.y,
+        code.location.bottomRightCorner.y
+      );
+      y += bottomY + 10;
+      continue;
     }
-
-    // Move y to just below this QR
+    
+    // New QR code found
+    const meta = parseMeta(code.data);
+    if (meta) {
+      console.log(
+        `✓ Found QR ${codes.length + 1}: chunk i=${meta.i}, t=${meta.t}, v=${meta.v} at y=${y}`
+      );
+    } else {
+      console.log(
+        `✓ Found QR ${codes.length + 1} (metadata parse failed): ${code.data.substring(
+          0,
+          50
+        )}... at y=${y}`
+      );
+    }
+    
+    codes.push({ data: code.data, location: code.location });
+    
+    // Update expected count
+    if (expected === Infinity && codes.length) {
+      expected = readT(code.data);
+    }
+    
+    if (codes.length >= expected) {
+      console.log(`✓ Found all ${codes.length}/${expected} codes`);
+      break;
+    }
+    
+    // Move y to just below this QR (your original logic)
     const bottomY = Math.max(
       code.location.bottomLeftCorner.y,
       code.location.bottomRightCorner.y
     );
     y += bottomY + 10; // add margin so we don't overlap
   }
-
+  
   console.log(`🔍 Scanning complete. Found ${codes.length}/${expected} QR codes.`);
   return codes;
 }
-
 
 // Improved reassembly with better error messages
 function reassembleQRData(qrCodes) {
