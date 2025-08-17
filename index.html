@@ -2819,7 +2819,7 @@ function scanImageForQRCodes(img) {
     // Scan in square windows of image width
     const scanHeight = Math.min(img.width, img.height - y);
 
-    console.log(`y=${y}`);
+    console.log(`y=${y}, height=${scanHeight}`);
 
       
     if (scanHeight < qrSize / 2) {
