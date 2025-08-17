@@ -2813,8 +2813,8 @@ function scanImageForQRCodes(img) {
   console.log(`🔍 Starting scan in vertical blocks of ${img.width} × ${img.width}`);
 
   let y = 0;
-  while (y + img.width - 200 <= img.height) {
-    console.log(`➡️ Scanning block y=${y} → y=${y + img.width}`);
+  while (y + 100 <= img.height) {
+    console.log(`➡️ Scanning block y=${y} → y=${img.height}`);
 
     const imageData = ctx.getImageData(0, y, img.width, img.height); // changed: scan till the end 
     const code = jsQR(imageData.data, imageData.width, imageData.height, {
@@ -2822,7 +2822,11 @@ function scanImageForQRCodes(img) {
     });
 
     if (code && code.data) {
-      // Deduplicate check
+          console.log(
+            `✅ Found QR ${codes.length + 1} at y=${y}`
+          );
+      
+        // Deduplicate check
       const isDuplicate = codes.some((c) => c.data === code.data);
       if (isDuplicate) {
         console.log(`⚠️ Duplicate QR detected at block starting y=${y}, skipping...`);
