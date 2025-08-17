@@ -2910,10 +2910,11 @@ function scanImageForQRCodes(img) {
 
   let y = 0;
   while (y + img.width < img.height) {
-    console.log(`➡️ Scanning block y=${y} → y=${y + img.width}`);
 
     const blockSize = img.width; // QR is square, same as width
-    const imageData = ctx.getImageData(0, y, img.width, Math.min(blockSize, img.height - y)); // fixed: scan only one block
+    const blockHeight = Math.min(blockSize, img.height - y);
+    const imageData = ctx.getImageData(0, y, img.width, blockHeight);
+    console.log(`➡️ Scanning block y=${y} → y=${y + blockHeight}`);    
     const code = jsQR(imageData.data, imageData.width, imageData.height, {
       inversionAttempts: "dontInvert",
     });
@@ -2951,16 +2952,16 @@ function scanImageForQRCodes(img) {
         }
       }
 
-      // Move y to just below this QR
+      // ✅ Skip just below this QR
       const bottomY = Math.max(
         code.location.bottomLeftCorner.y,
         code.location.bottomRightCorner.y
       );
-        y = bottomY;
+      y = Math.floor(bottomY + 20); // add margin
     } else {
-      console.log(`❌ No QR detected in block y=${y} → ${imageData.height}`);
+      console.log(`❌ No QR detected in block y=${y} → y=${y + blockHeight}`);
+      y = Math.floor(y + 20); // small step
     }
-  y = Math.floor(y + 20); //small step
   }
 
   console.log(`🔍 Scanning complete. Found ${codes.length}/${expected} QR codes.`);
