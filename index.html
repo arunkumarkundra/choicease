@@ -2631,6 +2631,81 @@ function createFinalImage(qrCanvases, totalChunks) {
     });
 
 
+
+    // Footer
+    const footerY = canvasHeight - footerHeight;
+    const logo = new Image();
+    logo.src = 'images/Choicease logo.png';
+    logo.onload = function () {
+        const logoMaxHeight = 60;
+        const scale = logo.height ? logoMaxHeight / logo.height : 1;
+        const logoWidth = logo.width * scale;
+        const logoX = padding;
+        ctx.drawImage(logo, logoX, footerY, logoWidth, logoMaxHeight);
+    
+        // Footer text (right side)
+        const textX = canvasWidth - padding;
+        const baseY = footerY + 10;
+    
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#666';
+        ctx.font = '12px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+        ctx.fillText('Generated: ' + new Date().toLocaleString(), textX, baseY);
+    
+        ctx.fillStyle = '#000';
+        ctx.font = '13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+        ctx.fillText('Import at: https://choicease.com', textX, baseY + 20);
+        ctx.fillText('Share at: https://reddit.com/r/choicease', textX, baseY + 38);
+    
+        // Download final composed image
+        const url = outputCanvas.toDataURL('image/png', 1.0);
+        const safeTitle = (decisionData.title || 'decision').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+        const filename = `choicease_QR_${safeTitle}_${timestamp}.png`;
+    
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    
+        console.log("QR export completed successfully");
+        resolve();
+    };
+    logo.onerror = () => {
+        console.error("Failed to load logo image at 'images/Choicease logo.png'");
+        // Proceed with text even if logo fails
+        const textX = canvasWidth - padding;
+        const baseY = footerY + 10;
+    
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#666';
+        ctx.font = '12px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+        ctx.fillText('Generated: ' + new Date().toLocaleString(), textX, baseY);
+    
+        ctx.fillStyle = '#000';
+        ctx.font = '13px system-ui,-apple-system,Segoe UI,Roboto,sans-serif';
+        ctx.fillText('Import at: https://choicease.com', textX, baseY + 20);
+        ctx.fillText('Share at: https://reddit.com/r/choicease', textX, baseY + 38);
+    
+        const url = outputCanvas.toDataURL('image/png', 1.0);
+        const safeTitle = (decisionData.title || 'decision').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+        const filename = `choicease_QR_${safeTitle}_${timestamp}.png`;
+    
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = url;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    
+        console.log("QR export completed successfully (without logo)");
+        resolve();
+    };
+
+    
     
     // Footer (adjust position based on new layout)
     const footerY = canvasHeight - footerHeight;
