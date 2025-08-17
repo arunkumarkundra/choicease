@@ -2666,23 +2666,7 @@ function createFinalImage(qrCanvases, totalChunks) {
         console.log("QR export completed successfully");
     };
     logo.src = "images/Choicease logo.png";    
-        
-
-    // Download with better quality
-    const url = outputCanvas.toDataURL('image/png', 1.0);
-    const safeTitle = (decisionData.title || 'decision').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
-    const filename = `choicease_QR_${safeTitle}_${timestamp}.png`;
-
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = url;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    console.log("QR export completed successfully");
- //   showToast(`QR code exported: ${filename}`);
+     
 }
 
         
