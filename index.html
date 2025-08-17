@@ -2545,17 +2545,60 @@ function createFinalImage(qrCanvases, totalChunks) {
     ctx.textAlign = 'center';
     ctx.font = 'bold 24px Arial, sans-serif';
     
-    const title = (decisionData.title || 'Choicease Decision').substring(0, 50);
+//    const title = (decisionData.title || 'Choicease Decision').substring(0, 50);
     ctx.fillText('Choicease Decision Analysis', canvasWidth / 2, padding + 25);
+
+    // Truncate title at word boundary (max 30 chars)
+    let title = decisionData.title || 'Choicease Decision';
+    if (title.length > 30) {
+        const words = title.split(' ');
+        let truncated = '';
+        for (let word of words) {
+            if ((truncated + word).length <= 27) {
+                truncated += (truncated ? ' ' : '') + word;
+            } else {
+                break;
+            }
+        }
+        title = truncated + '...';
+    }
     
     ctx.font = '18px Arial, sans-serif';
     ctx.fillText(title, canvasWidth / 2, padding + 55);
     
+    // Description (up to two lines, word-level truncation)
     if (decisionData.description && decisionData.description.length > 0) {
         ctx.font = '14px Arial, sans-serif';
         ctx.fillStyle = '#666666';
-        const desc = decisionData.description.substring(0, 80) + (decisionData.description.length > 80 ? '...' : '');
-        ctx.fillText(desc, canvasWidth / 2, padding + 80);
+            
+        const maxCharsPerLine = 50;
+        const words = decisionData.description.split(' ');
+        let line1 = '';
+        let line2 = '';
+        let currentLine = 1;
+        
+        for (let word of words) {
+            if (currentLine === 1) {
+                if ((line1 + word).length <= maxCharsPerLine) {
+                    line1 += (line1 ? ' ' : '') + word;
+                } else {
+                    currentLine = 2;
+                }
+            }
+            if (currentLine === 2) {
+                if ((line2 + word).length <= maxCharsPerLine) {
+                    line2 += (line2 ? ' ' : '') + word;
+                } else {
+                    line2 += '...';
+                    break;
+                }
+            }
+        }
+        
+        ctx.fillText(line1, canvasWidth / 2, padding + 80);
+        if (line2) {
+            ctx.fillText(line2, canvasWidth / 2, padding + 100);
+        }
     }
 
     // Add chunk info
@@ -2589,12 +2632,22 @@ function createFinalImage(qrCanvases, totalChunks) {
 
     // Footer (adjust position based on new layout)
     const footerY = canvasHeight - footerHeight;
+    
+    // Logo on left
+    const logo = new Image();
+    logo.src = 'images/logo.png';
+    const logoHeight = 60;
+    const logoWidth = logo.width * (logoHeight / logo.height); // Maintain aspect ratio
+    ctx.drawImage(logo, padding, footerY, logoWidth, logoHeight);
+    
+    // Text on right
     ctx.fillStyle = '#333333';
-    ctx.textAlign = 'center';
+    ctx.textAlign = 'right';
     ctx.font = '12px Arial, sans-serif';
-    ctx.fillText('Generated: ' + new Date().toLocaleString(), canvasWidth / 2, footerY + 20);
-    ctx.fillText('Import at: https://choicease.com', canvasWidth / 2, footerY + 40);
-    ctx.fillText('Share at: https://reddit.com/r/choicease', canvasWidth / 2, footerY + 60);
+    const rightAlignX = canvasWidth - padding;
+    ctx.fillText('Generated: ' + new Date().toLocaleString(), rightAlignX, footerY + 20);
+    ctx.fillText('Import at: https://choicease.com', rightAlignX, footerY + 40);
+    ctx.fillText('Share at: https://reddit.com/r/choicease', rightAlignX, footerY + 60);
 
     // Download with better quality
     const url = outputCanvas.toDataURL('image/png', 1.0);
