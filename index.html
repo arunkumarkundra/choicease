@@ -1009,22 +1009,26 @@
                     <!-- This will be populated dynamically -->
                 </div>
                 
-<div style="margin-top: 30px; text-align: center;">
-    <button class="btn btn-secondary" id="step6Back" aria-label="Go back to previous step">Back</button>
-    <button class="btn btn-success" id="shareResultsBtn" aria-label="Share results">↗️ Share Your Results</button>
-    <div style="display: inline-block; position: relative;">
-        <button class="btn btn-success" id="exportDropdownBtn" aria-label="Export options">📤 Save Results ▼</button>
-        <div class="export-dropdown hidden" id="exportDropdown" style="position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 180px;">
-            <button class="export-option" data-type="qr">📷 QR Code</button>
-            <button class="export-option" data-type="json">📁 JSON File</button>
-            <button class="export-option" data-type="pdf">📄 PDF Report</button>
-            <button class="export-option" data-type="csv">📊 CSV Data</button>
-        </div>
-    </div>
-    <button class="btn btn-secondary" id="startOverBtn" aria-label="Start a new decision">Start Fresh!</button>
-</div>
+                <div style="margin-top: 30px; text-align: center;">
+                    <button class="btn btn-secondary" id="step6Back" aria-label="Go back to previous step">Back</button>
+                    <button class="btn btn-success" id="shareResultsBtn" aria-label="Share results">↗️ Share Your Results</button>
+                    <div style="display: inline-block; position: relative;">
+                        <button class="btn btn-success" id="exportDropdownBtn" aria-label="Export options">📤 Save Results ▼</button>
+                        <div class="export-dropdown hidden" id="exportDropdown" style="position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 180px;">
+                            <button class="export-option" data-type="qr">📷 QR Code</button>
+                            <button class="export-option" data-type="json">📁 JSON File</button>
+                            <button class="export-option" data-type="pdf">📄 PDF Report</button>
+                            <button class="export-option" data-type="csv">📊 CSV Data</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" id="startOverBtn" aria-label="Start a new decision">Start Fresh!</button>
+                </div>
+                <!-- Updated Reddit share section -->
                 <div id="redditShareNote" class="muted" style="margin-top:12px">
-                  Craving feedback or want to inspire others? Share your QR on <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a>—it&apos;s a fun community on Reddit! 🚀
+                    Craving feedback or want to inspire others? 
+                    <a href="#" onclick="shareToReddit(); return false;" target="_blank" rel="noopener">
+                        Share your decision on r/choicease
+                    </a>—it's a fun community on Reddit! 🚀
                 </div>
 
             </div>
@@ -1650,6 +1654,31 @@ function updateWeightDisplays() {
             });
         }
 
+function shareToReddit() {
+    // Get the current values from the form
+    const decisionTitle = document.getElementById('decisionTitle').value.trim();
+    const decisionDescription = document.getElementById('decisionDescription').value.trim();
+    
+    // Create the Reddit post title
+    const postTitle = decisionTitle ? `[Decision] ${decisionTitle}` : '[Decision] Help me decide!';
+    
+    // Create the Reddit post body
+    let postBody = '';
+    if (decisionDescription) {
+        postBody = `${decisionDescription}\n\n`;
+    }
+    postBody += 'Created on http://choicease.com';
+    
+    // Build the Reddit submission URL
+    const redditUrl = 'https://www.reddit.com/r/choicease/submit?' + 
+        'title=' + encodeURIComponent(postTitle) + 
+        '&text=' + encodeURIComponent(postBody);
+    
+    // Open Reddit in new tab with pre-filled content
+    window.open(redditUrl, '_blank');
+}
+
+        
 function exportResults() {
     // Ensure normalized weights are calculated
     if (!decisionData.normalizedWeights || Object.keys(decisionData.normalizedWeights).length === 0) {
