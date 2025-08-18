@@ -897,26 +897,26 @@
                 <div class="section-title">Let&apos;s Define Your Decision</div>
                 <div class="input-group">
                     <label for="decisionTitle">What&apos;s the decision on your mind?</label>
-                    <input type="text" id="decisionTitle" placeholder="e.g., Choose the best laptop for work">
+                    <input type="text" id="decisionTitle" placeholder="e.g., Choose the best laptop for work" maxlength="100">
                 </div>
                 <div class="input-group">
                     <label for="decisionDescription">Add some context if you like (optional)</label>
-                    <textarea id="decisionDescription" rows="3" placeholder="Any additional context that might help..."></textarea>
+                    <textarea id="decisionDescription" rows="3" placeholder="Any additional context that might help..." maxlength="500"></textarea>
                 </div>
                 <button class="btn" id="step1Continue" aria-label="Continue to next step">Let&apos;s Go!</button>
-<div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
-    <label for="importFile" class="btn btn-secondary" style="cursor: pointer; display: inline-block;">
-        📁 Import a Saved Decision JSON
-    </label>
-    <input type="file" id="importFile" accept=".json" style="display: none;">
-    <label for="importQR" class="btn btn-secondary" style="cursor: pointer; display: inline-block;">
-        📷 Import from a QR Code
-    </label>
-    <input type="file" id="importQR" accept="image/*" style="display: none;">
-    <p style="margin-top: 8px; font-size: 0.9rem; color: #666;">
-        Bring back a saved decision, or check out cool ones shared as QR codes by our Reddit community on <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a>!
-    </p>
-</div>
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                <label for="importFile" class="btn btn-secondary" style="cursor: pointer; display: inline-block;">
+                    📁 Import a Saved Decision JSON
+                </label>
+                <input type="file" id="importFile" accept=".json" style="display: none;">
+                <label for="importQR" class="btn btn-secondary" style="cursor: pointer; display: inline-block;">
+                    📷 Import from a QR Code
+                </label>
+                <input type="file" id="importQR" accept="image/*" style="display: none;">
+                <p style="margin-top: 8px; font-size: 0.9rem; color: #666;">
+                    Bring back a saved decision, or check out cool ones shared as QR codes by our Reddit community on <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a>!
+                </p>
+            </div>
             </div>
 
             <!-- Step 2: Add Options -->
@@ -924,11 +924,11 @@
                 <div class="section-title">Let&apos;s Add Your Options</div>
                 <div class="input-group">
                     <label for="optionName">Option Name</label>
-                    <input type="text" id="optionName" placeholder="e.g., MacBook Pro 14-inch">
+                    <input type="text" id="optionName" placeholder="e.g., MacBook Pro 14-inch" maxlength="100">
                 </div>
                 <div class="input-group">
                     <label for="optionDescription">Quick description (optional)</label>
-                    <textarea id="optionDescription" rows="2" placeholder="Brief description..."></textarea>
+                    <textarea id="optionDescription" rows="2" placeholder="Brief description..." maxlength="250"></textarea>
                 </div>
                 <button class="btn" id="addOptionBtn" aria-label="Add new option">Add This Option</button>
                 
@@ -950,11 +950,11 @@
                 <div class="section-title">Let&apos;s Set Your Criteria</div>
                 <div class="input-group">
                     <label for="criteriaName">Criteria Name</label>
-                    <input type="text" id="criteriaName" placeholder="e.g., Price, Performance, Battery Life">
+                    <input type="text" id="criteriaName" placeholder="e.g., Price, Performance, Battery Life" maxlength="100">
                 </div>
                 <div class="input-group">
                     <label for="criteriaDescription">Description (optional)</label>
-                    <textarea id="criteriaDescription" rows="2" placeholder="What does this criteria measure?"></textarea>
+                    <textarea id="criteriaDescription" rows="2" placeholder="What does this criteria measure?" maxlength="250"></textarea>
                 </div>
                 <button class="btn" id="addCriteriaBtn" aria-label="Add new criteria">Add This Criterion</button>
                 
