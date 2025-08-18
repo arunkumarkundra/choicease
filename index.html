@@ -1667,7 +1667,7 @@ function shareToReddit() {
     if (decisionDescription) {
         postBody = `${decisionDescription}\n\n`;
     }
-    postBody += 'The attached QR can be imported and analyzed on [http://choicease.com](http://choicease.com)';
+    postBody += '\n\n---\n\n*The attached QR can be imported and analyzed on [choicease.com](http://choicease.com)*';
     
     // Build the Reddit submission URL
     const redditUrl = 'https://www.reddit.com/r/choicease/submit?' + 
