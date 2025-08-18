@@ -1669,10 +1669,9 @@ function shareToReddit() {
     }
     postBody += '\n\n---\n\n*The attached QR can be imported and analyzed on [choicease.com](http://choicease.com)*';
     
-    const redditUrl = 'https://www.reddit.com/r/choicease/submit?' + 
-        'selftext=true&' +
+    const redditUrl = 'https://old.reddit.com/r/choicease/submit?' + 
         'title=' + encodeURIComponent(postTitle) + 
-        '&text=' + encodeURIComponent(postBody);
+        '&selftext=' + encodeURIComponent(postBody);
         
     // Open Reddit in new tab with pre-filled content
     window.open(redditUrl, '_blank');
