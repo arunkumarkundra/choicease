@@ -1027,7 +1027,7 @@
                 <div id="redditShareNote" class="muted" style="margin-top:12px">
                     Craving feedback or want to inspire others? 
                     <a href="#" onclick="shareToReddit(); return false;" target="_blank" rel="noopener">
-                        Share your decision on <strong>r/choicease</strong>
+                        <strong>Share your decision on r/choicease</strong>
                     </a>—it's a fun community on Reddit! 🚀
                 </div>
 
@@ -1667,7 +1667,7 @@ function shareToReddit() {
     if (decisionDescription) {
         postBody = `${decisionDescription}\n\n`;
     }
-    postBody += 'Created on http://choicease.com';
+    postBody += 'The attached QR can be imported and analyzed on [http://choicease.com](http://choicease.com)';
     
     // Build the Reddit submission URL
     const redditUrl = 'https://www.reddit.com/r/choicease/submit?' + 
