@@ -1669,11 +1669,11 @@ function shareToReddit() {
     }
     postBody += '\n\n---\n\n*The attached QR can be imported and analyzed on [choicease.com](http://choicease.com)*';
     
-    // Build the Reddit submission URL
     const redditUrl = 'https://www.reddit.com/r/choicease/submit?' + 
+        'selftext=true&' +
         'title=' + encodeURIComponent(postTitle) + 
         '&text=' + encodeURIComponent(postBody);
-    
+        
     // Open Reddit in new tab with pre-filled content
     window.open(redditUrl, '_blank');
 }
