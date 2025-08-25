@@ -2677,10 +2677,6 @@ function createFinalImage(qrCanvases, totalChunks) {
         }
     }
 
-    // Add chunk info
-    ctx.fillStyle = '#333333';
-    ctx.font = 'bold 14px Arial, sans-serif';
-    ctx.fillText(`${totalChunks} QR Code${totalChunks > 1 ? 's' : ''}`, canvasWidth / 2, padding + 120);
 
     // Draw QR codes with proper spacing and labels
     let yOffset = headerHeight + padding;
