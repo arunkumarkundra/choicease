@@ -832,7 +832,6 @@
 
     <!-- QR Code generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs-extended@master/qrcode.min.js"></script>
     <!-- QR Code decoding -->
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 
@@ -2406,6 +2405,10 @@ function handleFileImport(event) {
 // REVISED: SEQUENTIAL QR CODE GENERATION
 // ========================================
 
+// ========================================
+// COMPATIBLE: SEQUENTIAL QR CODE GENERATION (NO ASYNC/AWAIT)
+// ========================================
+
 function generateQRCodes(qrDataArray, totalChunks) {
     console.log("Generating QR codes sequentially...");
     
@@ -2422,17 +2425,17 @@ function generateQRCodes(qrDataArray, totalChunks) {
     tempDiv.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:600px;height:600px;';
     document.body.appendChild(tempDiv);
     
-    // CHANGED: Sequential generation instead of Promise.all
+    // CHANGED: Sequential generation using Promise chain
     generateQRCodesSequentially(qrDataArray, totalChunks, tempDiv)
-        .then(canvases => {
+        .then(function(canvases) {
             console.log("All QR codes generated successfully, creating final image...");
             createFinalImage(canvases, totalChunks);
         })
-        .catch(error => {
+        .catch(function(error) {
             console.error("QR generation failed:", error);
             alert("Failed to generate QR codes: " + error.message + "\n\nTry reducing data or export as JSON.");
         })
-        .finally(() => {
+        .finally(function() {
             // Cleanup
             if (tempDiv.parentNode === document.body) {
                 document.body.removeChild(tempDiv);
@@ -2440,38 +2443,53 @@ function generateQRCodes(qrDataArray, totalChunks) {
         });
 }
 
-// NEW: Sequential QR generation function
-async function generateQRCodesSequentially(qrDataArray, totalChunks, tempDiv) {
-    const canvases = [];
-    
-    for (let index = 0; index < qrDataArray.length; index++) {
-        try {
-            console.log(`Starting QR ${index + 1}/${totalChunks}...`);
-            const canvas = await createSingleQR(qrDataArray[index], index, totalChunks, tempDiv);
-            canvases.push(canvas);
-            console.log(`✓ QR ${index + 1} completed successfully`);
-            
-            // Optional: Add a small delay between QRs for stability
-            if (index < qrDataArray.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 100));
+// CHANGED: Using Promise chain instead of async/await
+function generateQRCodesSequentially(qrDataArray, totalChunks, tempDiv) {
+    return new Promise(function(resolve, reject) {
+        const canvases = [];
+        let currentIndex = 0;
+        
+        function processNextQR() {
+            if (currentIndex >= qrDataArray.length) {
+                // All done!
+                resolve(canvases);
+                return;
             }
-        } catch (error) {
-            throw new Error(`Failed on QR ${index + 1}: ${error.message}`);
+            
+            console.log("Starting QR " + (currentIndex + 1) + "/" + totalChunks + "...");
+            
+            createSingleQR(qrDataArray[currentIndex], currentIndex, totalChunks, tempDiv)
+                .then(function(canvas) {
+                    canvases.push(canvas);
+                    console.log("✓ QR " + (currentIndex + 1) + " completed successfully");
+                    currentIndex++;
+                    
+                    // Optional: Add a small delay between QRs for stability
+                    if (currentIndex < qrDataArray.length) {
+                        setTimeout(processNextQR, 100);
+                    } else {
+                        processNextQR(); // Process the final one or finish
+                    }
+                })
+                .catch(function(error) {
+                    reject(new Error("Failed on QR " + (currentIndex + 1) + ": " + error.message));
+                });
         }
-    }
-    
-    return canvases;
+        
+        // Start processing
+        processNextQR();
+    });
 }
 
-// NEW: Extract single QR creation into separate function
+// SAME: Single QR creation function (no async/await)
 function createSingleQR(data, index, totalChunks, tempDiv) {
-    return new Promise((resolve, reject) => {
+    return new Promise(function(resolve, reject) {
         const qrContainer = document.createElement('div');
         qrContainer.style.cssText = 'width:512px;height:512px;display:block;margin:10px;';
         tempDiv.appendChild(qrContainer);
         
         try {
-            console.log(`Creating QR ${index + 1} with ${data.length} characters`);
+            console.log("Creating QR " + (index + 1) + " with " + data.length + " characters");
             
             const qr = new QRCode(qrContainer, {
                 text: data,
@@ -2486,7 +2504,7 @@ function createSingleQR(data, index, totalChunks, tempDiv) {
             
             // Wait and check for completion
             let attempts = 0;
-            const checkForCanvas = () => {
+            function checkForCanvas() {
                 attempts++;
                 const canvas = qrContainer.querySelector('canvas');
                 const img = qrContainer.querySelector('img');
@@ -2495,26 +2513,30 @@ function createSingleQR(data, index, totalChunks, tempDiv) {
                     // Verify canvas has actual content
                     const ctx = canvas.getContext('2d');
                     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                    const hasContent = imageData.data.some(pixel => pixel < 255);
+                    const hasContent = imageData.data.some(function(pixel) { return pixel < 255; });
                     
                     if (hasContent) {
-                        console.log(`QR ${index + 1}/${totalChunks} generated successfully (canvas)`);
+                        console.log("QR " + (index + 1) + "/" + totalChunks + " generated successfully (canvas)");
                         
-                        // Add readability test
-                        testQRReadability(canvas).then(readable => {
-                            console.log(`QR ${index + 1} is readable: ${readable}`);
-                            if (!readable) {
-                                console.warn(`QR ${index + 1} failed readability test!`);
-                            }
-                        }).catch(err => {
-                            console.warn(`Readability test failed for QR ${index + 1}:`, err);
-                        });
+                        // Add readability test (with error handling)
+                        if (typeof testQRReadability === 'function') {
+                            testQRReadability(canvas)
+                                .then(function(readable) {
+                                    console.log("QR " + (index + 1) + " is readable: " + readable);
+                                    if (!readable) {
+                                        console.warn("QR " + (index + 1) + " failed readability test!");
+                                    }
+                                })
+                                .catch(function(err) {
+                                    console.warn("Readability test failed for QR " + (index + 1) + ":", err);
+                                });
+                        }
                         
                         resolve(canvas);
                     } else if (attempts < 15) {
                         setTimeout(checkForCanvas, 300);
                     } else {
-                        reject(new Error(`Canvas generated but appears empty for QR ${index + 1}`));
+                        reject(new Error("Canvas generated but appears empty for QR " + (index + 1)));
                     }
                 } else if (img && img.complete && img.naturalWidth > 0) {
                     // Convert img to canvas with proper size
@@ -2527,35 +2549,37 @@ function createSingleQR(data, index, totalChunks, tempDiv) {
                     ctx.fillRect(0, 0, 512, 512);
                     ctx.drawImage(img, 0, 0, 512, 512);
                     
-                    // Add readability test for img->canvas conversion
-                    testQRReadability(canvas).then(readable => {
-                        console.log(`QR ${index + 1} (img->canvas) is readable: ${readable}`);
-                        if (!readable) {
-                            console.warn(`QR ${index + 1} (img->canvas) failed readability test!`);
-                        }
-                    }).catch(err => {
-                        console.warn(`Readability test failed for QR ${index + 1}:`, err);
-                    });
+                    // Add readability test for img->canvas conversion (with error handling)
+                    if (typeof testQRReadability === 'function') {
+                        testQRReadability(canvas)
+                            .then(function(readable) {
+                                console.log("QR " + (index + 1) + " (img->canvas) is readable: " + readable);
+                                if (!readable) {
+                                    console.warn("QR " + (index + 1) + " (img->canvas) failed readability test!");
+                                }
+                            })
+                            .catch(function(err) {
+                                console.warn("Readability test failed for QR " + (index + 1) + ":", err);
+                            });
+                    }
                     
-                    console.log(`QR ${index + 1}/${totalChunks} generated successfully (img->canvas)`);
+                    console.log("QR " + (index + 1) + "/" + totalChunks + " generated successfully (img->canvas)");
                     resolve(canvas);
                 } else if (attempts < 15) {
                     setTimeout(checkForCanvas, 300);
                 } else {
-                    reject(new Error(`No valid QR found for chunk ${index + 1} after ${attempts} attempts`));
+                    reject(new Error("No valid QR found for chunk " + (index + 1) + " after " + attempts + " attempts"));
                 }
-            };
+            }
             
             // Start checking after initial delay
             setTimeout(checkForCanvas, 500);
             
         } catch (error) {
-            reject(new Error(`Failed to create QR ${index + 1}: ${error.message}`));
+            reject(new Error("Failed to create QR " + (index + 1) + ": " + error.message));
         }
     });
 }
-
-
 // ========================================
 // IMPROVED FINAL IMAGE CREATION
 // ========================================
