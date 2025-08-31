@@ -336,6 +336,66 @@
     font-weight: 600;
 }
 
+/* Add this CSS to your existing styles for mobile-responsive rating sliders */
+
+/* Desktop: Keep current side-by-side layout */
+.rating-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.rating-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0; /* Prevent shrinking on desktop */
+}
+
+.option-name {
+    font-weight: 600;
+    margin-right: 15px;
+    flex: 1;
+    min-width: 0; /* Allow text truncation if needed */
+}
+
+/* Mobile: Stack vertically when screen is small */
+@media (max-width: 768px) {
+    .rating-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 15px;
+    }
+    
+    .option-name {
+        margin-right: 0;
+        margin-bottom: 8px;
+        text-align: center;
+        word-wrap: break-word;
+        hyphens: auto;
+    }
+    
+    .rating-controls {
+        justify-content: center;
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    /* Make slider wider on mobile for easier interaction */
+    .rating-controls input[type="range"] {
+        min-width: 180px;
+        flex: 1;
+    }
+}
+
+
+        
 .weight-result {
     margin-top: 10px;
     text-align: center;
@@ -1470,41 +1530,42 @@ function updateWeightDisplays() {
 }
 
         // Rating step
-        function setupRatingStep() {
-            const container = document.getElementById('ratingMatrix');
-            let html = '';
-            decisionData.criteria.forEach(criteria => {
-                html += `
-                    <div class="criteria-item" style="margin-bottom: 30px;">
-                        <h4>${criteria.name}</h4>
-                        ${criteria.description ? `<p style="color: #666; margin-bottom: 15px;">${criteria.description}</p>` : ''}
-                        <div style="display: grid; gap: 10px;">
-                `;
-                decisionData.options.forEach(option => {
-                    const ratingKey = `${option.id}-${criteria.id}`;
-                    const currentRating = decisionData.ratings[ratingKey] || 3;
-                    html += `
-                        <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #f8f9fa; border-radius: 8px;">
-                            <span style="font-weight: 600;">${option.name}</span>
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <span style="font-size: 0.9rem; color: #666;">[1]</span>
-                                <input type="range" min="1" max="5" value="${currentRating}" 
-                                       class="slider" role="slider" aria-label="Rating for ${option.name} on ${criteria.name}"
-                                       aria-valuemin="1" aria-valuemax="5" aria-valuenow="${currentRating}"
-                                       onchange="updateRating('${ratingKey}', this.value)">
-                                <span style="font-size: 0.9rem; color: #666;">[5]</span>
-                                <span id="rating-${ratingKey}" style="font-weight: bold; color: #667eea; min-width: 20px;">${currentRating}</span>
-                            </div>
-                        </div>
-                    `;
-                });
-                html += `
-                        </div>
+// Updated setupRatingStep function with better mobile layout
+function setupRatingStep() {
+    const container = document.getElementById('ratingMatrix');
+    let html = '';
+    decisionData.criteria.forEach(criteria => {
+        html += `
+            <div class="criteria-item" style="margin-bottom: 30px;">
+                <h4>${criteria.name}</h4>
+                ${criteria.description ? `<p style="color: #666; margin-bottom: 15px;">${criteria.description}</p>` : ''}
+                <div style="display: grid; gap: 10px;">
+        `;
+        decisionData.options.forEach(option => {
+            const ratingKey = `${option.id}-${criteria.id}`;
+            const currentRating = decisionData.ratings[ratingKey] || 3;
+            html += `
+                <div class="rating-row">
+                    <span class="option-name">${option.name}</span>
+                    <div class="rating-controls">
+                        <span style="font-size: 0.9rem; color: #666;">[1]</span>
+                        <input type="range" min="1" max="5" value="${currentRating}" 
+                               class="slider" role="slider" aria-label="Rating for ${option.name} on ${criteria.name}"
+                               aria-valuemin="1" aria-valuemax="5" aria-valuenow="${currentRating}"
+                               onchange="updateRating('${ratingKey}', this.value)">
+                        <span style="font-size: 0.9rem; color: #666;">[5]</span>
+                        <span id="rating-${ratingKey}" style="font-weight: bold; color: #667eea; min-width: 20px;">${currentRating}</span>
                     </div>
-                `;
-            });
-            container.innerHTML = html;
-        }
+                </div>
+            `;
+        });
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
 
         function updateRating(key, value) {
             decisionData.ratings[key] = parseInt(value);
