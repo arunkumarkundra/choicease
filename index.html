@@ -1,46 +1,66 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- ================================= -->
+    <!-- SECURITY HEADERS & CSP POLICIES  -->
+    <!-- ================================= -->
+    <!-- Content Security Policy: Restricts resource loading to prevent XSS attacks -->
     <meta http-equiv="Content-Security-Policy"
           content="default-src 'self';
                    img-src 'self' data: https:;
                    style-src 'self' 'unsafe-inline';
                    script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://www.google-analytics.com https://www.googletagmanager.com;
                    connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com;">
+    
+    <!-- Security headers to prevent clickjacking, MIME sniffing, and control referrer info -->
     <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
     <meta http-equiv="Permissions-Policy"
           content="geolocation=(), microphone=(), camera=(), payment=(), usb=()">
 
-    <!-- Google tag (gtag.js) -->
+    <!-- ================================= -->
+    <!-- GOOGLE ANALYTICS CONFIGURATION   -->
+    <!-- ================================= -->
+    <!-- Google tag (gtag.js) - Web analytics tracking -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-66HCHQ5FW7"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-    
       gtag('config', 'G-66HCHQ5FW7');
     </script>
     
+    <!-- ================================= -->
+    <!-- BASIC HTML META TAGS             -->
+    <!-- ================================= -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Choicease – Free Decision-Making Tool to Compare Options & Make Smart Choices</title>
 
-    <!-- SEO Meta Tags -->
+    <!-- ================================= -->
+    <!-- SEO & SOCIAL MEDIA META TAGS     -->
+    <!-- ================================= -->
+    <!-- Open Graph tags for Facebook, LinkedIn, etc. -->
     <meta property="og:title" content="Choicease – Smart Choices, Made Easy" />
     <meta property="og:description" content="Make confident decisions with our AI assisted, step-by-step decision-making tool—totally free and fully private." />
     <meta property="og:url" content="https://choicease.com" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://choicease.com/images/logo.png" />
+    
+    <!-- Standard meta description for search engines -->
     <meta name="description" content="Choicease is a free online decision-making tool that helps you compare options, and make smart, confident choices. Simple, AI-assisted, private, and easy to use." />
 
+    <!-- Twitter Card tags for better Twitter sharing -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Choicease – Smart Choices, Made Easy" />
     <meta name="twitter:description" content="Make confident decisions with our AI assisted, step-by-step decision-making tool—totally free and fully private." />
     <meta name="twitter:image" content="https://choicease.com/images/og-image.png" />
 
-    <!-- Schema.org structured data -->
+    <!-- ================================= -->
+    <!-- STRUCTURED DATA FOR SEO          -->
+    <!-- ================================= -->
+    <!-- Schema.org structured data - helps search engines understand the app -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -53,7 +73,10 @@
     }
     </script>
 
-    <!-- Favicons -->
+    <!-- ================================= -->
+    <!-- FAVICON CONFIGURATION            -->
+    <!-- ================================= -->
+    <!-- Multiple favicon sizes for different devices and contexts -->
     <link rel="icon" type="image/x-icon" href="images/favicon.ico">
     <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
     <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
@@ -61,20 +84,41 @@
     <link rel="icon" type="image/png" sizes="512x512" href="images/android-chrome-512x512.png">
     <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
 
-    <!-- External CSS -->
+    <!-- ================================= -->
+    <!-- STYLESHEETS                      -->
+    <!-- ================================= -->
+    <!-- Main application stylesheet -->
     <link rel="stylesheet" href="styles.css">
 
-    <!-- External JavaScript Libraries -->
+    <!-- ================================= -->
+    <!-- EXTERNAL JAVASCRIPT LIBRARIES    -->
+    <!-- ================================= -->
+    <!-- QR Code generation library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <!-- QR Code reading/scanning library -->
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    
+    <!-- Data compression library (for QR code data optimization) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+    
+    <!-- PDF generation library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- HTML to canvas conversion (for result sharing images) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
+    <!-- ================================= -->
+    <!-- MAIN APPLICATION CONTAINER       -->
+    <!-- ================================= -->
     <div class="container">
+        <!-- ================================= -->
+        <!-- HEADER SECTION                   -->
+        <!-- ================================= -->
         <div class="header">
             <div style="position: relative;">
+                <!-- Logo and main title area -->
                 <div style="display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 20px; margin-bottom: 15px;">
                     <img src="images/choicease-decision-making-tool.png" alt="Choicease - Smart Choices, Made Easy" style="max-width: 80px; height: auto;">
                     <div style="text-align: center;">
@@ -82,17 +126,30 @@
                         <p style="margin: 8px 0 0 0; font-size: 1.1rem; opacity: 0.9;"><strong>Smart Choices, Made Easy</strong>:<br> Let&apos;s nail that decision together—guided step by step, and totally free! 😊</p>
                     </div>
                 </div>
+                
+                <!-- "How it works" button (positioned absolute in top-right) -->
                 <button id="howItWorksBtn" class="info-button" aria-label="How it works" title="How Choicease Works">
                     <i class="bi bi-info-circle"><strong>i</strong></i>
                 </button>
             </div>
         </div>
 
+        <!-- ================================= -->
+        <!-- MAIN APPLICATION INTERFACE       -->
+        <!-- ================================= -->
         <div class="app-container">
+            <!-- ================================= -->
+            <!-- PROGRESS INDICATOR               -->
+            <!-- ================================= -->
+            <!-- Shows user's progress through the 6 steps -->
             <div class="progress-bar">
                 <div class="progress-fill" id="progressFill"></div>
             </div>
 
+            <!-- ================================= -->
+            <!-- STEP INDICATOR NAVIGATION        -->
+            <!-- ================================= -->
+            <!-- Visual step indicator showing all 6 steps of the decision process -->
             <div class="step-indicator">
                 <div class="step active" id="step1">
                     <div class="step-number">1</div>
@@ -120,152 +177,234 @@
                 </div>
             </div>
 
-            <!-- Step 1: Define Decision -->
+            <!-- ================================= -->
+            <!-- STEP 1: DEFINE DECISION          -->
+            <!-- ================================= -->
+            <!-- Initial step where user defines what decision they're making -->
             <div class="section" id="section1">
                 <div class="section-title">Let&apos;s Define Your Decision</div>
+                
+                <!-- Decision title input (required) -->
                 <div class="input-group">
                     <label for="decisionTitle">What&apos;s the decision on your mind?</label>
                     <input type="text" id="decisionTitle" placeholder="e.g., Choose the best laptop for work" maxlength="100">
                 </div>
+                
+                <!-- Decision description (optional context) -->
                 <div class="input-group">
                     <label for="decisionDescription">Add some context if you like (optional)</label>
                     <textarea id="decisionDescription" rows="3" placeholder="Any additional context that might help..." maxlength="500"></textarea>
                 </div>
+                
+                <!-- Continue to next step -->
                 <button class="btn" id="step1Continue" aria-label="Continue to next step">Let&apos;s Go!</button>
-                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0;">
+                
+                <!-- Import options section -->
+                <div class="import-section">
+                    <!-- Import from JSON file -->
                     <label for="importFile" class="btn btn-secondary" style="cursor: pointer; display: inline-block;">
                         📁 Import a Saved Decision JSON
                     </label>
                     <input type="file" id="importFile" accept=".json" style="display: none;">
+                    
+                    <!-- Import from QR code image -->
                     <label for="importQR" class="btn btn-secondary" style="cursor: pointer; display: inline-block;">
                         📷 Import from a QR Code
                     </label>
                     <input type="file" id="importQR" accept="image/*" style="display: none;">
+                    
+                    <!-- Link to Reddit community for inspiration -->
                     <p style="margin-top: 8px; font-size: 0.9rem; color: #666;">
                         Bring back a saved decision, or check out cool ones shared as QR codes by our Reddit community on <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener"><strong>r/choicease</strong></a>!
                     </p>
                 </div>
             </div>
 
-            <!-- Step 2: Add Options -->
+            <!-- ================================= -->
+            <!-- STEP 2: ADD OPTIONS              -->
+            <!-- ================================= -->
+            <!-- Step where user adds their decision options to compare -->
             <div class="section hidden" id="section2">
                 <div class="section-title">Let&apos;s Add Your Options</div>
+                
+                <!-- Option name input (required) -->
                 <div class="input-group">
                     <label for="optionName">Option Name</label>
                     <input type="text" id="optionName" placeholder="e.g., MacBook Pro 14-inch" maxlength="100">
                 </div>
+                
+                <!-- Option description (optional) -->
                 <div class="input-group">
                     <label for="optionDescription">Quick description (optional)</label>
                     <textarea id="optionDescription" rows="2" placeholder="Brief description..." maxlength="250"></textarea>
                 </div>
+                
+                <!-- Add option button -->
                 <button class="btn" id="addOptionBtn" aria-label="Add new option">Add This Option</button>
                 
+                <!-- Dynamic list of added options (populated by JavaScript) -->
                 <div class="options-list" id="optionsList"></div>
                 
+                <!-- Warning shown when user has too few options (bias alert) -->
                 <div class="bias-warning" id="optionsWarning" style="display: none;">
                     <h4>⚠️ Bias Alert: Too Few Options</h4>
                     <p>💡 Quick Tip: Toss in a few more options (aim for 3-7)—it often sparks better ideas! 😄</p>
                 </div>
 
+                <!-- Navigation buttons -->
                 <div style="margin-top: 20px;">
                     <button class="btn btn-secondary" id="step2Back" aria-label="Go back to previous step">Back</button>
                     <button class="btn" id="step2Continue" aria-label="Continue to next step">Continue</button>
                 </div>
             </div>
 
-            <!-- Step 3: Set Criteria -->
+            <!-- ================================= -->
+            <!-- STEP 3: SET CRITERIA             -->
+            <!-- ================================= -->
+            <!-- Step where user defines criteria for evaluating options -->
             <div class="section hidden" id="section3">
                 <div class="section-title">Let&apos;s Set Your Criteria</div>
+                
+                <!-- Criteria name input (required) -->
                 <div class="input-group">
                     <label for="criteriaName">Criteria Name</label>
                     <input type="text" id="criteriaName" placeholder="e.g., Price, Performance, Battery Life" maxlength="100">
                 </div>
+                
+                <!-- Criteria description (optional) -->
                 <div class="input-group">
                     <label for="criteriaDescription">Description (optional)</label>
                     <textarea id="criteriaDescription" rows="2" placeholder="What does this criteria measure?" maxlength="250"></textarea>
                 </div>
+                
+                <!-- Add criteria button -->
                 <button class="btn" id="addCriteriaBtn" aria-label="Add new criteria">Add This Criterion</button>
+                
+                <!-- Dynamic list of added criteria (populated by JavaScript) -->
                 <div class="criteria-list" id="criteriaList"></div>
                 
+                <!-- Warning for too many criteria (cognitive overload prevention) -->
                 <div class="bias-warning" id="criteriaWarning" style="display: none;">
                     <h4>⚠️ Bias Alert: Cognitive Overload Risk</h4>
                     <p>💡 Quick Tip: Whoa, lots of criteria! Try grouping similar ones or picking your top 5-7 to keep things breezy. We've all been there! 😉</p>
                 </div>
 
+                <!-- AI Helper promotion section -->
                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0; text-align: center;">
                     <p style="margin-top: 8px; font-size: 0.9rem; color: #666;">
                         Stuck on what criteria to use? Our <a href="https://chatgpt.com/g/g-68b3ef768f2c8191bebc43b388a95a87-choicease-com-helper-gpt" target="_blank" rel="noopener"><strong>Choicease Helper GPT</strong></a> can spark some ideas! 💡
                     </p>
                 </div>
                 
+                <!-- Navigation buttons -->
                 <div style="margin-top: 20px;">
                     <button class="btn btn-secondary" id="step3Back" aria-label="Go back to previous step">Back</button>
                     <button class="btn" id="step3Continue" aria-label="Continue to next step">Continue</button>
                 </div>
             </div>
 
-            <!-- Step 4: Criteria Importance -->
+            <!-- ================================= -->
+            <!-- STEP 4: CRITERIA IMPORTANCE      -->
+            <!-- ================================= -->
+            <!-- Step where user rates the importance of each criteria -->
             <div class="section hidden" id="section4">
                 <div class="section-title">Let&apos;s Weigh What Matters</div>
+                
+                <!-- Instructions for importance rating -->
                 <p style="margin-bottom: 20px; color: #666;">Select the importance for each one (1 = meh, 5 = must-have!). We&apos;ll crunch the numbers and normalize to 100% behind the scenes.</p>
+                
+                <!-- AI Helper promotion for this step -->
                 <div style="margin-bottom: 20px; padding: 15px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #667eea; text-align: center;">
                     <p style="margin-top: 8px; font-size: 0.9rem; color: #666;">
                         Not sure how to weigh things? Our <a href="https://chatgpt.com/g/g-68b3ef768f2c8191bebc43b388a95a87-choicease-com-helper-gpt" target="_blank" rel="noopener"><strong>Choicease Helper GPT</strong></a> can help you prioritize! 🎯
                     </p>
                 </div>
                 
+                <!-- Dynamic weighting interface (populated by JavaScript) -->
                 <div class="criteria-list" id="weightingList"></div>
                 
+                <!-- Bias prevention tip -->
                 <div class="bias-warning">
                     <h4>💡 Pro Tip: Avoid Equal Weight Bias</h4>
                     <p>Not everything's equal—zero in on what really counts for you. You're the boss! 👊</p>
                 </div>
 
+                <!-- Navigation buttons -->
                 <div style="margin-top: 20px;">
                     <button class="btn btn-secondary" id="step4Back" aria-label="Go back to previous step">Back</button>
                     <button class="btn" id="step4Continue" aria-label="Continue to next step">Continue</button>
                 </div>
             </div>
 
-            <!-- Step 5: Rate Options -->
+            <!-- ================================= -->
+            <!-- STEP 5: RATE OPTIONS             -->
+            <!-- ================================= -->
+            <!-- Step where user rates each option against each criteria -->
             <div class="section hidden" id="section5">
                 <div class="section-title">Let&apos;s Rate Your Options</div>
+                
+                <!-- Instructions for rating -->
                 <p style="margin-bottom: 20px; color: #666;">Rate how each option stacks up (1 = Not great, 5 = Awesome!).</p>
+                
+                <!-- AI Helper promotion for rating assistance -->
                 <div style="margin-bottom: 20px; padding: 15px; background: #f8f9ff; border-radius: 12px; border-left: 4px solid #667eea; text-align: center;">
                     <p style="margin: 0; font-size: 0.9rem; color: #666;">
                         Need help in rating your options? Our <a href="https://chatgpt.com/g/g-68b3ef768f2c8191bebc43b388a95a87-choicease-com-helper-gpt" target="_blank" rel="noopener"><strong>Choicease Helper GPT</strong></a> can guide you through it! ⚖️
                     </p>
                 </div>
+                
+                <!-- Dynamic rating matrix (populated by JavaScript) -->
+                <!-- This creates sliders for each option-criteria combination -->
                 <div id="ratingMatrix"></div>
 
+                <!-- Navigation buttons -->
                 <div style="margin-top: 20px;">
                     <button class="btn btn-secondary" id="step5Back" aria-label="Go back to previous step">Back</button>
                     <button class="btn" id="step5Calculate" aria-label="Calculate and view results">See Your Results!</button>
                 </div>
             </div>
 
-            <!-- Step 6: Results -->
+            <!-- ================================= -->
+            <!-- STEP 6: RESULTS DISPLAY          -->
+            <!-- ================================= -->
+            <!-- Final step showing calculated results and recommendations -->
             <div class="section hidden" id="section6">
                 <div class="section-title">Your Results Are In! 🎉</div>
+                
+                <!-- Dynamic results grid (populated by JavaScript with calculated scores) -->
                 <div class="results-grid" id="resultsGrid"></div>
+                
+                <!-- Hidden canvas element used for generating shareable images -->
                 <div id="shareCanvas" style="position: absolute; left: -9999px; top: -9999px; width: 800px; background: white; padding: 40px; font-family: 'Segoe UI', sans-serif;">
-                    <!-- This will be populated dynamically -->
+                    <!-- This will be populated dynamically for image generation -->
                 </div>
                 
+                <!-- Action buttons section -->
                 <div style="margin-top: 30px; text-align: center;">
+                    <!-- Back to previous step -->
                     <button class="btn btn-secondary" id="step6Back" aria-label="Go back to previous step">Back</button>
+                    
+                    <!-- Share results (generates image and sharing text) -->
                     <button class="btn btn-success" id="shareResultsBtn" aria-label="Share results">↗️ Share Your Results</button>
+                    
+                    <!-- Export dropdown menu -->
                     <div style="display: inline-block; position: relative;">
                         <button class="btn btn-success" id="exportDropdownBtn" aria-label="Export options">📤 Save Results ▼</button>
+                        
+                        <!-- Export format options dropdown -->
                         <div class="export-dropdown hidden" id="exportDropdown" style="position: absolute; top: 100%; left: 0; background: white; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 180px;">
-                            <button class="export-option" data-type="qr">📷 QR Code</button>
-                            <button class="export-option" data-type="json">📁 JSON File</button>
-                            <button class="export-option" data-type="pdf">📄 PDF Report</button>
-                            <button class="export-option" data-type="csv">📊 CSV Data</button>
+                            <button class="export-option" data-type="qr">📷 QR Code</button>        <!-- Compressed data as QR image -->
+                            <button class="export-option" data-type="json">📁 JSON File</button>    <!-- Raw data for re-import -->
+                            <button class="export-option" data-type="pdf">📄 PDF Report</button>    <!-- Professional report -->
+                            <button class="export-option" data-type="csv">📊 CSV Data</button>      <!-- Spreadsheet format -->
                         </div>
                     </div>
+                    
+                    <!-- Start new decision -->
                     <button class="btn btn-secondary" id="startOverBtn" aria-label="Start a new decision">Start Fresh!</button>
                 </div>
+                
+                <!-- Reddit community promotion -->
                 <div id="redditShareNote" class="muted" style="margin-top:12px">
                     Craving feedback or want to inspire others? 
                     <a href="#" onclick="shareToReddit(); return false;" target="_blank" rel="noopener">
@@ -276,9 +415,13 @@
         </div>
     </div>
 
-    <!-- How It Works Modal -->
+    <!-- ================================= -->
+    <!-- HOW IT WORKS MODAL DIALOG        -->
+    <!-- ================================= -->
+    <!-- Modal popup explaining how Choicease works -->
     <div id="howItWorksModal" class="modal">
         <div class="modal-content">
+            <!-- Modal header with close button -->
             <div class="modal-header">
                 <span class="close">&times;</span>
                 <h2 style="margin: 0; font-size: 1.8rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
@@ -289,11 +432,16 @@
                 </p>
             </div>
             
+            <!-- Modal content sections -->
             <div class="modal-body">
+                <!-- Introduction section -->
                 <div>
                     <h3>🤔 Stuck in decision limbo?</h3>
                   <p>We&apos;re here to guide you out step-by-step—faster and with more confidence!</p>
-                </div><div>
+                </div>
+                
+                <!-- Features and benefits -->
+                <div>
                   <h3>🧠 Why You&apos;ll Love Choicease:</h3>
                   <ul>
                     <li>✅ Breaks down tough choices into easy steps</li>
@@ -306,7 +454,10 @@
                     <li>📢 Share and get feedback from our Reddit community <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a>.</li>
                     <li>🔍 Get inspired on our Reddit community! Browse through cool ideas, import and adapt them to your needs.</li>
                   </ul>
-                </div><div>
+                </div>
+                
+                <!-- Step-by-step process explanation -->
+                <div>
                   <h3>🪜 Our Simple Steps:</h3>
                   <ol>
                     <li><strong>Kick off:</strong> Tell us your decision (or import one!).</li>
@@ -317,7 +468,10 @@
                     <li><strong>Results time:</strong> See the winners, rankings + breakdowns.</li>
                     <li><strong>Share/Save:</strong> Export or post on <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a> for vibes.</li>
                   </ol>
-                </div><div>
+                </div>
+                
+                <!-- AI Helper detailed explanation -->
+                <div>
                   <h3>🤖 Meet Your AI Decision Buddy!</h3>
                   <p>Feeling overwhelmed? Our <strong>Choicease Helper GPT</strong> is like having a smart friend who's great at decisions! It can help you:</p>
                   <ul>
@@ -327,10 +481,15 @@
                     <li>🧠 <strong>Avoid decision traps</strong> - Spot biases and think more clearly!</li>
                   </ul>
                   <p>Just look for the AI helper links in each step—it's like having a decision coach right there with you! 😊</p>
-                </div><div>
+                </div>
+                
+                <!-- Export/sharing options explanation -->
+                <div>
                   <h3>📤 Save or Share?</h3>
                   <p>Grab your results as PDF, CSV, JSON, or QR—great for buddies, teams, or your future self!</p>
                 </div>           
+                
+                <!-- Call-to-action button -->
                 <div style="text-align: center; margin-top: 30px;">
                     <button class="btn" id="closeModalBtn" style="font-size: 1.1rem; padding: 12px 30px;">
                         🚀 Ready to Crush That Decision? Let&apos;s Go!
@@ -340,11 +499,17 @@
         </div>
     </div>
 
+    <!-- ================================= -->
+    <!-- FOOTER SECTION                   -->
+    <!-- ================================= -->
     <footer class="site-footer">
       <p>© 2025 Choicease | <a href="privacy.html">Privacy Policy</a></p>
     </footer>
 
-    <!-- Your Custom JavaScript -->
+    <!-- ================================= -->
+    <!-- MAIN APPLICATION JAVASCRIPT      -->
+    <!-- ================================= -->
+    <!-- Custom JavaScript containing all application logic -->
     <script src="script.js"></script>
 </body>
 </html>
