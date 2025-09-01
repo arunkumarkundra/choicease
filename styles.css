@@ -1,141 +1,206 @@
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+/* ==========================================================================
+   CHOICEASE - DECISION MAKING TOOL STYLES
+   Smart Choices, Made Easy
+   ========================================================================== */
 
-        .beta-badge {
-          background: #f2f2f2;          /* very light grey background */
-          color: #777;                  /* softer grey text */
-          font-size: 0.5em;            /* smaller than before */
-          padding: 1px 3px;             /* compact padding */
-          border-radius: 3px;           /* soft edges */
-          vertical-align: super;        /* superscript position */
-          font-weight: 400;             /* normal (not bold) */
-          letter-spacing: 0.3px;        /* a little spacing for elegance */
-        }
+/* ==========================================================================
+   1. RESET & BASE STYLES
+   ========================================================================== */
 
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    color: #333;
+    line-height: 1.6;
+}
 
-        
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-            line-height: 1.6;
-        }
+/* ==========================================================================
+   2. LAYOUT COMPONENTS
+   ========================================================================== */
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
+/* Main container - centers content and adds padding */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
 
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
-            animation: slideDown 0.8s ease-out;
-        }
+/* White card container that holds the app */
+.app-container {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    animation: fadeInUp 0.8s ease-out;
+}
 
-        .app-container {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            animation: fadeInUp 0.8s ease-out;
-        }
+/* Header section with logo and title */
+.header {
+    text-align: center;
+    color: white;
+    margin-bottom: 30px;
+    animation: slideDown 0.8s ease-out;
+}
 
-        .step-indicator {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
+/* Footer with links and copyright */
+.site-footer {
+    text-align: center;
+    padding: 20px;
+    margin-top: 40px;
+    color: white;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
 
-        .step {
-            display: flex;
-            align-items: center;
-            margin: 5px 10px;
-            font-size: 0.9rem;
-            color: #666;
-        }
+.site-footer a {
+    color: #fffb; /* slightly translucent white */
+    text-decoration: underline;
+    transition: color 0.3s ease;
+}
 
-        .step-number {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: #e0e0e0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 8px;
-            font-weight: bold;
-            transition: all 0.3s ease;
-        }
+.site-footer a:hover {
+    color: #fff; /* brighten on hover */
+}
 
-        .step.active .step-number {
-            background: #667eea;
-            color: white;
-            transform: scale(1.1);
-        }
+/* ==========================================================================
+   3. PROGRESS & NAVIGATION
+   ========================================================================== */
 
-        .step.completed .step-number {
-            background: #28a745;
-            color: white;
-        }
+/* Progress bar at top of app */
+.progress-bar {
+    width: 100%;
+    height: 6px;
+    background: #e0e0e0;
+    border-radius: 3px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
 
-        .section {
-            margin-bottom: 30px;
-            animation: fadeIn 0.5s ease-out;
-        }
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
 
-        .section-title {
-            font-size: 1.5rem;
-            margin-bottom: 15px;
-            color: #333;
-            display: flex;
-            align-items: center;
-        }
+/* Step indicator - shows current progress through workflow */
+.step-indicator {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+}
 
-        .section-title::before {
-            content: '';
-            width: 4px;
-            height: 30px;
-            background: #667eea;
-            margin-right: 15px;
-            border-radius: 2px;
-        }
+.step {
+    display: flex;
+    align-items: center;
+    margin: 5px 10px;
+    font-size: 0.9rem;
+    color: #666;
+}
 
-        .input-group {
-            margin-bottom: 20px;
-        }
+.step-number {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 8px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
 
-        .input-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #555;
-        }
+/* Active step styling */
+.step.active .step-number {
+    background: #667eea;
+    color: white;
+    transform: scale(1.1);
+}
 
-        .input-group input, .input-group textarea {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
+/* Completed step styling */
+.step.completed .step-number {
+    background: #28a745;
+    color: white;
+}
 
-        .input-group input:focus, .input-group textarea:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-            transform: translateY(-2px);
-        }
+/* ==========================================================================
+   4. SECTIONS & CONTENT AREAS
+   ========================================================================== */
 
+/* Main content sections for each step */
+.section {
+    margin-bottom: 30px;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: #333;
+    display: flex;
+    align-items: center;
+}
+
+/* Colored bar next to section titles */
+.section-title::before {
+    content: '';
+    width: 4px;
+    height: 30px;
+    background: #667eea;
+    margin-right: 15px;
+    border-radius: 2px;
+}
+
+/* Hidden sections (not current step) */
+.hidden {
+    display: none;
+}
+
+/* ==========================================================================
+   5. FORM ELEMENTS & INPUTS
+   ========================================================================== */
+
+/* Form input groups with labels and inputs */
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #555;
+}
+
+.input-group input, 
+.input-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+/* Focus states for inputs */
+.input-group input:focus, 
+.input-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    transform: translateY(-2px);
+}
+
+/* File import section styling */
 .import-section {
     margin-top: 15px;
     padding-top: 15px;
@@ -148,99 +213,75 @@
     font-size: 0.9rem;
     color: #666;
 }
-        
-        .btn {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            margin: 5px;
-            display: inline-block;
-            text-decoration: none;
-        }
 
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
-        }
+/* ==========================================================================
+   6. BUTTONS & INTERACTIVE ELEMENTS
+   ========================================================================== */
 
-        .btn:active {
-            transform: translateY(0);
-        }
+/* Primary button styling */
+.btn {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    margin: 5px;
+    display: inline-block;
+    text-decoration: none;
+}
 
-        .btn-secondary {
-            background: linear-gradient(135deg, #6c757d, #495057);
-        }
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+}
 
-        .btn-success {
-            background: linear-gradient(135deg, #28a745, #20c997);
-        }
+.btn:active {
+    transform: translateY(0);
+}
 
-        .btn-danger {
-            background: linear-gradient(135deg, #dc3545, #c82333);
-        }
+/* Button variations */
+.btn-secondary {
+    background: linear-gradient(135deg, #6c757d, #495057);
+}
 
-        .criteria-list, .options-list {
-            display: grid;
-            gap: 15px;
-        }
+.btn-success {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
 
-        .criteria-item, .option-item {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 12px;
-            border: 2px solid #e9ecef;
-            transition: all 0.3s ease;
-            position: relative;
-        }
+.btn-danger {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+}
 
-        .criteria-item:hover, .option-item:hover {
-            border-color: #667eea;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
+/* Remove button for deleting items */
+.remove-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 25px;
+    height: 25px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+}
 
-        .weight-slider {
-            margin-top: 10px;
-        }
+.remove-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
 
-        .weight-slider input[type="range"] {
-            width: 100%;
-            height: 8px;
-            border-radius: 4px;
-            background: #e0e0e0;
-            outline: none;
-            -webkit-appearance: none;
-        }
+/* ==========================================================================
+   7. RATING & SCORING INTERFACE
+   ========================================================================== */
 
-        .weight-slider input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #667eea;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .weight-slider input[type="range"]::-webkit-slider-thumb:hover {
-            transform: scale(1.2);
-        }
-
-        .weight-display {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 5px;
-            font-size: 0.9rem;
-            color: #666;
-        }
-
+/* Importance rating section (radio buttons) */
 .importance-rating {
     margin-top: 15px;
     display: flex;
@@ -281,9 +322,16 @@
     font-weight: 600;
 }
 
-/* Add this CSS to your existing styles for mobile-responsive rating sliders */
+/* Weight result display */
+.weight-result {
+    margin-top: 10px;
+    text-align: center;
+    font-weight: bold;
+    color: #667eea;
+    font-size: 0.9rem;
+}
 
-/* Desktop: Keep current side-by-side layout */
+/* Rating sliders for scoring options */
 .rating-row {
     display: flex;
     align-items: center;
@@ -308,8 +356,492 @@
     min-width: 0; /* Allow text truncation if needed */
 }
 
-/* Mobile: Stack vertically when screen is small */
+/* Range slider styling */
+.weight-slider {
+    margin-top: 10px;
+}
+
+.weight-slider input[type="range"] {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: #e0e0e0;
+    outline: none;
+    -webkit-appearance: none;
+}
+
+.weight-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.weight-slider input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.weight-display {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+    font-size: 0.9rem;
+    color: #666;
+}
+
+/* ==========================================================================
+   8. LISTS & ITEM CONTAINERS
+   ========================================================================== */
+
+/* Grid layouts for criteria and options */
+.criteria-list, 
+.options-list {
+    display: grid;
+    gap: 15px;
+}
+
+/* Individual item containers */
+.criteria-item, 
+.option-item {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 12px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.criteria-item:hover, 
+.option-item:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* ==========================================================================
+   9. RESULTS DISPLAY
+   ========================================================================== */
+
+/* Results grid container */
+.results-grid {
+    display: grid;
+    gap: 20px;
+}
+
+/* Results header with decision info */
+.results-header {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    padding: 15px;
+    border-radius: 15px;
+    margin-bottom: 15px;
+    border: 2px solid #dee2e6;
+    grid-column: 1 / -1; /* Spans all columns */
+}
+
+.results-header h2 {
+    color: #333;
+    margin-bottom: 10px;
+    font-size: 1.5rem;
+}
+
+.results-header .context {
+    color: #666;
+    margin-bottom: 15px;
+    font-style: italic;
+}
+
+.results-header .timestamp {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+/* Individual result cards */
+.result-card {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    padding: 25px;
+    border-radius: 15px;
+    border: 2px solid #dee2e6;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Top accent bar for result cards */
+.result-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+/* Winner card special styling */
+.result-card.winner {
+    border-color: #28a745;
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    transform: scale(1.02);
+}
+
+.result-card.winner::before {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+/* Score visualization bars */
+.score-bar {
+    width: 100%;
+    height: 20px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 10px 0;
+    position: relative;
+}
+
+.score-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 10px;
+    transition: width 0.8s ease-out;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Animated shine effect on score bars */
+.score-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: shine 2s infinite;
+}
+
+/* ==========================================================================
+   10. DROPDOWNS & MENUS
+   ========================================================================== */
+
+/* Export dropdown menu */
+.export-dropdown {
+    display: none;
+}
+
+.export-dropdown.show {
+    display: block;
+}
+
+.export-option {
+    display: block;
+    width: 100%;
+    padding: 10px 15px;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.export-option:hover {
+    background-color: #f8f9fa;
+}
+
+/* ==========================================================================
+   11. ALERTS & NOTIFICATIONS
+   ========================================================================== */
+
+/* Bias warning boxes with animations */
+.bias-warning {
+    background: #fff3cd;
+    border: 2px solid #ffeaa7;
+    border-radius: 12px;
+    padding: 15px;
+    margin: 20px 0;
+    animation: pulse 2s infinite;
+}
+
+.bias-warning h4 {
+    color: #856404;
+    margin-bottom: 8px;
+}
+
+.bias-warning p {
+    color: #856404;
+    margin: 0;
+}
+
+/* Toast notifications (generated in JS) */
+.qr-loading {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0,0,0,0.8);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    z-index: 9999;
+}
+
+/* ==========================================================================
+   12. MODAL COMPONENTS
+   ========================================================================== */
+
+/* Modal overlay and container */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(5px);
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 2% auto;
+    padding: 0;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    animation: slideInDown 0.4s ease;
+}
+
+/* Modal header with gradient background */
+.modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 25px 30px;
+    border-radius: 20px 20px 0 0;
+    position: relative;
+}
+
+/* Modal body with content */
+.modal-body {
+    padding: 30px;
+    line-height: 1.7;
+    color: #333;
+}
+
+.modal-body > div {
+    margin-bottom: 25px; /* Adds space between sections */
+}
+
+.modal-body ul, 
+.modal-body ol {
+    padding-left: 25px; /* Indents lists */
+    margin-top: 10px;
+}
+
+.modal-body li {
+    margin-bottom: 8px; /* Space between list items */
+}
+
+/* Modal close button */
+.close {
+    color: rgba(255, 255, 255, 0.8);
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: absolute;
+    right: 20px;
+    top: 20px;
+    width: 35px;
+    height: 35px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+/* ==========================================================================
+   13. INFO BUTTONS & HELP ELEMENTS
+   ========================================================================== */
+
+/* Circular info button (positioned absolutely) */
+.info-button {
+    position: absolute;
+    top: -10px;
+    right: -20px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid #667eea;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #667eea;
+    backdrop-filter: blur(10px);
+}
+
+.info-button:hover {
+    background: #667eea;
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* Text-style info button */
+.text-info-button {
+    background: rgba(255, 255, 255, 0.9);
+    border: 2px solid #667eea;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    color: #667eea;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    font-weight: 600;
+}
+
+.text-info-button:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* ==========================================================================
+   14. DECORATIVE ELEMENTS
+   ========================================================================== */
+
+/* Beta badge in header */
+.beta-badge {
+    background: #f2f2f2;          /* very light grey background */
+    color: #777;                  /* softer grey text */
+    font-size: 0.5em;            /* smaller than before */
+    padding: 1px 3px;             /* compact padding */
+    border-radius: 3px;           /* soft edges */
+    vertical-align: super;        /* superscript position */
+    font-weight: 400;             /* normal (not bold) */
+    letter-spacing: 0.3px;        /* spacing for elegance */
+}
+
+/* Step icons in modal */
+.step-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 50%;
+    font-weight: bold;
+    margin-right: 10px;
+    font-size: 0.9rem;
+}
+
+/* Feature list in modal */
+.feature-list {
+    display: grid;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    background: linear-gradient(135deg, #f8f9ff, #f0f4ff);
+    border-radius: 10px;
+    border-left: 4px solid #667eea;
+}
+
+.feature-emoji {
+    font-size: 1.2rem;
+    margin-right: 12px;
+}
+
+/* ==========================================================================
+   15. ANIMATIONS & KEYFRAMES
+   ========================================================================== */
+
+/* Slide down animation for header */
+@keyframes slideDown {
+    from { 
+        transform: translateY(-50px); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateY(0); 
+        opacity: 1; 
+    }
+}
+
+/* Fade in up animation for app container */
+@keyframes fadeInUp {
+    from { 
+        transform: translateY(30px); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateY(0); 
+        opacity: 1; 
+    }
+}
+
+/* Basic fade in animation */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Shine effect for score bars */
+@keyframes shine {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* Pulse animation for warnings */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+/* Modal slide in animation */
+@keyframes slideInDown {
+    from { 
+        transform: translateY(-50px); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateY(0); 
+        opacity: 1; 
+    }
+}
+
+/* ==========================================================================
+   16. RESPONSIVE DESIGN - MOBILE STYLES
+   ========================================================================== */
+
+/* Mobile-specific adjustments for rating interface */
 @media (max-width: 768px) {
+    /* Stack rating controls vertically on mobile */
     .rating-row {
         flex-direction: column;
         align-items: stretch;
@@ -337,498 +869,114 @@
         min-width: 180px;
         flex: 1;
     }
-}
 
-
-        
-.weight-result {
-    margin-top: 10px;
-    text-align: center;
-    font-weight: bold;
-    color: #667eea;
-    font-size: 0.9rem;
-}
-
-@media (max-width: 768px) {
+    /* Center importance ratings on mobile */
     .importance-rating {
         justify-content: center;
         gap: 15px;
     }
-}
-        .remove-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 25px;
-            height: 25px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            transition: all 0.3s ease;
-        }
 
-        .remove-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
-        }
+    /* Mobile layout adjustments */
+    .container {
+        padding: 10px;
+    }
 
-        .results-grid {
-            display: grid;
-            gap: 20px;
-        }
+    .app-container {
+        padding: 20px;
+        border-radius: 15px;
+    }
 
-        .result-card {
-            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-            padding: 25px;
-            border-radius: 15px;
-            border: 2px solid #dee2e6;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-.results-header {
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-    padding: 15px;
-    border-radius: 15px;
-    margin-bottom: 15px;
-    border: 2px solid #dee2e6;
-        grid-column: 1 / -1; /* This makes it span all columns */
-}
+    /* Header responsive adjustments */
+    .header h1 {
+        font-size: 2rem !important;
+    }
 
-.results-header h2 {
-    color: #333;
-    margin-bottom: 10px;
-    font-size: 1.5rem;
-}
+    .header p {
+        font-size: 1rem !important;
+    }
+    
+    .header img {
+        max-width: 60px !important;
+    }
 
-.results-header .context {
-    color: #666;
-    margin-bottom: 15px;
-    font-style: italic;
-}
+    /* Step indicator mobile layout */
+    .step-indicator {
+        flex-direction: column;
+        align-items: left;
+    }
 
-.results-header .timestamp {
-    color: #888;
-    font-size: 0.9rem;
-    /* text-align: right; */
-}
-        .result-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-        }
-
-        .result-card.winner {
-            border-color: #28a745;
-            background: linear-gradient(135deg, #d4edda, #c3e6cb);
-            transform: scale(1.02);
-        }
-
-        .result-card.winner::before {
-            background: linear-gradient(135deg, #28a745, #20c997);
-        }
-
-        .score-bar {
-            width: 100%;
-            height: 20px;
-            background: #e9ecef;
-            border-radius: 10px;
-            overflow: hidden;
-            margin: 10px 0;
-            position: relative;
-        }
-
-        .score-fill {
-            height: 100%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 10px;
-            transition: width 0.8s ease-out;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .score-fill::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            animation: shine 2s infinite;
-        }
-
-        @keyframes shine {
-            0% { left: -100%; }
-            100% { left: 100%; }
-        }
-
-        .bias-warning {
-            background: #fff3cd;
-            border: 2px solid #ffeaa7;
-            border-radius: 12px;
-            padding: 15px;
-            margin: 20px 0;
-            animation: pulse 2s infinite;
-        }
-
-        .bias-warning h4 {
-            color: #856404;
-            margin-bottom: 8px;
-        }
-
-        .bias-warning p {
-            color: #856404;
-            margin: 0;
-        }
-
-        @keyframes pulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 6px;
-            background: #e0e0e0;
-            border-radius: 3px;
-            margin-bottom: 20px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            border-radius: 3px;
-            transition: width 0.5s ease;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .export-dropdown {
-            display: none;
-        }
-        
-        .export-dropdown.show {
-            display: block;
-        }
-        
-        .export-option {
-            display: block;
-            width: 100%;
-            padding: 10px 15px;
-            border: none;
-            background: none;
-            text-align: left;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        .export-option:hover {
-            background-color: #f8f9fa;
-        }
-
-        .info-button {
-            position: absolute;
-            top: -10px;
-            right: -20px;
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid #667eea;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            color: #667eea;
-            backdrop-filter: blur(10px);
-        }
-        
-        .info-button:hover {
-            background: #667eea;
-            color: white;
-            transform: scale(1.1);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-        
-        .text-info-button {
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid #667eea;
-            border-radius: 20px;
-            padding: 8px 16px;
-            font-size: 0.9rem;
-            color: #667eea;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            font-weight: 600;
-        }
-        
-        .text-info-button:hover {
-            background: #667eea;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-        
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 9999;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(5px);
-            animation: fadeIn 0.3s ease;
-        }
-        
-        .modal-content {
-            background-color: #fefefe;
-            margin: 2% auto;
-            padding: 0;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 800px;
-            max-height: 90vh;
-            overflow-y: auto;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
-            animation: slideInDown 0.4s ease;
-        }
-        
-        .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 25px 30px;
-            border-radius: 20px 20px 0 0;
-            position: relative;
-        }
-        
-        .modal-body {
-            padding: 30px;
-            line-height: 1.7;
-            color: #333;
-        }
-
-        .modal-body > div {
-            margin-bottom: 25px; /* Adds space between each section */
-        }
-        
-        .modal-body ul, .modal-body ol {
-            padding-left: 25px; /* Indents lists to the right */
-            margin-top: 10px;   /* Adds space above the list */
-        }
-        
-        .modal-body li {
-            margin-bottom: 8px; /* Adds space between list items */
-        }
-        .close {
-            color: rgba(255, 255, 255, 0.8);
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: absolute;
-            right: 20px;
-            top: 20px;
-            width: 35px;
-            height: 35px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-        }
-        
-        .close:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.1);
-        }
-        
-        .step-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 28px;
-            height: 28px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border-radius: 50%;
-            font-weight: bold;
-            margin-right: 10px;
-            font-size: 0.9rem;
-        }
-        
-        .feature-list {
-            display: grid;
-            gap: 12px;
-            margin: 20px 0;
-        }
-        
-        .feature-item {
-            display: flex;
-            align-items: center;
-            padding: 12px 15px;
-            background: linear-gradient(135deg, #f8f9ff, #f0f4ff);
-            border-radius: 10px;
-            border-left: 4px solid #667eea;
-        }
-        
-        .feature-emoji {
-            font-size: 1.2rem;
-            margin-right: 12px;
-        }
-        
-        @keyframes slideInDown {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        
-        @media (max-width: 768px) {
-            .text-info-button {
-                display: none;
-            }
-            
-            .modal-content {
-                width: 95%;
-                margin: 5% auto;
-                max-height: 85vh;
-            }
-            
-            .modal-body {
-                padding: 20px;
-            }
-        }
-        
-        
-        @keyframes slideDown {
-            from { transform: translateY(-50px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        @keyframes fadeInUp {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-            }
-
-            .app-container {
-                padding: 20px;
-                border-radius: 15px;
-            }
-
-            .header h1 {
-                font-size: 2rem !important;
-            }
-        
-            .header p {
-                font-size: 1rem !important;
-            }
-            
-            .header img {
-                max-width: 60px !important;
-            }
-
-            .step-indicator {
-                flex-direction: column;
-                align-items: left;
-            }
-
-            .section-title {
-                font-size: 1.3rem;
-            }
-
-            .btn {
-                width: 100%;
-                margin: 5px 0;
-            }
-
-            .results-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (min-width: 769px) {
-            .criteria-list, .options-list {
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            }
-
-            .results-grid {
-                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            }
-        }
-
-    #howItWorksBtn {
-      position: absolute;
-      top: 12px !important;
-      right: 12px !important;
+    .step-indicator .step {
+        text-align: left !important;
+        align-items: flex-start !important;
     }
     
     .step-indicator .step span {
-      text-align: center;
-      display: block;
-    }
-    
-    @media (max-width: 768px) {
-      .step-indicator .step {
-        text-align: left !important;
-        align-items: flex-start !important;
-      }
-      .step-indicator .step span {
         font-size: 14px !important;
         white-space: normal !important;
         text-align: left !important;
-      }
     }
 
-    .site-footer {
+    /* Typography adjustments */
+    .section-title {
+        font-size: 1.3rem;
+    }
+
+    /* Button mobile layout */
+    .btn {
+        width: 100%;
+        margin: 5px 0;
+    }
+
+    /* Single column layout for results */
+    .results-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Hide text info button on mobile */
+    .text-info-button {
+        display: none;
+    }
+    
+    /* Modal mobile adjustments */
+    .modal-content {
+        width: 95%;
+        margin: 5% auto;
+        max-height: 85vh;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+
+    /* Header positioning */
+    #howItWorksBtn {
+        position: absolute;
+        top: 12px !important;
+        right: 12px !important;
+    }
+    
+    .step-indicator .step span {
         text-align: center;
-        padding: 20px;
-        margin-top: 40px;
-        color: white;
-        font-size: 0.9rem;
-        opacity: 0.9;
+        display: block;
     }
-    
-    .site-footer a {
-        color: #fffb; /* slightly translucent white */
-        text-decoration: underline;
-        transition: color 0.3s ease;
-    }
-    
-    .site-footer a:hover {
-        color: #fff; /* brighten on hover */
+}
+
+/* ==========================================================================
+   17. RESPONSIVE DESIGN - DESKTOP STYLES
+   ========================================================================== */
+
+/* Desktop grid layouts */
+@media (min-width: 769px) {
+    .criteria-list, 
+    .options-list {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     }
 
-    .qr-loading {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: rgba(0,0,0,0.8);
-        color: white;
-        padding: 20px;
-        border-radius: 8px;
-        z-index: 9999;
+    .results-grid {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     }
+}
+
+/* ==========================================================================
+   END OF STYLES
+   ========================================================================== */
