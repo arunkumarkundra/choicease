@@ -22,7 +22,62 @@ body {
 }
 
 /* ==========================================================================
-   2. LAYOUT COMPONENTS
+   2. ACCESSIBILITY FOUNDATION STYLES
+   ========================================================================== */
+
+/* Skip navigation link for keyboard users */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    background: #000;
+    color: #fff;
+    padding: 8px 16px;
+    text-decoration: none;
+    border-radius: 4px;
+    z-index: 10000;
+    font-weight: bold;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.skip-link:focus {
+    top: 6px;
+    outline: 3px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* Screen reader only text - accessible but invisible */
+.sr-only {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+/* Enhanced focus indicators for all interactive elements */
+*:focus {
+    outline: 3px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* Remove outline for mouse users, keep for keyboard users */
+*:focus:not(:focus-visible) {
+    outline: none;
+}
+
+*:focus-visible {
+    outline: 3px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* ==========================================================================
+   3. LAYOUT COMPONENTS
    ========================================================================== */
 
 /* Main container - centers content and adds padding */
@@ -65,12 +120,13 @@ body {
     transition: color 0.3s ease;
 }
 
-.site-footer a:hover {
-    color: #fff; /* brighten on hover */
+.site-footer a:hover,
+.site-footer a:focus {
+    color: #fff; /* brighten on hover and focus */
 }
 
 /* ==========================================================================
-   3. PROGRESS & NAVIGATION
+   4. PROGRESS & NAVIGATION
    ========================================================================== */
 
 /* Progress bar at top of app */
@@ -133,7 +189,7 @@ body {
 }
 
 /* ==========================================================================
-   4. SECTIONS & CONTENT AREAS
+   5. SECTIONS & CONTENT AREAS
    ========================================================================== */
 
 /* Main content sections for each step */
@@ -166,7 +222,7 @@ body {
 }
 
 /* ==========================================================================
-   5. FORM ELEMENTS & INPUTS
+   6. FORM ELEMENTS & INPUTS
    ========================================================================== */
 
 /* Form input groups with labels and inputs */
@@ -200,6 +256,48 @@ body {
     transform: translateY(-2px);
 }
 
+/* Required field indicator styling */
+.required {
+    color: #dc3545;
+    font-weight: bold;
+    margin-left: 2px;
+}
+
+/* Input help text styling */
+.input-help {
+    font-size: 0.85rem;
+    color: #666;
+    margin-top: 4px;
+    line-height: 1.4;
+}
+
+/* Error message styling */
+.error-message {
+    color: #dc3545;
+    font-size: 0.9rem;
+    margin-top: 4px;
+    padding: 8px 12px;
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 4px;
+    display: none;
+}
+
+.error-message.show {
+    display: block;
+}
+
+/* Error state for input groups */
+.input-group.error input,
+.input-group.error textarea {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
+}
+
+.input-group.error label {
+    color: #dc3545;
+}
+
 /* File import section styling */
 .import-section {
     margin-top: 15px;
@@ -215,7 +313,7 @@ body {
 }
 
 /* ==========================================================================
-   6. BUTTONS & INTERACTIVE ELEMENTS
+   7. BUTTONS & INTERACTIVE ELEMENTS
    ========================================================================== */
 
 /* Primary button styling */
@@ -232,9 +330,18 @@ body {
     margin: 5px;
     display: inline-block;
     text-decoration: none;
+    min-height: 44px; /* Minimum touch target size */
+    min-width: 44px;
 }
 
 .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+}
+
+.btn:focus {
+    outline: 3px solid #ffffff;
+    outline-offset: 2px;
     transform: translateY(-2px);
     box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
 }
@@ -270,6 +377,8 @@ body {
     cursor: pointer;
     font-size: 0.8rem;
     transition: all 0.3s ease;
+    min-height: 25px; /* Ensure minimum touch target */
+    min-width: 25px;
 }
 
 .remove-btn:hover {
@@ -277,8 +386,15 @@ body {
     box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
 }
 
+.remove-btn:focus {
+    outline: 3px solid #ffffff;
+    outline-offset: 2px;
+    transform: scale(1.1);
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
 /* ==========================================================================
-   7. RATING & SCORING INTERFACE
+   8. RATING & SCORING INTERFACE
    ========================================================================== */
 
 /* Importance rating section (radio buttons) */
@@ -297,12 +413,31 @@ body {
     align-items: center;
     cursor: pointer;
     transition: all 0.3s ease;
+    min-height: 44px; /* Minimum touch target size */
+    min-width: 44px;
+    padding: 8px;
+    border-radius: 6px;
+}
+
+.rating-option:hover {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.rating-option:focus-within {
+    background: rgba(102, 126, 234, 0.1);
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
 }
 
 .rating-option input[type="radio"] {
     margin-bottom: 5px;
     transform: scale(1.2);
     accent-color: #667eea;
+}
+
+.rating-option input[type="radio"]:focus {
+    outline: 3px solid #667eea;
+    outline-offset: 2px;
 }
 
 .rating-option label {
@@ -368,6 +503,13 @@ body {
     background: #e0e0e0;
     outline: none;
     -webkit-appearance: none;
+    min-height: 44px; /* Ensure touch target size */
+    padding: 18px 0; /* Add padding to increase touch area */
+}
+
+.weight-slider input[type="range"]:focus {
+    outline: 3px solid #667eea;
+    outline-offset: 2px;
 }
 
 .weight-slider input[type="range"]::-webkit-slider-thumb {
@@ -385,6 +527,31 @@ body {
     transform: scale(1.2);
 }
 
+.weight-slider input[type="range"]::-webkit-slider-thumb:focus {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+}
+
+/* Firefox slider thumb */
+.weight-slider input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.weight-slider input[type="range"]::-moz-range-thumb:hover {
+    transform: scale(1.2);
+}
+
+.weight-slider input[type="range"]::-moz-range-thumb:focus {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+}
+
 .weight-display {
     display: flex;
     justify-content: space-between;
@@ -393,8 +560,59 @@ body {
     color: #666;
 }
 
+/* Enhanced slider styling for rating controls */
+.rating-controls input[type="range"] {
+    min-width: 120px;
+    height: 8px;
+    border-radius: 4px;
+    background: #e0e0e0;
+    outline: none;
+    -webkit-appearance: none;
+    min-height: 44px; /* Ensure touch target size */
+    padding: 18px 0; /* Add padding to increase touch area */
+}
+
+.rating-controls input[type="range"]:focus {
+    outline: 3px solid #667eea;
+    outline-offset: 2px;
+}
+
+.rating-controls input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.rating-controls input[type="range"]::-webkit-slider-thumb:hover,
+.rating-controls input[type="range"]::-webkit-slider-thumb:focus {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+}
+
+/* Firefox range slider thumb for rating controls */
+.rating-controls input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.rating-controls input[type="range"]::-moz-range-thumb:hover,
+.rating-controls input[type="range"]::-moz-range-thumb:focus {
+    transform: scale(1.2);
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+}
+
 /* ==========================================================================
-   8. LISTS & ITEM CONTAINERS
+   9. LISTS & ITEM CONTAINERS
    ========================================================================== */
 
 /* Grid layouts for criteria and options */
@@ -422,8 +640,15 @@ body {
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
+/* Focus states for item containers that contain interactive elements */
+.criteria-item:focus-within,
+.option-item:focus-within {
+    border-color: #667eea;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
 /* ==========================================================================
-   9. RESULTS DISPLAY
+   10. RESULTS DISPLAY
    ========================================================================== */
 
 /* Results grid container */
@@ -525,7 +750,7 @@ body {
 }
 
 /* ==========================================================================
-   10. DROPDOWNS & MENUS
+   11. DROPDOWNS & MENUS
    ========================================================================== */
 
 /* Export dropdown menu */
@@ -540,20 +765,28 @@ body {
 .export-option {
     display: block;
     width: 100%;
-    padding: 10px 15px;
+    padding: 12px 15px;
     border: none;
     background: none;
     text-align: left;
     cursor: pointer;
     transition: background-color 0.2s;
+    min-height: 44px; /* Minimum touch target size */
+    font-size: 1rem;
 }
 
 .export-option:hover {
     background-color: #f8f9fa;
 }
 
+.export-option:focus {
+    background-color: #e9ecef;
+    outline: 2px solid #667eea;
+    outline-offset: -2px;
+}
+
 /* ==========================================================================
-   11. ALERTS & NOTIFICATIONS
+   12. ALERTS & NOTIFICATIONS
    ========================================================================== */
 
 /* Bias warning boxes with animations */
@@ -590,7 +823,7 @@ body {
 }
 
 /* ==========================================================================
-   12. MODAL COMPONENTS
+   13. MODAL COMPONENTS
    ========================================================================== */
 
 /* Modal overlay and container */
@@ -667,6 +900,10 @@ body {
     align-items: center;
     justify-content: center;
     border-radius: 50%;
+    min-height: 44px; /* Minimum touch target size */
+    min-width: 44px;
+    border: none;
+    background: none;
 }
 
 .close:hover {
@@ -674,8 +911,15 @@ body {
     transform: scale(1.1);
 }
 
+.close:focus {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+    outline: 3px solid #ffffff;
+    outline-offset: 2px;
+}
+
 /* ==========================================================================
-   13. INFO BUTTONS & HELP ELEMENTS
+   14. INFO BUTTONS & HELP ELEMENTS
    ========================================================================== */
 
 /* Circular info button (positioned absolutely) */
@@ -686,8 +930,8 @@ body {
     background: rgba(255, 255, 255, 0.9);
     border: 2px solid #667eea;
     border-radius: 50%;
-    width: 32px;
-    height: 32px;
+    width: 44px; /* Minimum touch target size */
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -695,6 +939,8 @@ body {
     transition: all 0.3s ease;
     color: #667eea;
     backdrop-filter: blur(10px);
+    font-size: 1rem;
+    font-weight: bold;
 }
 
 .info-button:hover {
@@ -702,6 +948,15 @@ body {
     color: white;
     transform: scale(1.1);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.info-button:focus {
+    background: #667eea;
+    color: white;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    outline: 3px solid #ffffff;
+    outline-offset: 2px;
 }
 
 /* Text-style info button */
@@ -716,6 +971,7 @@ body {
     transition: all 0.3s ease;
     backdrop-filter: blur(10px);
     font-weight: 600;
+    min-height: 44px; /* Minimum touch target size */
 }
 
 .text-info-button:hover {
@@ -725,8 +981,17 @@ body {
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
+.text-info-button:focus {
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    outline: 3px solid #ffffff;
+    outline-offset: 2px;
+}
+
 /* ==========================================================================
-   14. DECORATIVE ELEMENTS
+   15. DECORATIVE ELEMENTS
    ========================================================================== */
 
 /* Beta badge in header */
@@ -778,7 +1043,75 @@ body {
 }
 
 /* ==========================================================================
-   15. ANIMATIONS & KEYFRAMES
+   16. ACCESSIBILITY ENHANCEMENTS
+   ========================================================================== */
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .btn {
+        border: 2px solid currentColor;
+    }
+    
+    .step-number {
+        border: 2px solid currentColor;
+    }
+    
+    .progress-fill {
+        background: #000;
+    }
+    
+    .score-fill {
+        background: #000;
+    }
+}
+
+/* Reduced motion support for users with vestibular disorders */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .score-fill::after {
+        animation: none;
+    }
+    
+    .bias-warning {
+        animation: none;
+    }
+}
+
+/* Enhanced focus styles for Windows High Contrast mode */
+@media (-ms-high-contrast: active) {
+    .btn:focus,
+    button:focus,
+    input:focus,
+    textarea:focus {
+        outline: 2px solid ButtonText;
+    }
+    
+    .skip-link:focus {
+        outline: 2px solid ButtonText;
+    }
+}
+
+/* Print styles for accessibility */
+@media print {
+    .skip-link,
+    .sr-only {
+        display: none !important;
+    }
+    
+    .btn {
+        border: 1px solid #000;
+        background: transparent !important;
+        color: #000 !important;
+    }
+}
+
+/* ==========================================================================
+   17. ANIMATIONS & KEYFRAMES
    ========================================================================== */
 
 /* Slide down animation for header */
@@ -836,7 +1169,7 @@ body {
 }
 
 /* ==========================================================================
-   16. RESPONSIVE DESIGN - MOBILE STYLES
+   18. RESPONSIVE DESIGN - MOBILE STYLES
    ========================================================================== */
 
 /* Mobile-specific adjustments for rating interface */
@@ -868,12 +1201,20 @@ body {
     .rating-controls input[type="range"] {
         min-width: 180px;
         flex: 1;
+        min-height: 44px; /* Ensure proper touch target size */
     }
 
     /* Center importance ratings on mobile */
     .importance-rating {
         justify-content: center;
         gap: 15px;
+    }
+
+    /* Ensure rating options have proper touch targets */
+    .rating-option {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 12px 8px;
     }
 
     /* Mobile layout adjustments */
@@ -925,6 +1266,7 @@ body {
     .btn {
         width: 100%;
         margin: 5px 0;
+        min-height: 44px; /* Ensure proper touch target */
     }
 
     /* Single column layout for results */
@@ -953,16 +1295,60 @@ body {
         position: absolute;
         top: 12px !important;
         right: 12px !important;
+        width: 44px !important;
+        height: 44px !important;
     }
     
     .step-indicator .step span {
         text-align: center;
         display: block;
     }
+
+    /* Skip link mobile adjustments */
+    .skip-link {
+        font-size: 1rem;
+        padding: 12px 16px;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Ensure remove buttons are touch-friendly */
+    .remove-btn {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        min-height: 32px;
+        font-size: 1rem;
+    }
+
+    /* Export dropdown mobile adjustments */
+    .export-dropdown {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90%;
+        max-width: 300px;
+        z-index: 10000;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .export-option {
+        padding: 16px 15px;
+        min-height: 44px;
+        font-size: 1rem;
+        border-bottom: 1px solid #eee;
+    }
+
+    .export-option:last-child {
+        border-bottom: none;
+    }
 }
 
 /* ==========================================================================
-   17. RESPONSIVE DESIGN - DESKTOP STYLES
+   19. RESPONSIVE DESIGN - DESKTOP STYLES
    ========================================================================== */
 
 /* Desktop grid layouts */
@@ -974,6 +1360,54 @@ body {
 
     .results-grid {
         grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+    
+    /* Desktop-specific focus styles */
+    .btn:focus {
+        outline-offset: 4px;
+    }
+    
+    /* Larger touch targets not needed on desktop */
+    .remove-btn {
+        width: 25px;
+        height: 25px;
+        min-width: 25px;
+        min-height: 25px;
+    }
+}
+
+/* Large screen optimizations */
+@media (min-width: 1200px) {
+    .container {
+        max-width: 1400px;
+    }
+    
+    .app-container {
+        padding: 40px;
+    }
+    
+    .results-grid {
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    }
+}
+
+/* ==========================================================================
+   20. DARK MODE SUPPORT (Future Enhancement)
+   ========================================================================== */
+
+/* Prepare for future dark mode support */
+@media (prefers-color-scheme: dark) {
+    /* This section can be expanded in the future for dark mode support */
+    /* Currently maintaining light theme for consistency */
+    
+    /* Ensure sufficient contrast in dark mode */
+    .skip-link {
+        background: #fff;
+        color: #000;
+    }
+    
+    .skip-link:focus {
+        outline-color: #667eea;
     }
 }
 
