@@ -9,6 +9,190 @@
             ratings: {}
         };
 
+// ==========================================================================
+// ACCESSIBILITY UTILITY FUNCTIONS
+// ==========================================================================
+
+/**
+ * Announces messages to screen readers via live regions
+ * @param {string} message - Message to announce
+ * @param {string} priority - 'polite' or 'assertive'
+ */
+function announceToScreenReader(message, priority = 'polite') {
+    const announcer = document.getElementById(
+        priority === 'assertive' ? 'error-announcements' : 'status-announcements'
+    );
+    if (announcer) {
+        announcer.textContent = message;
+        
+        // Clear after delay to allow for re-announcements
+        setTimeout(() => {
+            announcer.textContent = '';
+        }, 1000);
+    }
+}
+
+/**
+ * Shows accessible error message for form fields
+ * @param {string} fieldId - ID of the form field
+ * @param {string} message - Error message to display
+ */
+function showAccessibleError(fieldId, message) {
+    // Remove existing error
+    const existingError = document.querySelector(`#${fieldId}-error`);
+    if (existingError) {
+        existingError.remove();
+    }
+    
+    // Add new error message
+    const field = document.getElementById(fieldId);
+    const inputGroup = field.closest('.input-group');
+    
+    const errorDiv = document.createElement('div');
+    errorDiv.id = `${fieldId}-error`;
+    errorDiv.className = 'error-message show';
+    errorDiv.textContent = message;
+    errorDiv.setAttribute('role', 'alert');
+    errorDiv.setAttribute('aria-live', 'polite');
+    
+    inputGroup.appendChild(errorDiv);
+    inputGroup.classList.add('error');
+    
+    // Update field attributes
+    field.setAttribute('aria-describedby', `${fieldId}-error`);
+    field.setAttribute('aria-invalid', 'true');
+    
+    // Announce to screen reader
+    announceToScreenReader(message, 'assertive');
+    
+    // Focus the field
+    field.focus();
+}
+
+/**
+ * Clears error state from form field
+ * @param {string} fieldId - ID of the form field
+ */
+function clearFieldError(fieldId) {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    
+    const inputGroup = field.closest('.input-group');
+    const errorDiv = document.querySelector(`#${fieldId}-error`);
+    
+    if (errorDiv) {
+        errorDiv.remove();
+    }
+    
+    if (inputGroup) {
+        inputGroup.classList.remove('error');
+    }
+    
+    field.removeAttribute('aria-invalid');
+    field.removeAttribute('aria-describedby');
+}
+
+/**
+ * Manages focus for modal dialogs
+ * @param {string} modalId - ID of the modal element
+ * @param {boolean} open - true to open, false to close
+ */
+function manageFocus(modalId, open) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    
+    if (open) {
+        // Store currently focused element
+        modal.previousFocus = document.activeElement;
+        
+        // Focus first focusable element in modal
+        const focusableElements = modal.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        
+        if (focusableElements.length > 0) {
+            focusableElements[0].focus();
+        }
+        
+        // Trap focus within modal
+        modal.addEventListener('keydown', trapFocus);
+        
+    } else {
+        // Remove focus trap
+        modal.removeEventListener('keydown', trapFocus);
+        
+        // Return focus to previous element
+        if (modal.previousFocus && typeof modal.previousFocus.focus === 'function') {
+            modal.previousFocus.focus();
+        }
+    }
+}
+
+/**
+ * Traps focus within modal dialog
+ * @param {Event} e - Keyboard event
+ */
+function trapFocus(e) {
+    if (e.key !== 'Tab') return;
+    
+    const modal = e.currentTarget;
+    const focusableElements = modal.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    
+    const firstFocusable = focusableElements[0];
+    const lastFocusable = focusableElements[focusableElements.length - 1];
+    
+    if (e.shiftKey) {
+        // Shift + Tab
+        if (document.activeElement === firstFocusable) {
+            lastFocusable.focus();
+            e.preventDefault();
+        }
+    } else {
+        // Tab
+        if (document.activeElement === lastFocusable) {
+            firstFocusable.focus();
+            e.preventDefault();
+        }
+    }
+}
+
+/**
+ * Adds keyboard navigation support to elements
+ * @param {HTMLElement} element - Element to add keyboard support to
+ * @param {Function} callback - Function to call on Enter/Space
+ */
+function addKeyboardSupport(element, callback) {
+    element.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            callback(e);
+        }
+    });
+}
+
+/**
+ * Updates ARIA expanded state for dropdown elements
+ * @param {HTMLElement} trigger - Dropdown trigger element
+ * @param {HTMLElement} dropdown - Dropdown content element
+ * @param {boolean} expanded - Whether dropdown is expanded
+ */
+function updateDropdownAria(trigger, dropdown, expanded) {
+    trigger.setAttribute('aria-expanded', expanded.toString());
+    dropdown.setAttribute('aria-hidden', (!expanded).toString());
+    
+    if (expanded) {
+        // Focus first menu item
+        const firstItem = dropdown.querySelector('[role="menuitem"]');
+        if (firstItem) {
+            firstItem.focus();
+        }
+    }
+}
+
+
+
         // Input sanitization
         function sanitizeInput(input) {
             return input.replace(/[<>&"']/g, char => ({
@@ -23,7 +207,16 @@
         // Initialize app
         function initializeApp() {
             updateProgressBar();
+                // Initialize accessibility features
+                initializeAccessibilityFeatures();
+                
+                // Add keyboard support for important interactive elements
+                addKeyboardNavigationSupport();
+                
+                // Clear any field errors when users start typing
+                addErrorClearingListeners();
             // Attach event listeners
+                
             document.getElementById('step1Continue').addEventListener('click', nextStep);
             document.getElementById('addOptionBtn').addEventListener('click', addOption);
             document.getElementById('step2Back').addEventListener('click', previousStep);
@@ -66,6 +259,94 @@
             });
         }
 
+
+function initializeAccessibilityFeatures() {
+    // Set initial ARIA states
+    const exportBtn = document.getElementById('exportDropdownBtn');
+    if (exportBtn) {
+        exportBtn.setAttribute('aria-expanded', 'false');
+    }
+    
+    const exportDropdown = document.getElementById('exportDropdown');
+    if (exportDropdown) {
+        exportDropdown.setAttribute('aria-hidden', 'true');
+    }
+    
+    // Add role attributes to dynamic content areas
+    const optionsList = document.getElementById('optionsList');
+    if (optionsList) {
+        optionsList.setAttribute('aria-live', 'polite');
+    }
+    
+    const criteriaList = document.getElementById('criteriaList');
+    if (criteriaList) {
+        criteriaList.setAttribute('aria-live', 'polite');
+    }
+}
+
+function addKeyboardNavigationSupport() {
+    // Add keyboard support for export dropdown
+    const exportBtn = document.getElementById('exportDropdownBtn');
+    if (exportBtn) {
+        exportBtn.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const dropdown = document.getElementById('exportDropdown');
+                if (dropdown.classList.contains('show')) {
+                    toggleExportDropdown();
+                }
+            }
+        });
+    }
+    
+    // Add keyboard navigation for dropdown items
+    const exportDropdown = document.getElementById('exportDropdown');
+    if (exportDropdown) {
+        exportDropdown.addEventListener('keydown', (e) => {
+            const items = exportDropdown.querySelectorAll('.export-option');
+            const currentIndex = Array.from(items).indexOf(document.activeElement);
+            
+            switch (e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0;
+                    items[nextIndex].focus();
+                    break;
+                    
+                case 'ArrowUp':
+                    e.preventDefault();
+                    const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1;
+                    items[prevIndex].focus();
+                    break;
+                    
+                case 'Escape':
+                    toggleExportDropdown();
+                    exportBtn.focus();
+                    break;
+                    
+                case 'Tab':
+                    // Allow normal tab behavior but close dropdown
+                    toggleExportDropdown();
+                    break;
+            }
+        });
+    }
+}
+
+function addErrorClearingListeners() {
+    // Clear errors when user starts typing
+    const fields = ['decisionTitle', 'optionName', 'criteriaName'];
+    fields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('input', () => {
+                clearFieldError(fieldId);
+            });
+        }
+    });
+}
+
+
+
         // Step navigation
         function nextStep() {
             if (validateCurrentStep()) {
@@ -91,17 +372,47 @@
             updateStepIndicator();
         }
 
-        function showStep(step) {
-            for (let i = 1; i <= 6; i++) {
-                document.getElementById(`section${i}`).classList.add('hidden');
-            }
-            document.getElementById(`section${step}`).classList.remove('hidden');
-            if (step === 4) {
-                setupWeightingStep();
-            } else if (step === 5) {
-                setupRatingStep();
-            }
-        }
+function showStep(step) {
+    // Hide all sections
+    for (let i = 1; i <= 6; i++) {
+        document.getElementById(`section${i}`).classList.add('hidden');
+    }
+    
+    // Show current section
+    const currentSection = document.getElementById(`section${step}`);
+    currentSection.classList.remove('hidden');
+    
+    // Focus management - focus section heading
+    const sectionTitle = currentSection.querySelector('h2');
+    if (sectionTitle) {
+        sectionTitle.tabIndex = -1;
+        sectionTitle.focus();
+        
+        // Remove tabindex after focusing to avoid issues
+        setTimeout(() => {
+            sectionTitle.removeAttribute('tabindex');
+        }, 100);
+    }
+    
+    // Announce step change to screen readers
+    const stepNames = {
+        1: 'Define Decision',
+        2: 'Add Options', 
+        3: 'Set Criteria',
+        4: 'Rate Importance',
+        5: 'Rate Options',
+        6: 'View Results'
+    };
+    
+    announceToScreenReader(`Step ${step} of 6: ${stepNames[step]}`);
+    
+    // Setup step-specific functionality
+    if (step === 4) {
+        setupWeightingStep();
+    } else if (step === 5) {
+        setupRatingStep();
+    }
+}
 
         function updateProgressBar() {
             const progress = (currentStep / 6) * 100;
@@ -124,53 +435,81 @@
         }
 
         // Validation
-        function validateCurrentStep() {
-            switch (currentStep) {
-                case 1:
-                    const title = document.getElementById('decisionTitle').value.trim();
-                    if (!title) {
-                        alert('Please enter a decision title.');
-                        return false;
-                    }
-                    decisionData.title = sanitizeInput(title);
-                    decisionData.description = sanitizeInput(document.getElementById('decisionDescription').value.trim());
-                    return true;
-                case 2:
-                    if (decisionData.options.length < 2) {
-                        alert('Please add at least 2 options to compare.');
-                        return false;
-                    }
-                    return true;
-                case 3:
-                    if (decisionData.criteria.length < 2) {
-                        alert('Please add at least 2 criteria for comparison.');
-                        return false;
-                    }
-                    return true;
-                default:
-                    return true;
+function validateCurrentStep() {
+    // Clear any existing errors first
+    clearFieldError('decisionTitle');
+    clearFieldError('optionName');
+    clearFieldError('criteriaName');
+    
+    switch (currentStep) {
+        case 1:
+            const title = document.getElementById('decisionTitle').value.trim();
+            if (!title) {
+                showAccessibleError('decisionTitle', 'Please enter a decision title to continue.');
+                return false;
             }
-        }
+            decisionData.title = sanitizeInput(title);
+            decisionData.description = sanitizeInput(document.getElementById('decisionDescription').value.trim());
+            announceToScreenReader('Decision details saved. Moving to add options.');
+            return true;
+            
+        case 2:
+            if (decisionData.options.length < 2) {
+                announceToScreenReader('You need at least 2 options to compare. Please add more options.', 'assertive');
+                document.getElementById('optionName').focus();
+                return false;
+            }
+            announceToScreenReader('Options saved. Moving to criteria setup.');
+            return true;
+            
+        case 3:
+            if (decisionData.criteria.length < 2) {
+                announceToScreenReader('You need at least 2 criteria for comparison. Please add more criteria.', 'assertive');
+                document.getElementById('criteriaName').focus();
+                return false;
+            }
+            announceToScreenReader('Criteria saved. Moving to importance weighting.');
+            return true;
+            
+        default:
+            return true;
+    }
+}
 
         // Options management
-        function addOption() {
-            const name = sanitizeInput(document.getElementById('optionName').value.trim());
-            if (!name) {
-                alert('Please enter an option name.');
-                return;
-            }
-            const description = sanitizeInput(document.getElementById('optionDescription').value.trim());
-            const option = {
-                id: Date.now(),
-                name: name,
-                description: description
-            };
-            decisionData.options.push(option);
-            displayOptions();
-            document.getElementById('optionName').value = '';
-            document.getElementById('optionDescription').value = '';
-            checkOptionsWarning();
-        }
+// Replace existing addOption function
+function addOption() {
+    // Clear any existing errors
+    clearFieldError('optionName');
+    
+    const name = sanitizeInput(document.getElementById('optionName').value.trim());
+    if (!name) {
+        showAccessibleError('optionName', 'Please enter an option name.');
+        return;
+    }
+    
+    const description = sanitizeInput(document.getElementById('optionDescription').value.trim());
+    const option = {
+        id: Date.now(),
+        name: name,
+        description: description
+    };
+    
+    decisionData.options.push(option);
+    displayOptions();
+    
+    // Clear form fields
+    document.getElementById('optionName').value = '';
+    document.getElementById('optionDescription').value = '';
+    
+    // Focus back to name field for easy addition of more options
+    document.getElementById('optionName').focus();
+    
+    // Announce addition
+    announceToScreenReader(`Option "${name}" added. You now have ${decisionData.options.length} options.`);
+    
+    checkOptionsWarning();
+}
 
         function displayOptions() {
             const container = document.getElementById('optionsList');
@@ -217,28 +556,41 @@
         }
 
         // Criteria management
-        function addCriteria() {
-            const name = sanitizeInput(document.getElementById('criteriaName').value.trim());
-            if (!name) {
-                alert('Please enter a criteria name.');
-                return;
-            }
-            const description = sanitizeInput(document.getElementById('criteriaDescription').value.trim());
-            const criteria = {
-                id: Date.now(),
-                name: name,
-                description: description
-            };
-            decisionData.criteria.push(criteria);
-            decisionData.weights[criteria.id] = 3;  // set default rating for a newly added criterion
-            normalizeImportanceWeights();           // recompute normalized weights immediately
+function addCriteria() {
+    // Clear any existing errors
+    clearFieldError('criteriaName');
+    
+    const name = sanitizeInput(document.getElementById('criteriaName').value.trim());
+    if (!name) {
+        showAccessibleError('criteriaName', 'Please enter a criteria name.');
+        return;
+    }
+    
+    const description = sanitizeInput(document.getElementById('criteriaDescription').value.trim());
+    const criteria = {
+        id: Date.now(),
+        name: name,
+        description: description
+    };
+    
+    decisionData.criteria.push(criteria);
+    decisionData.weights[criteria.id] = 3;  // set default rating for a newly added criterion
+    normalizeImportanceWeights();           // recompute normalized weights immediately
 
-            displayCriteria();
-            document.getElementById('criteriaName').value = '';
-            document.getElementById('criteriaDescription').value = '';
-            checkCriteriaWarning();
-        }
-
+    displayCriteria();
+    
+    // Clear form fields
+    document.getElementById('criteriaName').value = '';
+    document.getElementById('criteriaDescription').value = '';
+    
+    // Focus back to name field for easy addition of more criteria
+    document.getElementById('criteriaName').focus();
+    
+    // Announce addition
+    announceToScreenReader(`Criteria "${name}" added. You now have ${decisionData.criteria.length} criteria.`);
+    
+    checkCriteriaWarning();
+}
         function displayCriteria() {
             const container = document.getElementById('criteriaList');
             container.innerHTML = '';
@@ -893,7 +1245,20 @@ function downloadPDFReport() {
 // Toggle export dropdown visibility
 function toggleExportDropdown() {
     const dropdown = document.getElementById('exportDropdown');
+    const trigger = document.getElementById('exportDropdownBtn');
+    const isExpanded = !dropdown.classList.contains('show');
+    
     dropdown.classList.toggle('show');
+    
+    // Update ARIA states
+    updateDropdownAria(trigger, dropdown, isExpanded);
+    
+    // Announce state change
+    if (isExpanded) {
+        announceToScreenReader('Export options menu opened');
+    } else {
+        announceToScreenReader('Export options menu closed');
+    }
 }
 
 // Handle export selection
@@ -2263,16 +2628,30 @@ function showToast(message, type = 'success') {
 }
 
         
-        function openModal() {
-            document.getElementById('howItWorksModal').style.display = 'block';
-            document.body.style.overflow = 'hidden'; // Prevent background scrolling
-        }
+function openModal() {
+    const modal = document.getElementById('howItWorksModal');
+    modal.style.display = 'block';
+    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+    
+    // Enhanced focus management
+    manageFocus('howItWorksModal', true);
+    
+    // Announce modal opening
+    announceToScreenReader('How Choicease works dialog opened');
+}
+
         
-        function closeModal() {
-            document.getElementById('howItWorksModal').style.display = 'none';
-            document.body.style.overflow = 'auto'; // Restore scrolling
-        }
-        
+function closeModal() {
+    const modal = document.getElementById('howItWorksModal');
+    modal.style.display = 'none';
+    document.body.style.overflow = 'auto'; // Restore scrolling
+    
+    // Enhanced focus management
+    manageFocus('howItWorksModal', false);
+    
+    // Announce modal closing
+    announceToScreenReader('Dialog closed');
+}        
         // Keyboard support
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Enter' && !event.shiftKey) {
