@@ -4,20 +4,6 @@
     <!-- ================================= -->
     <!-- SECURITY HEADERS & CSP POLICIES  -->
     <!-- ================================= -->
-    <!-- Content Security Policy: Restricts resource loading to prevent XSS attacks -->
-    <meta http-equiv="Content-Security-Policy"
-          content="default-src 'self';
-                   img-src 'self' data: https:;
-                   style-src 'self' 'unsafe-inline';
-                   script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://www.google-analytics.com https://www.googletagmanager.com;
-                   connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com;">
-    
-    <!-- Security headers to prevent clickjacking, MIME sniffing, and control referrer info -->
-    <meta http-equiv="X-Frame-Options" content="DENY">
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
-    <meta http-equiv="Permissions-Policy"
-          content="geolocation=(), microphone=(), camera=(), payment=(), usb=()">
 
     <!-- ================================= -->
     <!-- GOOGLE ANALYTICS CONFIGURATION   -->
