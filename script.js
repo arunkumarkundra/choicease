@@ -615,124 +615,31 @@ function exportResults() {
     URL.revokeObjectURL(url);
 }
 
-// ================================================================================================
-// ENHANCED PDF REPORT - FIXED VERSION (NO FUNCTION CONFLICTS)
-// Replace your downloadPDFReport function with this ONLY - don't add any other functions
-// ================================================================================================
 
+        
+
+        
 function downloadPDFReport() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     
-    // Define enhanced color palette
-    const colors = {
-        primary: [102, 126, 234],
-        secondary: [118, 75, 162],
-        success: [40, 167, 69],
-        warning: [255, 193, 7],
-        danger: [220, 53, 69],
-        info: [23, 162, 184],
-        light: [248, 249, 250],
-        dark: [33, 37, 41],
-        muted: [108, 117, 125],
-        pieColors: [
-            [102, 126, 234], [220, 53, 69], [40, 167, 69], [255, 193, 7],
-            [23, 162, 184], [138, 43, 226], [255, 99, 132], [54, 162, 235],
-            [255, 159, 64], [75, 192, 192], [153, 102, 255], [255, 205, 86]
-        ]
-    };
+    // Define colors
+    const primaryColor = [102, 126, 234]; // #667eea
+    const secondaryColor = [118, 75, 162]; // #764ba2
+    const textDark = [51, 51, 51];
+    const textLight = [102, 102, 102];
+    const successColor = [40, 167, 69];
+    const backgroundColor = [248, 249, 250];
     
     let yPos = 20;
+    const pageWidth = 190;
+    const lineHeight = 7;
     
-    // =====================================
-    // ENHANCED ANALYTICS (INLINE)
-    // =====================================
-    
-    // Calculate enhanced results
-    const enhancedResults = (() => {
-        const results = [];
-        
-        decisionData.options.forEach(option => {
-            let totalScore = 0;
-            const criteriaScores = {};
-            
-            decisionData.criteria.forEach(criteria => {
-                const ratingKey = `${option.id}-${criteria.id}`;
-                const rating = decisionData.ratings[ratingKey] || 3;
-                const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
-                const score = rating * weight;
-                
-                criteriaScores[criteria.name] = {
-                    rating: rating,
-                    weight: weight * 100,
-                    score: score,
-                    contribution: (score / 5) * 100
-                };
-                totalScore += score;
-            });
-            
-            results.push({
-                name: option.name,
-                description: option.description,
-                totalScore: totalScore,
-                percentage: (totalScore / 5) * 100,
-                criteriaScores: criteriaScores
-            });
-        });
-        
-        results.sort((a, b) => b.totalScore - a.totalScore);
-        
-        return {
-            results: results,
-            maxScore: Math.max(...results.map(r => r.totalScore)),
-            scoreGap: results[0].totalScore - (results[1]?.totalScore || 0),
-            averageScore: results.reduce((sum, r) => sum + r.totalScore, 0) / results.length
-        };
-    })();
-    
-    // Generate insights
-    const insights = (() => {
-        const winner = enhancedResults.results[0];
-        const runnerUp = enhancedResults.results[1];
-        
-        const confidence = Math.min(100, (enhancedResults.scoreGap / enhancedResults.maxScore) * 200);
-        const confidenceLevel = confidence > 70 ? 'High' : confidence > 40 ? 'Medium' : 'Low';
-        
-        const keyDifferentiators = [];
-        if (runnerUp) {
-            Object.keys(winner.criteriaScores).forEach(criteria => {
-                const winnerRating = winner.criteriaScores[criteria].rating;
-                const runnerUpRating = runnerUp.criteriaScores[criteria].rating;
-                const weight = winner.criteriaScores[criteria].weight;
-                
-                if (winnerRating > runnerUpRating && weight > 5) {
-                    keyDifferentiators.push({
-                        criteria: criteria,
-                        advantage: winnerRating - runnerUpRating,
-                        weight: weight
-                    });
-                }
-            });
-        }
-        
-        keyDifferentiators.sort((a, b) => (b.advantage * b.weight) - (a.advantage * a.weight));
-        
-        return {
-            confidence: confidence,
-            confidenceLevel: confidenceLevel,
-            keyDifferentiators: keyDifferentiators.slice(0, 3),
-            closeCall: enhancedResults.scoreGap < 0.2
-        };
-    })();
-    
-    // =====================================
-    // PAGE 1: HEADER AND EXECUTIVE SUMMARY
-    // =====================================
-    
-    // Professional Header
-    doc.setFillColor(...colors.primary);
+    // Professional Header with Background
+    doc.setFillColor(...primaryColor);
     doc.rect(0, 0, 210, 40, 'F');
     
+    // Header Text
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);
     doc.setFont(undefined, 'bold');
@@ -741,1109 +648,247 @@ function downloadPDFReport() {
     doc.setFontSize(12);
     doc.setFont(undefined, 'normal');
     doc.text('Smart Choices, Made Easy', 105, 28, { align: 'center' });
-    doc.text('Enhanced Decision Analysis Report', 105, 35, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.text('Decision Analysis Report', 105, 35, { align: 'center' });
     
     yPos = 55;
     
-    // Decision Info Section
-    doc.setTextColor(...colors.dark);
-    doc.setFillColor(...colors.light);
-    doc.rect(10, yPos - 5, 190, 35, 'F');
+    // Decision Title Section
+    doc.setTextColor(...textDark);
+    doc.setFillColor(...backgroundColor);
+    doc.rect(10, yPos - 5, pageWidth, 25, 'F');
     doc.setDrawColor(200, 200, 200);
-    doc.rect(10, yPos - 5, 190, 35, 'S');
+    doc.rect(10, yPos - 5, pageWidth, 25, 'S');
     
     doc.setFontSize(16);
     doc.setFont(undefined, 'bold');
     doc.text(`Decision: ${decisionData.title}`, 15, yPos + 5);
+    yPos += 15;
     
     if (decisionData.description) {
         doc.setFontSize(11);
         doc.setFont(undefined, 'normal');
-        doc.setTextColor(...colors.muted);
-        const contextLines = doc.splitTextToSize(`Context: ${decisionData.description}`, 180);
-        doc.text(contextLines, 15, yPos + 15);
+        doc.setTextColor(...textLight);
+        const contextLines = doc.splitTextToSize(`Context: ${decisionData.description}`, pageWidth - 10);
+        doc.text(contextLines, 15, yPos);
+        yPos += contextLines.length * 5 + 5;
     }
     
     doc.setFontSize(9);
-    doc.setTextColor(...colors.muted);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 15, yPos + 25);
+    doc.setTextColor(...textLight);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 15, yPos + 5);
+    yPos += 25;
     
-    yPos += 45;
-    
-    // Enhanced Executive Summary
-    doc.setFillColor(245, 245, 245);
-    doc.rect(10, yPos, 190, 85, 'F');
-    doc.setDrawColor(...colors.primary);
-    doc.setLineWidth(1);
-    doc.rect(10, yPos, 190, 85, 'S');
-    
-    doc.setTextColor(...colors.primary);
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('🎯 Executive Summary', 15, yPos + 10);
-    
-    const winner = enhancedResults.results[0];
-    const runnerUp = enhancedResults.results[1];
-    
-    doc.setTextColor(...colors.dark);
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text(`Recommended Choice: ${winner.name}`, 15, yPos + 22);
-    
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Score: ${winner.totalScore.toFixed(2)}/5.0 (${Math.round(winner.percentage)}%)`, 15, yPos + 32);
-    
-    if (runnerUp) {
-        doc.text(`Runner-up: ${runnerUp.name} (${runnerUp.totalScore.toFixed(2)}/5.0)`, 15, yPos + 42);
-        doc.text(`Margin: ${enhancedResults.scoreGap.toFixed(2)} points`, 15, yPos + 52);
-    }
-    
-    // Confidence indicator
-    doc.setTextColor(...colors.primary);
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'bold');
-    doc.text('Decision Confidence:', 15, yPos + 65);
-    
-    // Confidence bar
-    const barWidth = 80;
-    const confidenceWidth = (insights.confidence / 100) * barWidth;
-    
-    doc.setFillColor(230, 230, 230);
-    doc.rect(100, yPos + 62, barWidth, 6, 'F');
-    
-    const confidenceColor = insights.confidence > 70 ? colors.success : 
-                           insights.confidence > 40 ? colors.warning : colors.danger;
-    doc.setFillColor(...confidenceColor);
-    doc.rect(100, yPos + 62, confidenceWidth, 6, 'F');
-    
-    doc.setTextColor(...colors.dark);
-    doc.setFontSize(9);
-    doc.text(`${Math.round(insights.confidence)}% - ${insights.confidenceLevel}`, 100, yPos + 75);
-    
-    yPos += 100;
-    
-    // Key Differentiators
-    if (insights.keyDifferentiators.length > 0) {
-        doc.setTextColor(...colors.primary);
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'bold');
-        doc.text('🔑 Key Differentiators', 15, yPos);
-        
-        doc.setTextColor(...colors.dark);
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'normal');
-        
-        insights.keyDifferentiators.forEach((diff, index) => {
-            const text = `• ${diff.criteria}: +${diff.advantage.toFixed(1)} advantage (${diff.weight.toFixed(0)}% weight)`;
-            doc.text(text, 20, yPos + 12 + (index * 7));
-        });
-    }
-    
-    // =====================================
-    // PAGE 2: VISUAL RANKINGS & HEATMAP
-    // =====================================
-    
-    doc.addPage();
-    yPos = 20;
-    
-    // Enhanced Rankings
-    doc.setTextColor(...colors.primary);
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('📊 Detailed Rankings', 15, yPos);
-    yPos += 15;
-    
-    enhancedResults.results.forEach((result, index) => {
-        const cardY = yPos + (index * 45);
-        
-        // Card background
-        const cardColor = index === 0 ? [212, 237, 218] : [248, 249, 250];
-        doc.setFillColor(...cardColor);
-        doc.rect(10, cardY, 190, 40, 'F');
-        
-        // Border
-        const borderColor = index === 0 ? colors.success : [233, 236, 239];
-        doc.setDrawColor(...borderColor);
-        doc.setLineWidth(1);
-        doc.rect(10, cardY, 190, 40, 'S');
-        
-        // Rank number
-        doc.setFillColor(index === 0 ? ...colors.success : ...colors.primary);
-        doc.circle(25, cardY + 20, 8, 'F');
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'bold');
-        doc.text((index + 1).toString(), 25, cardY + 23, { align: 'center' });
-        
-        // Winner badge
-        if (index === 0) {
-            doc.setTextColor(...colors.success);
-            doc.setFontSize(10);
-            doc.setFont(undefined, 'bold');
-            doc.text('WINNER', 170, cardY + 8);
-        }
-        
-        // Option name and description
-        doc.setTextColor(...colors.dark);
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'bold');
-        doc.text(result.name, 40, cardY + 12);
-        
-        if (result.description) {
-            doc.setFontSize(9);
-            doc.setFont(undefined, 'normal');
-            doc.setTextColor(...colors.muted);
-            const descLines = doc.splitTextToSize(result.description, 100);
-            doc.text(descLines, 40, cardY + 22);
-        }
-        
-        // Score bar
-        const scoreBarWidth = 80;
-        const scoreWidth = (result.totalScore / enhancedResults.maxScore) * scoreBarWidth;
-        
-        doc.setFillColor(230, 230, 230);
-        doc.rect(110, cardY + 28, scoreBarWidth, 6, 'F');
-        
-        const scoreColor = index === 0 ? colors.success : colors.primary;
-        doc.setFillColor(...scoreColor);
-        doc.rect(110, cardY + 28, scoreWidth, 6, 'F');
-        
-        doc.setTextColor(...colors.dark);
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'bold');
-        doc.text(`${result.totalScore.toFixed(2)}/5.0 (${Math.round(result.percentage)}%)`, 110, cardY + 38);
-    });
-    
-    yPos += (enhancedResults.results.length * 45) + 25;
-    
-    // Performance Heatmap
-    if (yPos + 100 > 280) {
-        doc.addPage();
-        yPos = 20;
-    }
-    
-    doc.setTextColor(...colors.primary);
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('🔥 Performance Heatmap', 15, yPos);
-    yPos += 15;
-    
-    // Heatmap headers and data
-    const cellWidth = 25;
-    const cellHeight = 8;
-    const startX = 15;
-    
-    // Column headers (option names)
-    doc.setFontSize(8);
-    doc.setFont(undefined, 'bold');
-    enhancedResults.results.forEach((result, index) => {
-        const x = startX + 80 + (index * cellWidth);
-        doc.setTextColor(...colors.dark);
-        const displayName = result.name.length > 8 ? result.name.substring(0, 8) + '..' : result.name;
-        doc.text(displayName, x + cellWidth/2, yPos + 5, { align: 'center' });
-    });
-    
-    yPos += 12;
-    
-    // Criteria rows with color-coded performance
-    decisionData.criteria.forEach((criteria, criteriaIndex) => {
-        const rowY = yPos + (criteriaIndex * cellHeight);
-        
-        // Criteria name
-        doc.setTextColor(...colors.dark);
-        doc.setFontSize(8);
-        doc.setFont(undefined, 'normal');
-        const criteriaName = criteria.name.length > 15 ? criteria.name.substring(0, 15) + '..' : criteria.name;
-        doc.text(criteriaName, startX, rowY + 5);
-        
-        // Weight (using your existing function)
-        const weight = calculateDisplayWeight(criteria.id);
-        doc.setTextColor(...colors.muted);
-        doc.text(`(${weight}%)`, startX + 55, rowY + 5);
-        
-        // Performance cells with heatmap colors
-        enhancedResults.results.forEach((result, resultIndex) => {
-            const x = startX + 80 + (resultIndex * cellWidth);
-            const rating = result.criteriaScores[criteria.name].rating;
-            
-            // Heatmap colors
-            let cellColor;
-            if (rating >= 4) cellColor = [40, 167, 69];      // Green - Excellent
-            else if (rating >= 3) cellColor = [255, 193, 7]; // Yellow - Good  
-            else cellColor = [220, 53, 69];                  // Red - Poor
-            
-            doc.setFillColor(...cellColor);
-            doc.rect(x, rowY, cellWidth, cellHeight, 'F');
-            
-            // Rating text
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(8);
-            doc.setFont(undefined, 'bold');
-            doc.text(rating.toString(), x + cellWidth/2, rowY + 5, { align: 'center' });
-        });
-    });
-    
-    // Heatmap Legend
-    yPos += decisionData.criteria.length * cellHeight + 15;
-    doc.setTextColor(...colors.muted);
-    doc.setFontSize(8);
-    doc.text('Legend:', startX, yPos);
-    
-    const legendItems = [
-        { color: [40, 167, 69], label: '4-5 Excellent' },
-        { color: [255, 193, 7], label: '3 Good' },
-        { color: [220, 53, 69], label: '1-2 Poor' }
-    ];
-    
-    legendItems.forEach((item, index) => {
-        const x = startX + 30 + (index * 40);
-        doc.setFillColor(...item.color);
-        doc.rect(x, yPos - 3, 8, 6, 'F');
-        doc.text(item.label, x + 10, yPos);
-    });
-    
-    // =====================================
-    // PAGE 3: PIE CHART & INSIGHTS
-    // =====================================
-    
-    doc.addPage();
-    yPos = 20;
-    
-    // Criteria Distribution
-    doc.setTextColor(...colors.primary);
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('🥧 Criteria Importance Distribution', 15, yPos);
-    yPos += 15;
-    
-    // Simple pie chart representation with bars
-    decisionData.criteria.forEach((criteria, index) => {
-        const weight = calculateDisplayWeight(criteria.id);
-        const barY = yPos + (index * 12);
-        const color = colors.pieColors[index % colors.pieColors.length];
-        
-        // Color indicator
-        doc.setFillColor(...color);
-        doc.rect(15, barY, 8, 8, 'F');
-        
-        // Criteria name and weight
-        doc.setTextColor(...colors.dark);
-        doc.setFontSize(10);
-        doc.text(`${criteria.name}: ${weight}%`, 28, barY + 6);
-        
-        // Weight bar
-        const barWidth = (weight / 100) * 120;
-        doc.setFillColor(...color);
-        doc.rect(150, barY + 1, barWidth, 6, 'F');
-    });
-    
-    yPos += decisionData.criteria.length * 12 + 25;
-    
-    // Strengths & Weaknesses
-    doc.setTextColor(...colors.primary);
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text(`💪 ${winner.name} - Analysis`, 15, yPos);
-    yPos += 15;
-    
-    // Two columns
-    const leftCol = 15;
-    const rightCol = 110;
-    
-    // Strengths
-    doc.setTextColor(...colors.success);
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'bold');
-    doc.text('✅ Key Strengths', leftCol, yPos);
-    
-    doc.setTextColor(...colors.dark);
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'normal');
-    
-    let strengthCount = 0;
-    Object.entries(winner.criteriaScores).forEach(([criteria, scores]) => {
-        if (scores.rating >= 4 && strengthCount < 4) {
-            doc.text(`• ${criteria}: ${scores.rating}/5`, leftCol, yPos + 10 + (strengthCount * 6));
-            strengthCount++;
-        }
-    });
-    
-    if (strengthCount === 0) {
-        doc.setTextColor(...colors.muted);
-        doc.text('• Performs well overall', leftCol, yPos + 10);
-    }
-    
-    // Areas for improvement
-    doc.setTextColor(...colors.warning);
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'bold');
-    doc.text('⚠️ Watch Out For', rightCol, yPos);
-    
-    doc.setTextColor(...colors.dark);
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'normal');
-    
-    let weaknessCount = 0;
-    Object.entries(winner.criteriaScores).forEach(([criteria, scores]) => {
-        if (scores.rating <= 2 && weaknessCount < 4) {
-            doc.text(`• ${criteria}: ${scores.rating}/5`, rightCol, yPos + 10 + (weaknessCount * 6));
-            weaknessCount++;
-        }
-    });
-    
-    if (weaknessCount === 0) {
-        doc.setTextColor(...colors.muted);
-        doc.text('• No significant concerns', rightCol, yPos + 10);
-    }
-    
-    yPos += 60;
-    
-    // Risk Assessment
-    doc.setTextColor(...colors.primary);
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text('⚠️ Decision Confidence & Risks', 15, yPos);
-    yPos += 15;
-    
-    doc.setTextColor(...colors.dark);
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    
-    if (insights.closeCall) {
-        doc.setTextColor(...colors.warning);
-        doc.text('⚠️ This is a close call! Small changes in priorities could affect the outcome.', 15, yPos);
-        yPos += 8;
-        doc.setTextColor(...colors.info);
-        doc.text('💡 Consider gathering more information or re-evaluating criteria weights.', 15, yPos);
-    } else {
-        doc.setTextColor(...colors.success);
-        doc.text('✅ Strong confidence in this choice based on your criteria.', 15, yPos);
-        yPos += 8;
-        doc.setTextColor(...colors.info);
-        doc.text('💡 Decision appears stable across different scenarios.', 15, yPos);
-    }
-    
-    // Enhanced footer on all pages
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        
-        doc.setDrawColor(...colors.primary);
-        doc.setLineWidth(0.5);
-        doc.line(20, 280, 190, 280);
-        
-        doc.setTextColor(...colors.muted);
-        doc.setFontSize(8);
-        doc.setFont(undefined, 'normal');
-        doc.text('Powered by Choicease - Enhanced Decision Analytics', 105, 285, { align: 'center' });
-        doc.text(`choicease.com | Enhanced Report | Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
-    }
-    
-    // Download
-    const fileName = `choicease_enhanced_${decisionData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
-    doc.save(fileName);
-}
-// ================================================================================================
-// CORE ANALYTICS FUNCTIONS
-// ================================================================================================
-
-function calculateEnhancedResults() {
+    // Calculate results
     const results = [];
-    
     decisionData.options.forEach(option => {
         let totalScore = 0;
         const criteriaScores = {};
-        
         decisionData.criteria.forEach(criteria => {
             const ratingKey = `${option.id}-${criteria.id}`;
             const rating = decisionData.ratings[ratingKey] || 3;
             const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
             const score = rating * weight;
-            const contribution = (score / 5) * 100; // Percentage contribution
-            
             criteriaScores[criteria.name] = {
                 rating: rating,
                 weight: weight * 100,
-                score: score,
-                contribution: contribution,
-                criteriaId: criteria.id
+                score: score
             };
             totalScore += score;
         });
-        
         results.push({
             name: option.name,
             description: option.description,
             totalScore: totalScore,
-            percentage: (totalScore / 5) * 100,
             criteriaScores: criteriaScores
         });
     });
-    
     results.sort((a, b) => b.totalScore - a.totalScore);
     
-    return {
-        results: results,
-        maxScore: Math.max(...results.map(r => r.totalScore)),
-        scoreGap: results[0].totalScore - (results[1]?.totalScore || 0),
-        averageScore: results.reduce((sum, r) => sum + r.totalScore, 0) / results.length
-    };
-}
-
-function generateDecisionInsights(enhancedResults) {
-    const winner = enhancedResults.results[0];
-    const runnerUp = enhancedResults.results[1];
-    
-    // Calculate confidence based on score gap
-    const confidence = Math.min(100, (enhancedResults.scoreGap / enhancedResults.maxScore) * 200);
-    const confidenceLevel = confidence > 70 ? 'High' : confidence > 40 ? 'Medium' : 'Low';
-    
-    // Find key differentiators (criteria where winner significantly outperformed)
-    const keyDifferentiators = [];
-    if (runnerUp) {
-        Object.keys(winner.criteriaScores).forEach(criteria => {
-            const winnerRating = winner.criteriaScores[criteria].rating;
-            const runnerUpRating = runnerUp.criteriaScores[criteria].rating;
-            const weight = winner.criteriaScores[criteria].weight;
-            
-            if (winnerRating > runnerUpRating && weight > 5) {
-                keyDifferentiators.push({
-                    criteria: criteria,
-                    advantage: winnerRating - runnerUpRating,
-                    weight: weight
-                });
-            }
-        });
-    }
-    
-    keyDifferentiators.sort((a, b) => (b.advantage * b.weight) - (a.advantage * a.weight));
-    
-    // Find strengths and weaknesses
-    const strengths = [];
-    const weaknesses = [];
-    
-    Object.entries(winner.criteriaScores).forEach(([criteria, scores]) => {
-        if (scores.rating >= 4) {
-            strengths.push({ criteria, rating: scores.rating, weight: scores.weight });
-        } else if (scores.rating <= 2) {
-            weaknesses.push({ criteria, rating: scores.rating, weight: scores.weight });
-        }
-    });
-    
-    return {
-        confidence: confidence,
-        confidenceLevel: confidenceLevel,
-        keyDifferentiators: keyDifferentiators.slice(0, 3),
-        strengths: strengths.slice(0, 3),
-        weaknesses: weaknesses.slice(0, 3),
-        closeCall: enhancedResults.scoreGap < 0.2,
-        dominantCriteria: findDominantCriteria()
-    };
-}
-
-function findDominantCriteria() {
-    // Find criteria with highest weights
-    const criteriaWeights = [];
-    decisionData.criteria.forEach(criteria => {
-        const weight = calculateDisplayWeight(criteria.id);
-        criteriaWeights.push({ name: criteria.name, weight: weight });
-    });
-    
-    criteriaWeights.sort((a, b) => b.weight - a.weight);
-    return criteriaWeights.slice(0, 3);
-}
-
-// ================================================================================================
-// PAGE GENERATION FUNCTIONS - PART 1
-// ================================================================================================
-
-function addDecisionInfoSection(doc, yPos, colors) {
-    doc.setTextColor(...colors.dark);
-    doc.setFillColor(...colors.light);
-    doc.rect(10, yPos - 5, 190, 35, 'F');
-    doc.setDrawColor(200, 200, 200);
-    doc.rect(10, yPos - 5, 190, 35, 'S');
-    
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.text(`Decision: ${decisionData.title}`, 15, yPos + 5);
-    
-    if (decisionData.description) {
-        doc.setFontSize(11);
-        doc.setFont(undefined, 'normal');
-        doc.setTextColor(...colors.muted);
-        const contextLines = doc.splitTextToSize(`Context: ${decisionData.description}`, 180);
-        doc.text(contextLines, 15, yPos + 15);
-    }
-    
-    doc.setFontSize(9);
-    doc.setTextColor(...colors.muted);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 15, yPos + 25);
-}
-
-function addEnhancedExecutiveSummary(doc, yPos, enhancedResults, insights, colors) {
     // Executive Summary Box
     doc.setFillColor(245, 245, 245);
-    doc.rect(10, yPos, 190, 75, 'F');
-    doc.setDrawColor(...colors.primary);
+    doc.rect(10, yPos, pageWidth, 30, 'F');
+    doc.setDrawColor(...primaryColor);
     doc.setLineWidth(1);
-    doc.rect(10, yPos, 190, 75, 'S');
+    doc.rect(10, yPos, pageWidth, 30, 'S');
     
-    doc.setTextColor(...colors.primary);
+    doc.setTextColor(...primaryColor);
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
-    doc.text('🎯 Executive Summary', 15, yPos + 8);
+    doc.text('Executive Summary', 15, yPos + 8);
     
-    const winner = enhancedResults.results[0];
-    const runnerUp = enhancedResults.results[1];
-    
-    doc.setTextColor(...colors.dark);
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text(`Recommended Choice: ${winner.name}`, 15, yPos + 18);
-    
+    doc.setTextColor(...textDark);
     doc.setFontSize(11);
     doc.setFont(undefined, 'normal');
-    doc.text(`Score: ${winner.totalScore.toFixed(2)}/5.0 (${Math.round(winner.percentage)}%)`, 15, yPos + 26);
+    doc.text(`Recommended Choice: ${results[0].name}`, 15, yPos + 16);
+    doc.text(`Score: ${results[0].totalScore.toFixed(2)}/5.0 (${Math.round((results[0].totalScore/5)*100)}%)`, 15, yPos + 23);
     
-    if (runnerUp) {
-        doc.text(`Runner-up: ${runnerUp.name} (${runnerUp.totalScore.toFixed(2)}/5.0)`, 15, yPos + 34);
-        doc.text(`Margin: ${enhancedResults.scoreGap.toFixed(2)} points`, 15, yPos + 42);
-    }
+    yPos += 45;
     
-    // Key insight
-    doc.setTextColor(...colors.info);
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'italic');
-    const keyInsight = insights.closeCall 
-        ? "⚠️ This is a close call! Consider reviewing your priorities."
-        : insights.keyDifferentiators.length > 0 
-        ? `💡 Key advantage: ${winner.name} excels in ${insights.keyDifferentiators[0].criteria}`
-        : "✅ Clear winner based on your criteria weighting.";
-    
-    const insightLines = doc.splitTextToSize(keyInsight, 180);
-    doc.text(insightLines, 15, yPos + 52);
-}
-
-function addConfidenceIndicator(doc, yPos, insights, colors) {
-    doc.setTextColor(...colors.primary);
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text('Decision Confidence', 15, yPos + 8);
-    
-    // Confidence bar
-    const barWidth = 100;
-    const confidenceWidth = (insights.confidence / 100) * barWidth;
-    
-    // Background bar
-    doc.setFillColor(230, 230, 230);
-    doc.rect(15, yPos + 15, barWidth, 8, 'F');
-    
-    // Confidence bar color based on level
-    const confidenceColor = insights.confidence > 70 ? colors.success : 
-                           insights.confidence > 40 ? colors.warning : colors.danger;
-    doc.setFillColor(...confidenceColor);
-    doc.rect(15, yPos + 15, confidenceWidth, 8, 'F');
-    
-    // Confidence text
-    doc.setTextColor(...colors.dark);
-    doc.setFontSize(10);
-    doc.text(`${Math.round(insights.confidence)}% - ${insights.confidenceLevel} Confidence`, 120, yPos + 21);
-}
-
-function addKeyDifferentiators(doc, yPos, insights, colors) {
-    if (insights.keyDifferentiators.length === 0) return;
-    
-    doc.setTextColor(...colors.primary);
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text('🔑 Key Differentiators', 15, yPos + 8);
-    
-    doc.setTextColor(...colors.dark);
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    
-    insights.keyDifferentiators.forEach((diff, index) => {
-        const text = `• ${diff.criteria}: +${diff.advantage.toFixed(1)} point advantage (${diff.weight.toFixed(0)}% weight)`;
-        doc.text(text, 20, yPos + 18 + (index * 6));
-    });
-}
-
-// ================================================================================================
-// ENHANCED PDF REPORT GENERATION - PART 2
-// Visual components, heatmaps, pie charts, and advanced analytics
-// ================================================================================================
-
-function addVisualRankings(doc, yPos, enhancedResults, colors) {
-    doc.setTextColor(...colors.primary);
+    // Results Section with Visual Bars
+    doc.setTextColor(...primaryColor);
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
-    doc.text('📊 Detailed Rankings', 15, yPos);
+    doc.text('Ranking & Scores', 15, yPos);
     yPos += 15;
     
-    enhancedResults.results.forEach((result, index) => {
-        const cardY = yPos + (index * 45);
+    const maxScore = Math.max(...results.map(r => r.totalScore));
+    results.forEach((result, index) => {
+        if (yPos > 250) {
+            doc.addPage();
+            yPos = 20;
+        }
         
-        // Card background
-        const cardColor = index === 0 ? [212, 237, 218] : [248, 249, 250];
-        doc.setFillColor(...cardColor);
-        doc.rect(10, cardY, 190, 40, 'F');
-        
-        // Border
-        const borderColor = index === 0 ? colors.success : [233, 236, 239];
-        doc.setDrawColor(...borderColor);
-        doc.setLineWidth(1);
-        doc.rect(10, cardY, 190, 40, 'S');
-        
-        // Rank circle
-        doc.setFillColor(index === 0 ? ...colors.success : ...colors.primary);
-        doc.circle(25, cardY + 20, 8, 'F');
-        doc.setTextColor(255, 255, 255);
+        // Option name and rank
+        doc.setTextColor(...textDark);
         doc.setFontSize(12);
         doc.setFont(undefined, 'bold');
-        doc.text((index + 1).toString(), 25, cardY + 23, { align: 'center' });
+        const rankText = `${index + 1}. ${result.name}`;
+        doc.text(rankText, 15, yPos);
         
         // Winner badge
         if (index === 0) {
-            doc.setTextColor(...colors.success);
+            doc.setTextColor(...successColor);
             doc.setFontSize(10);
-            doc.setFont(undefined, 'bold');
-            doc.text('WINNER', 170, cardY + 8);
+            doc.text('WINNER', 170, yPos);
         }
         
-        // Option name
-        doc.setTextColor(...colors.dark);
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'bold');
-        doc.text(result.name, 40, cardY + 12);
+        yPos += 8;
         
-        // Description
+        // Score bar
+        const barWidth = 120;
+        const barHeight = 8;
+        const scoreWidth = (result.totalScore / maxScore) * barWidth;
+        
+        // Background bar
+        doc.setFillColor(230, 230, 230);
+        doc.rect(15, yPos, barWidth, barHeight, 'F');
+        
+        // Score bar
+        if (index === 0) {
+            doc.setFillColor(...successColor);
+        } else {
+            doc.setFillColor(...primaryColor);
+        }
+        doc.rect(15, yPos, scoreWidth, barHeight, 'F');
+        
+        // Score text
+        doc.setTextColor(...textDark);
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.text(`${result.totalScore.toFixed(2)}/5.0`, 140, yPos + 6);
+        
+        yPos += 15;
+        
+        // Description if exists
         if (result.description) {
             doc.setFontSize(9);
             doc.setFont(undefined, 'normal');
-            doc.setTextColor(...colors.muted);
-            const descLines = doc.splitTextToSize(result.description, 100);
-            doc.text(descLines, 40, cardY + 20);
+            doc.setTextColor(...textLight);
+            const descLines = doc.splitTextToSize(result.description, pageWidth - 20);
+            doc.text(descLines, 20, yPos);
+            yPos += descLines.length * 4 + 5;
         }
         
-        // Enhanced score bar
-        const scoreBarWidth = 80;
-        const scoreWidth = (result.totalScore / enhancedResults.maxScore) * scoreBarWidth;
-        
-        // Background
-        doc.setFillColor(230, 230, 230);
-        doc.rect(110, cardY + 25, scoreBarWidth, 6, 'F');
-        
-        // Score fill
-        const scoreColor = index === 0 ? colors.success : colors.primary;
-        doc.setFillColor(...scoreColor);
-        doc.rect(110, cardY + 25, scoreWidth, 6, 'F');
-        
-        // Score text with percentage
-        doc.setTextColor(...colors.dark);
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'bold');
-        doc.text(`${result.totalScore.toFixed(2)}/5.0 (${Math.round(result.percentage)}%)`, 110, cardY + 37);
+        yPos += 5;
     });
-}
-
-function addCriteriaPerformanceMatrix(doc, yPos, enhancedResults, colors) {
-    if (yPos + 100 > 280) {
-        doc.addPage();
-        yPos = 20;
-    }
     
-    doc.setTextColor(...colors.primary);
+    // New page for criteria details
+    doc.addPage();
+    yPos = 20;
+    
+    // Criteria Section
+    doc.setTextColor(...primaryColor);
     doc.setFontSize(14);
     doc.setFont(undefined, 'bold');
-    doc.text('🔥 Performance Heatmap', 15, yPos);
+    doc.text('Decision Criteria & Weights', 15, yPos);
     yPos += 15;
     
-    // Headers
-    const cellWidth = 25;
-    const cellHeight = 8;
-    const startX = 15;
-    
-    // Option headers
-    doc.setFontSize(8);
-    doc.setFont(undefined, 'bold');
-    enhancedResults.results.forEach((result, index) => {
-        const x = startX + 80 + (index * cellWidth);
-        doc.setTextColor(...colors.dark);
-        
-        // Truncate long names
-        const displayName = result.name.length > 8 ? result.name.substring(0, 8) + '..' : result.name;
-        doc.text(displayName, x + cellWidth/2, yPos + 5, { align: 'center' });
-    });
-    
-    yPos += 10;
-    
-    // Criteria rows with heatmap
-    decisionData.criteria.forEach((criteria, criteriaIndex) => {
-        const rowY = yPos + (criteriaIndex * cellHeight);
-        
-        // Criteria name
-        doc.setTextColor(...colors.dark);
-        doc.setFontSize(8);
-        doc.setFont(undefined, 'normal');
-        const criteriaName = criteria.name.length > 15 ? criteria.name.substring(0, 15) + '..' : criteria.name;
-        doc.text(criteriaName, startX, rowY + 5);
-        
-        // Weight
+    decisionData.criteria.forEach(criteria => {
         const weight = calculateDisplayWeight(criteria.id);
-        doc.setTextColor(...colors.muted);
-        doc.text(`(${weight}%)`, startX + 55, rowY + 5);
         
-        // Performance cells
-        enhancedResults.results.forEach((result, resultIndex) => {
-            const x = startX + 80 + (resultIndex * cellWidth);
-            const rating = result.criteriaScores[criteria.name].rating;
-            
-            // Color based on rating (heatmap)
-            let cellColor;
-            if (rating >= 4) cellColor = [40, 167, 69];      // Green
-            else if (rating >= 3) cellColor = [255, 193, 7]; // Yellow
-            else cellColor = [220, 53, 69];                  // Red
-            
-            doc.setFillColor(...cellColor);
-            doc.rect(x, rowY, cellWidth, cellHeight, 'F');
-            
-            // Rating text
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(8);
-            doc.setFont(undefined, 'bold');
-            doc.text(rating.toString(), x + cellWidth/2, rowY + 5, { align: 'center' });
-        });
-    });
-    
-    // Legend
-    yPos += decisionData.criteria.length * cellHeight + 15;
-    doc.setTextColor(...colors.muted);
-    doc.setFontSize(8);
-    doc.text('Legend: ', startX, yPos);
-    
-    // Color legend
-    const legendItems = [
-        { color: [40, 167, 69], label: '4-5 Excellent' },
-        { color: [255, 193, 7], label: '3 Good' },
-        { color: [220, 53, 69], label: '1-2 Poor' }
-    ];
-    
-    legendItems.forEach((item, index) => {
-        const x = startX + 30 + (index * 40);
-        doc.setFillColor(...item.color);
-        doc.rect(x, yPos - 3, 8, 6, 'F');
-        doc.text(item.label, x + 10, yPos);
-    });
-}
-
-function addCriteriaPieChart(doc, yPos, colors) {
-    doc.setTextColor(...colors.primary);
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('🥧 Criteria Importance Distribution', 15, yPos);
-    yPos += 15;
-    
-    const centerX = 105;
-    const centerY = yPos + 40;
-    const radius = 30;
-    
-    // Prepare data for pie chart
-    const pieData = decisionData.criteria.map(criteria => ({
-        name: criteria.name,
-        weight: calculateDisplayWeight(criteria.id),
-        angle: 0 // Will be calculated
-    }));
-    
-    // Calculate angles
-    pieData.forEach(item => {
-        item.angle = (item.weight / 100) * 360;
-    });
-    
-    // Draw pie slices
-    let currentAngle = 0;
-    pieData.forEach((item, index) => {
-        const color = colors.pieColors[index % colors.pieColors.length];
-        doc.setFillColor(...color);
+        // Criteria name with weight bar
+        doc.setTextColor(...textDark);
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'bold');
+        doc.text(`${criteria.name}`, 15, yPos);
         
-        // Draw slice using approximation with triangular segments
-        drawPieSlice(doc, centerX, centerY, radius, currentAngle, currentAngle + item.angle, color);
+        // Weight bar
+        const weightBarWidth = 60;
+        const weightWidth = (weight / 100) * weightBarWidth;
         
-        currentAngle += item.angle;
-    });
-    
-    // Legend
-    const legendStartX = 20;
-    const legendStartY = yPos + 80;
-    
-    pieData.forEach((item, index) => {
-        const legendY = legendStartY + (index * 8);
-        const color = colors.pieColors[index % colors.pieColors.length];
+        doc.setFillColor(240, 240, 240);
+        doc.rect(120, yPos - 4, weightBarWidth, 6, 'F');
         
-        // Color box
-        doc.setFillColor(...color);
-        doc.rect(legendStartX, legendY - 3, 6, 6, 'F');
+        doc.setFillColor(...secondaryColor);
+        doc.rect(120, yPos - 4, weightWidth, 6, 'F');
         
-        // Label
-        doc.setTextColor(...colors.dark);
         doc.setFontSize(9);
-        doc.text(`${item.name}: ${item.weight}%`, legendStartX + 10, legendY);
-    });
-}
-
-function drawPieSlice(doc, centerX, centerY, radius, startAngle, endAngle, color) {
-    // Convert angles to radians
-    const startRad = (startAngle * Math.PI) / 180;
-    const endRad = (endAngle * Math.PI) / 180;
-    
-    // Calculate number of segments for smooth arc
-    const segments = Math.max(1, Math.floor((endAngle - startAngle) / 5));
-    const angleStep = (endRad - startRad) / segments;
-    
-    // Create points for the slice
-    const points = [[0, 0]]; // Start at center
-    
-    // Add arc points
-    for (let i = 0; i <= segments; i++) {
-        const angle = startRad + (i * angleStep);
-        const x = radius * Math.cos(angle);
-        const y = radius * Math.sin(angle);
-        points.push([x, y]);
-    }
-    
-    // Draw the filled polygon
-    doc.setFillColor(...color);
-    doc.setDrawColor(255, 255, 255);
-    doc.setLineWidth(0.5);
-    
-    // Use lines to create the slice
-    const lineCoords = points.slice(1).map((point, index) => {
-        if (index === 0) return point;
-        return [point[0] - points[1][0], point[1] - points[1][1]];
-    });
-    
-    doc.lines(lineCoords, centerX, centerY, [1, 1], 'FD');
-}
-
-function addStrengthsWeaknessesAnalysis(doc, yPos, enhancedResults, colors) {
-    const winner = enhancedResults.results[0];
-    
-    doc.setTextColor(...colors.primary);
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text(`💪 ${winner.name} - Strengths & Areas for Improvement`, 15, yPos);
-    yPos += 15;
-    
-    // Two column layout
-    const leftCol = 15;
-    const rightCol = 110;
-    
-    // Strengths
-    doc.setTextColor(...colors.success);
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'bold');
-    doc.text('✅ Key Strengths', leftCol, yPos);
-    
-    doc.setTextColor(...colors.dark);
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'normal');
-    
-    let strengthCount = 0;
-    Object.entries(winner.criteriaScores).forEach(([criteria, scores]) => {
-        if (scores.rating >= 4 && strengthCount < 4) {
-            doc.text(`• ${criteria}: ${scores.rating}/5`, leftCol, yPos + 10 + (strengthCount * 6));
-            strengthCount++;
-        }
-    });
-    
-    if (strengthCount === 0) {
-        doc.setTextColor(...colors.muted);
-        doc.text('• Performs well overall', leftCol, yPos + 10);
-    }
-    
-    // Areas for improvement
-    doc.setTextColor(...colors.warning);
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'bold');
-    doc.text('⚠️ Areas for Improvement', rightCol, yPos);
-    
-    doc.setTextColor(...colors.dark);
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'normal');
-    
-    let weaknessCount = 0;
-    Object.entries(winner.criteriaScores).forEach(([criteria, scores]) => {
-        if (scores.rating <= 2 && weaknessCount < 4) {
-            doc.text(`• ${criteria}: ${scores.rating}/5`, rightCol, yPos + 10 + (weaknessCount * 6));
-            weaknessCount++;
-        }
-    });
-    
-    if (weaknessCount === 0) {
-        doc.setTextColor(...colors.muted);
-        doc.text('• No significant weak areas', rightCol, yPos + 10);
-    }
-}
-
-function addSensitivityAnalysis(doc, yPos, insights, colors) {
-    doc.setTextColor(...colors.primary);
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text('📈 Sensitivity Analysis', 15, yPos);
-    yPos += 15;
-    
-    doc.setTextColor(...colors.dark);
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    
-    if (insights.dominantCriteria.length > 0) {
-        doc.text(`Most influential criteria: ${insights.dominantCriteria[0].name} (${insights.dominantCriteria[0].weight}%)`, 15, yPos);
+        doc.text(`${weight}%`, 185, yPos);
+        
         yPos += 8;
         
-        if (insights.closeCall) {
-            doc.setTextColor(...colors.warning);
-            doc.text('⚠️ Small changes in criteria weights could change the outcome.', 15, yPos);
-        } else {
-            doc.setTextColor(...colors.success);
-            doc.text('✅ Decision remains stable across different weighting scenarios.', 15, yPos);
+        if (criteria.description) {
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(...textLight);
+            const descLines = doc.splitTextToSize(criteria.description, pageWidth - 20);
+            doc.text(descLines, 20, yPos);
+            yPos += descLines.length * 4 + 3;
         }
-    }
-}
-
-function addWhatIfScenarios(doc, yPos, insights, colors) {
-    doc.setTextColor(...colors.primary);
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text('🔮 What-If Scenarios', 15, yPos);
-    yPos += 15;
-    
-    doc.setTextColor(...colors.dark);
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'normal');
-    
-    // Generate hypothetical scenarios
-    const scenarios = [
-        'If price became 50% more important, would the ranking change?',
-        'What if the top-weighted criterion was less important?',
-        'How would removing the lowest-rated criterion affect results?'
-    ];
-    
-    scenarios.forEach((scenario, index) => {
-        doc.text(`${index + 1}. ${scenario}`, 15, yPos + (index * 6));
+        
+        yPos += 5;
     });
     
-    yPos += 25;
-    doc.setTextColor(...colors.info);
-    doc.setFontSize(8);
-    doc.text('💡 Tip: Re-import this decision and adjust weights to explore these scenarios!', 15, yPos);
-}
-
-function addRiskAssessment(doc, yPos, enhancedResults, colors) {
-    doc.setTextColor(...colors.primary);
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text('⚠️ Risk Assessment', 15, yPos);
-    yPos += 15;
-    
-    const winner = enhancedResults.results[0];
-    
-    // Find potential regret factors (areas where winner scored poorly)
-    const riskFactors = [];
-    Object.entries(winner.criteriaScores).forEach(([criteria, scores]) => {
-        if (scores.rating <= 2 && scores.weight > 5) {
-            riskFactors.push({
-                criteria: criteria,
-                rating: scores.rating,
-                weight: scores.weight
-            });
-        }
-    });
-    
-    doc.setTextColor(...colors.dark);
-    doc.setFontSize(10);
-    doc.setFont(undefined, 'normal');
-    
-    if (riskFactors.length > 0) {
-        doc.text('Potential concerns with your chosen option:', 15, yPos);
-        yPos += 8;
-        
-        riskFactors.forEach((risk, index) => {
-            doc.setTextColor(...colors.danger);
-            doc.text(`• Low score in ${risk.criteria} (${risk.rating}/5) - Weight: ${risk.weight.toFixed(0)}%`, 20, yPos + (index * 6));
-        });
-        
-        yPos += riskFactors.length * 6 + 8;
-        doc.setTextColor(...colors.info);
-        doc.text('💡 Consider if these limitations are acceptable for your needs.', 15, yPos);
-    } else {
-        doc.setTextColor(...colors.success);
-        doc.text('✅ No significant risk factors identified with your choice.', 15, yPos);
-    }
-}
-
-function addEnhancedMethodology(doc, yPos, colors) {
-    if (yPos + 60 > 280) {
-        doc.addPage();
-        yPos = 20;
-    }
-    
+    // Methodology section
+    yPos += 10;
     doc.setFillColor(250, 250, 250);
-    doc.rect(10, yPos, 190, 55, 'F');
+    doc.rect(10, yPos, pageWidth, 35, 'F');
     doc.setDrawColor(200, 200, 200);
-    doc.rect(10, yPos, 190, 55, 'S');
+    doc.rect(10, yPos, pageWidth, 35, 'S');
     
-    doc.setTextColor(...colors.primary);
+    doc.setTextColor(...primaryColor);
     doc.setFontSize(12);
     doc.setFont(undefined, 'bold');
-    doc.text('🧮 Enhanced Methodology', 15, yPos + 8);
+    doc.text('Methodology', 15, yPos + 8);
     
-    doc.setTextColor(...colors.dark);
+    doc.setTextColor(...textDark);
     doc.setFontSize(9);
     doc.setFont(undefined, 'normal');
-    
-    const methodologyText = [
-        'This enhanced analysis uses advanced weighted scoring with the following features:',
-        '• Multi-Criteria Decision Analysis (MCDA) with normalized weights',
-        '• Sensitivity analysis to test decision robustness',
-        '• Visual heatmap showing performance across all criteria',
-        '• Confidence scoring based on margin of victory',
-        '• Risk assessment highlighting potential regret factors',
-        '• Strength/weakness analysis for strategic insights',
-        '',
-        'Formula: Final Score = Σ(Rating × Normalized_Weight) for each criterion',
-        'Confidence = f(Score_Gap, Weight_Distribution, Rating_Consistency)'
+    const methodology = [
+        'This analysis uses a weighted scoring model where:',
+        '• Each option is rated 1-5 on each criteria',
+        '• Criteria importance weights are normalized to 100%',
+        '• Final scores = Σ(rating × weight) for each option',
+        '• Higher scores indicate better alignment with your priorities'
     ];
     
-    methodologyText.forEach((line, index) => {
-        if (line === '') {
-            return; // Skip empty lines but maintain spacing
-        }
-        doc.text(line, 15, yPos + 16 + (index * 4));
+    methodology.forEach((line, i) => {
+        doc.text(line, 15, yPos + 15 + (i * 4));
     });
-}
-
-function addFooterToAllPages(doc, colors) {
-    const pageCount = doc.internal.getNumberOfPages();
     
+    // Professional footer on all pages
+    const pageCount = doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         
         // Footer line
-        doc.setDrawColor(...colors.primary);
+        doc.setDrawColor(...primaryColor);
         doc.setLineWidth(0.5);
         doc.line(20, 280, 190, 280);
         
-        doc.setTextColor(...colors.muted);
+        doc.setTextColor(...textLight);
         doc.setFontSize(8);
         doc.setFont(undefined, 'normal');
-        doc.text('Powered by Choicease - Enhanced Decision Analytics', 105, 285, { align: 'center' });
-        doc.text(`choicease.com | Enhanced Report | Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
+        doc.text('Powered by Choicease - Smart Choices, Made Easy', 105, 285, { align: 'center' });
+        doc.text(`choicease.com | Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
     }
+    
+    // Download
+    const fileName = `choicease_${decisionData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
+    doc.save(fileName);
 }
-
-
-        
 
 // Toggle export dropdown visibility
 function toggleExportDropdown() {
