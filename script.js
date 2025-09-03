@@ -205,12 +205,31 @@
             checkOptionsWarning();
         }
 
-        function removeOption(id) {
-            decisionData.options = decisionData.options.filter(option => option.id !== id);
-            displayOptions();
-            checkOptionsWarning();
-        }
+function removeOption(id) {
+    console.log(`Removing option ${id} and cleaning up associated data...`);
+    
+    // Remove from options list
+    decisionData.options = decisionData.options.filter(option => option.id !== id);
 
+    // ✅ NEW: Clean up all ratings associated with this option
+    const ratingsToDelete = [];
+    Object.keys(decisionData.ratings).forEach(ratingKey => {
+        const [optionId, criteriaId] = ratingKey.split('-');
+        if (optionId === id.toString()) {
+            ratingsToDelete.push(ratingKey);
+        }
+    });
+
+    ratingsToDelete.forEach(key => {
+        delete decisionData.ratings[key];
+    });
+
+    console.log(`Cleaned up ${ratingsToDelete.length} orphaned ratings for option ${id}`);
+
+    // Update UI
+    displayOptions();
+    checkOptionsWarning();
+}
         function checkOptionsWarning() {
             const warning = document.getElementById('optionsWarning');
             warning.style.display = decisionData.options.length < 3 ? 'block' : 'none';
@@ -272,22 +291,40 @@
             checkCriteriaWarning();
         }
 
-        function removeCriteria(id) {
-            // Remove from criteria list
-            decisionData.criteria = decisionData.criteria.filter(c => c.id !== id);
-        
-            // Remove raw weight
-            delete decisionData.weights[id];
-        
-            // NEW: Remove normalized weight and recalc
-            if (decisionData.normalizedWeights && decisionData.normalizedWeights[id] !== undefined) {
-                delete decisionData.normalizedWeights[id];
-                normalizeImportanceWeights();
-            }
-        
-            // Update UI
-            displayCriteria();
+function removeCriteria(id) {
+    console.log(`Removing criteria ${id} and cleaning up associated data...`);
+    
+    // Remove from criteria list
+    decisionData.criteria = decisionData.criteria.filter(c => c.id !== id);
+
+    // Clean up raw weights
+    delete decisionData.weights[id];
+
+    // Clean up normalized weights and recalculate
+    if (decisionData.normalizedWeights && decisionData.normalizedWeights[id] !== undefined) {
+        delete decisionData.normalizedWeights[id];
+        normalizeImportanceWeights();
+    }
+
+    // ✅ NEW: Clean up all ratings associated with this criteria
+    const ratingsToDelete = [];
+    Object.keys(decisionData.ratings).forEach(ratingKey => {
+        const [optionId, criteriaId] = ratingKey.split('-');
+        if (criteriaId === id.toString()) {
+            ratingsToDelete.push(ratingKey);
         }
+    });
+
+    ratingsToDelete.forEach(key => {
+        delete decisionData.ratings[key];
+    });
+
+    console.log(`Cleaned up ${ratingsToDelete.length} orphaned ratings for criteria ${id}`);
+
+    // Update UI
+    displayCriteria();
+    checkCriteriaWarning();
+}
 
 
         function checkCriteriaWarning() {
