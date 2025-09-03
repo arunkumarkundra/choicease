@@ -1015,7 +1015,7 @@ function exportToCSV() {
     csvContent += 'Scoring Method,"Weighted Multi-Criteria Decision Analysis"\n';
     csvContent += 'Rating Scale,"1-5 (1=Poor, 5=Excellent)"\n';
     csvContent += 'Weight Calculation,"Normalized to 100% based on importance ratings"\n';
-    csvContent += 'Final Score Formula,"Sum of (Rating × Weight) for each criteria"\n';
+    csvContent += 'Final Score Formula,"Sum of (Rating x Weight) for each criteria"\n';
     csvContent += 'Maximum Possible Score,5.0\n';
     
     // Create and download CSV file
