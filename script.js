@@ -374,7 +374,10 @@ function updateImportanceRating(criteriaId, rating) {
 
 function normalizeImportanceWeights() {
     // Map ratings to actual weights
-    const ratingToWeight = { 1: 1, 2: 2, 3: 3.5, 4: 6, 5: 10 };
+    // Original Scheme
+    // const ratingToWeight = { 1: 1, 2: 2, 3: 3.5, 4: 6, 5: 10 };
+    // New pattern based on: (1/x)*(x^n) ; x=1.77827889
+    const ratingToWeight = { 1: 1, 2: 1.78, 3: 3.16, 4: 5.62, 5: 10 };
     
     // Calculate total of mapped weights
     const totalMappedWeight = Object.values(decisionData.weights)
