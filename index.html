@@ -424,6 +424,7 @@
                             <button class="export-option" data-type="qr">📷 QR Code</button>        <!-- Compressed data as QR image -->
                             <button class="export-option" data-type="json">📁 JSON File</button>    <!-- Raw data for re-import -->
                             <button class="export-option" data-type="pdf">📄 PDF Report</button>    <!-- Professional report -->
+                            <button class="export-option" data-type="ext_pdf">📄 Enhanced PDF Report</button>
                             <button class="export-option" data-type="csv">📊 CSV Data</button>      <!-- Spreadsheet format -->
                             <button class="export-option" data-type="ext_pdf">📄 Enhanced PDF</button> <!-- NEW: Enhanced professional PDF -->
                         </div>
@@ -572,5 +573,12 @@
     <!-- ================================= -->
     <!-- Enhanced results functionality - loaded after main script -->
     <script src="ext-results.js"></script>
+    <!-- Loading Overlay for Enhanced Results -->
+    <div id="ext_loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; color: white;">
+        <div style="text-align: center;">
+            <div style="border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
+            <p>Loading...</p>
+        </div>
+    </div>
 </body>
 </html>
