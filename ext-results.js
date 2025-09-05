@@ -672,41 +672,39 @@ function ext_generateChartsForPDF() {
         }
     }
 
-(function() {
-    'use strict';
+// ========================================
+// MODULE STATE & CONFIGURATION (GLOBAL SCOPE)
+// ========================================
 
-    // ========================================
-    // MODULE STATE & CONFIGURATION
-    // ========================================
+const ext_state = {
+    tmpWeights: null,          // Copy of weights for what-if analysis
+    charts: {},                // Chart.js instances
+    currentResults: null,      // Cached results
+    isInitialized: false,      // Initialization flag
+    debouncedUpdate: null      // Debounced function reference
+};
 
-    const ext_state = {
-        tmpWeights: null,          // Copy of weights for what-if analysis
-        charts: {},                // Chart.js instances
-        currentResults: null,      // Cached results
-        isInitialized: false       // Initialization flag
-    };
+const ext_config = {
+    rankEpsilon: 1e-4,         // Tie detection threshold
+    animationDuration: 800,    // Chart animation duration
+    confidenceThresholds: {    // Confidence level boundaries
+        high: 70,
+        medium: 40
+    },
+    colors: {                  // Color palette
+        primary: '#667eea',
+        secondary: '#764ba2',
+        success: '#28a745',
+        warning: '#ffc107',
+        danger: '#dc3545',
+        info: '#17a2b8'
+    },
+    pdfBranding: {             // White-label configuration
+        logoUrl: 'images/choicease-decision-making-tool.png',
+        clientName: '<<CLIENT NAME>>'
+    }
+};
 
-    const ext_config = {
-        rankEpsilon: 1e-4,         // Tie detection threshold
-        animationDuration: 800,    // Chart animation duration
-        confidenceThresholds: {    // Confidence level boundaries
-            high: 70,
-            medium: 40
-        },
-        colors: {                  // Color palette
-            primary: '#667eea',
-            secondary: '#764ba2',
-            success: '#28a745',
-            warning: '#ffc107',
-            danger: '#dc3545',
-            info: '#17a2b8'
-        },
-        pdfBranding: {             // White-label configuration
-            logoUrl: 'images/choicease-decision-making-tool.png',
-            clientName: '<<CLIENT NAME>>'
-        }
-    };
-})();
 
     /**
      * Check if Chart.js is properly loaded
