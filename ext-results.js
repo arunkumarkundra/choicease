@@ -66,7 +66,10 @@
                 // Capture pie chart if available
                 if (ext_state.charts.pie && typeof ext_state.charts.pie.toBase64Image === 'function') {
                     try {
-                        images.pieChart = ext_state.charts.pie.toBase64Image('image/png', 1.0);
+                        const imageData = ext_state.charts.pie.toBase64Image('image/png', 1.0);
+                        if (imageData && imageData.length > 100) { // Basic validation
+                            images.pieChart = imageData;
+                        }
                     } catch (chartError) {
                         console.warn('Could not capture pie chart:', chartError);
                     }
@@ -667,6 +670,20 @@
         }
     };
 
+    /**
+     * Check if Chart.js is properly loaded
+     */
+    function ext_checkChartJSDependency() {
+        if (typeof window.Chart !== 'undefined') {
+            window.ExtChart = window.Chart;
+            console.log('Chart.js detected and aliased to ExtChart');
+            return true;
+        } else {
+            console.warn('Chart.js not detected - charts will show fallback content');
+            return false;
+        }
+    }
+    
     // ========================================
     // CORE DATA MANAGEMENT FUNCTIONS
     // ========================================
@@ -1333,19 +1350,27 @@
      * Render criteria weights pie chart
      */
     function ext_renderWeightsPie(decisionCopy) {
+        const container = document.getElementById('ext_weightsPieContainer');
+        const canvas = document.getElementById('ext_weightsPie');
+        
+        if (!container || !canvas) {
+            console.warn('Pie chart container or canvas not found');
+            return;
+        }
+    
         if (!window.ExtChart) {
             console.warn('Chart.js not available for pie chart');
             ext_showChartFallback(container, 'Pie chart could not be rendered. Chart.js may not be available.');
             return;
         }
-
+    
         const ctx = canvas.getContext('2d');
         const criteriaNames = decisionCopy.criteria.map(c => c.name);
         const weights = decisionCopy.criteria.map(c => 
             Math.round(decisionCopy.normalizedWeights[c.id] || 0)
         );
         const colors = ext_generateColors(criteriaNames.length);
-
+    
         try {
             const chart = new window.ExtChart(ctx, {
                 type: 'pie',
@@ -1379,20 +1404,19 @@
                     }
                 }
             });
-
+    
             ext_state.charts.pie = chart;
         } catch (error) {
             console.error('Error creating pie chart:', error);
             ext_showChartFallback(container, 'Error creating pie chart visualization.');
         }
     }
-
     /**
      * Render performance heatmap
      */
     function ext_renderHeatmap(decisionCopy) {
         const container = document.getElementById('ext_heatmapContainer');
-        if (!container) return;
+        if (!container || !decisionCopy) return;
 
         container.innerHTML = `
             <div class="ext-chart-container">
@@ -1574,13 +1598,17 @@
 
         container.insertAdjacentHTML('beforeend', whatIfHTML);
 
-        // Attach event listeners
-        const sliders = container.querySelectorAll('.ext-what-if-slider');
-        sliders.forEach(slider => {
-            if (slider) {
+    // Attach event listeners with error handling
+    const sliders = container.querySelectorAll('.ext-what-if-slider');
+    sliders.forEach(slider => {
+        if (slider) {
+            try {
                 slider.addEventListener('input', ext_handleWhatIfChange);
+            } catch (error) {
+                console.warn('Failed to attach slider listener:', error);
             }
-        });
+        }
+    });
 
         const resetBtn = document.getElementById('ext_resetWhatIf');
         if (resetBtn) {
@@ -1863,6 +1891,8 @@
         if (ext_state.isInitialized) return;
         
         console.log('Initializing enhanced results module...');
+
+        ext_checkChartJSDependency();
         
         // Check dependencies
         if (!window.ExtChart) {
