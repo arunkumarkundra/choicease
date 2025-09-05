@@ -472,6 +472,38 @@ function setupRatingStep() {
             });
         }
 
+
+        // Dynamic loading for enhanced results
+        function loadEnhancedResults() {
+            return new Promise((resolve, reject) => {
+                // Check if already loaded
+                if (window.ext_results) {
+                    resolve();
+                    return;
+                }
+                
+                // Load CSS first
+                const cssLink = document.createElement('link');
+                cssLink.rel = 'stylesheet';
+                cssLink.href = 'ext-results.css';
+                document.head.appendChild(cssLink);
+                
+                // Load JavaScript
+                const script = document.createElement('script');
+                script.src = 'ext-results.js';
+                script.onload = () => {
+                    console.log('Enhanced results module loaded successfully');
+                    resolve();
+                };
+                script.onerror = () => {
+                    console.error('Failed to load enhanced results module');
+                    reject(new Error('Enhanced results failed to load'));
+                };
+                document.head.appendChild(script);
+            });
+        }
+
+
         // Results calculation
         function calculateResults() {
             const results = [];
