@@ -1794,6 +1794,10 @@ function ext_renderSensitivity(flipPoints) {
 /**
  * Render tornado chart visualization
  */
+
+/**
+ * Enhanced tornado chart visualization with better visual hierarchy
+ */
 function ext_renderTornadoChart(flipPoints) {
     // Sort by absolute flip point magnitude (most critical first)
     const sortedFlipPoints = [...flipPoints].sort((a, b) => 
@@ -1803,31 +1807,59 @@ function ext_renderTornadoChart(flipPoints) {
     // Find maximum absolute change for scaling
     const maxChange = Math.max(...sortedFlipPoints.map(fp => Math.abs(fp.flipDeltaPercentPoints)));
     
-    return sortedFlipPoints.map(fp => {
+    // Generate legend
+    const legendHTML = `
+        <div class="ext-tornado-legend">
+            <div class="ext-tornado-legend-item">
+                <div class="ext-tornado-legend-dot critical"></div>
+                <span>Critical (≤5pp change)</span>
+            </div>
+            <div class="ext-tornado-legend-item">
+                <div class="ext-tornado-legend-dot moderate"></div>
+                <span>Moderate (5-15pp change)</span>
+            </div>
+            <div class="ext-tornado-legend-item">
+                <div class="ext-tornado-legend-dot stable"></div>
+                <span>Stable (>15pp change)</span>
+            </div>
+        </div>
+    `;
+    
+    const tornadoHTML = sortedFlipPoints.map((fp, index) => {
         const absChange = Math.abs(fp.flipDeltaPercentPoints);
-        const barWidth = maxChange > 0 ? (absChange / maxChange) * 100 : 0;
+        const barWidth = maxChange > 0 ? Math.max((absChange / maxChange) * 100, 5) : 5; // Minimum 5% width
         
-        // Determine criticality level
-        let criticalityClass, criticalityLabel;
-        if (absChange < 5) {
+        // Determine criticality level with enhanced logic
+        let criticalityClass, criticalityLabel, icon;
+        if (absChange <= 5) {
             criticalityClass = 'critical';
             criticalityLabel = 'Critical';
-        } else if (absChange < 15) {
+            icon = '🔴';
+        } else if (absChange <= 15) {
             criticalityClass = 'moderate';
             criticalityLabel = 'Moderate';
+            icon = '🟡';
         } else {
             criticalityClass = 'stable';
             criticalityLabel = 'Stable';
+            icon = '🟢';
         }
         
+        // Add animation delay for staggered effect
+        const animationDelay = index * 100;
+        
         return `
-            <div class="ext-tornado-item">
-                <div class="ext-tornado-label">${ext_safeHtml(fp.criterionName)}</div>
+            <div class="ext-tornado-item ${criticalityClass}" 
+                 style="animation-delay: ${animationDelay}ms"
+                 title="Change needed: ${fp.flipDeltaPercentPoints > 0 ? '+' : ''}${fp.flipDeltaPercentPoints} percentage points">
+                <div class="ext-tornado-label">
+                    ${icon} ${ext_safeHtml(fp.criterionName)}
+                </div>
                 <div class="ext-tornado-bar-container">
                     <div class="ext-tornado-bar ${criticalityClass}" 
-                         style="width: ${barWidth}%"
-                         title="${ext_safeHtml(fp.criterionName)}: ${fp.flipDeltaPercentPoints > 0 ? '+' : ''}${fp.flipDeltaPercentPoints}pp change needed">
-                        ${barWidth > 20 ? `${absChange}pp` : ''}
+                         style="width: ${barWidth}%; transition-delay: ${animationDelay}ms"
+                         title="${criticalityLabel} sensitivity: ${fp.flipDeltaPercentPoints > 0 ? '+' : ''}${fp.flipDeltaPercentPoints}pp change needed">
+                        ${barWidth > 25 ? `${Math.abs(fp.flipDeltaPercentPoints)}pp` : ''}
                     </div>
                 </div>
                 <div class="ext-tornado-value ${criticalityClass}">
@@ -1836,8 +1868,11 @@ function ext_renderTornadoChart(flipPoints) {
             </div>
         `;
     }).join('');
+    
+    return tornadoHTML + legendHTML;
 }
 
+    
     
     /**
      * Initialize what-if controls
