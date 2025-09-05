@@ -2290,7 +2290,7 @@ function ext_renderTornadoChart(flipPoints) {
     // Also initialize when script loads (backup)
     setTimeout(ext_initializeModule, 100);
 
-})();
+
 
 /**
  * Integration Notes:
