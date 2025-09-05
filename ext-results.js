@@ -504,6 +504,11 @@
      * Hook into export dropdown for enhanced PDF
      */
     function ext_hookExportHandlers() {
+        // Verify the enhanced PDF option exists in the dropdown
+        const enhancedPdfOption = document.querySelector('[data-type="ext_pdf"]');
+        if (!enhancedPdfOption) {
+            console.warn('Enhanced PDF export option not found in dropdown');
+        }
         // Hook into existing export dropdown handler
         document.addEventListener('click', function(event) {
             if (event.target.classList.contains('export-option')) {
@@ -675,9 +680,21 @@
      */
     function ext_checkChartJSDependency() {
         if (typeof window.Chart !== 'undefined') {
-            window.ExtChart = window.Chart;
-            console.log('Chart.js detected and aliased to ExtChart');
-            return true;
+            // Check Chart.js version compatibility
+            const version = window.Chart.version;
+            if (version && version.startsWith('4.')) {
+                window.ExtChart = window.Chart;
+                console.log(`Chart.js v${version} detected and aliased to ExtChart`);
+                return true;
+            } else if (version && (version.startsWith('3.') || version.startsWith('2.'))) {
+                console.warn(`Chart.js v${version} detected but v4+ required for optimal compatibility`);
+                window.ExtChart = window.Chart; // Try anyway
+                return true;
+            } else {
+                console.warn('Chart.js version could not be determined');
+                window.ExtChart = window.Chart;
+                return true;
+            }
         } else {
             console.warn('Chart.js not detected - charts will show fallback content');
             return false;
@@ -1018,11 +1035,29 @@
         try {
             ext_showLoading('Analyzing your decision...');
             
+            // Create accordion container if it doesn't exist
+            let accordionContainer = document.getElementById('ext_resultsAccordion');
+            if (!accordionContainer) {
+                // Find the results section and add accordion container
+                const resultsSection = document.getElementById('section6');
+                const resultsGrid = document.getElementById('resultsGrid');
+                
+                if (resultsSection && resultsGrid) {
+                    accordionContainer = document.createElement('div');
+                    accordionContainer.id = 'ext_resultsAccordion';
+                    accordionContainer.className = 'ext-results-accordion';
+                    
+                    // Insert before the existing results grid
+                    resultsSection.insertBefore(accordionContainer, resultsGrid);
+                } else {
+                    throw new Error('Results section not found - cannot create accordion container');
+                }
+            }
+            
             const decisionCopy = ext_cloneDecisionData();
             if (!decisionCopy) {
                 throw new Error('Unable to load decision data');
             }
-
             const results = ext_computeResultsCopy(decisionCopy);
             const rankedResults = ext_assignRanks(results);
             const confidence = ext_computeConfidence(rankedResults);
@@ -1031,12 +1066,7 @@
             // Cache results for what-if analysis
             ext_state.currentResults = rankedResults;
             ext_state.tmpWeights = { ...decisionCopy.normalizedWeights };
-
-            const accordionContainer = document.getElementById('ext_resultsAccordion');
-            if (!accordionContainer) {
-                throw new Error('Results accordion container not found');
-            }
-
+            
             // Build accordion structure
             accordionContainer.innerHTML = ext_buildAccordionHTML(rankedResults, confidence, flipPoints, decisionCopy);
             
@@ -1055,16 +1085,15 @@
                 
                 ext_hideLoading();
             }, 100);
-
+            
             // Hide legacy results
             const legacyResults = document.getElementById('resultsGrid');
             if (legacyResults) {
                 legacyResults.style.display = 'none';
             }
-
+            
             // Hook into export dropdown for enhanced PDF
             ext_hookExportHandlers();
-
         } catch (error) {
             console.error('Error rendering enhanced results:', error);
             ext_hideLoading();
@@ -1072,6 +1101,7 @@
         }
     }
 
+    
     /**
      * Build the HTML structure for the accordion
      */
@@ -1891,7 +1921,6 @@
         if (ext_state.isInitialized) return;
         
         console.log('Initializing enhanced results module...');
-
         ext_checkChartJSDependency();
         
         // Check dependencies
@@ -1903,25 +1932,9 @@
             console.warn('jsPDF not available - enhanced PDF generation disabled');
         }
         
-        // Hook into the existing calculateResults flow
-        const originalCalculateResults = window.calculateResults;
-        if (typeof originalCalculateResults === 'function') {
-            window.calculateResults = function() {
-                // Call original function first
-                const result = originalCalculateResults.apply(this, arguments);
-                
-                // Then add enhanced results
-                setTimeout(() => {
-                    if (currentStep === 6) { // Only on results step
-                        ext_renderResultsAccordion();
-                    }
-                }, 100);
-                
-                return result;
-            };
-        } else {
-            console.warn('calculateResults function not found - enhanced results may not trigger automatically');
-        }
+        // Don't hook into calculateResults since we're using dynamic loading
+        // The integration is handled in the main script.js file
+        console.log('Enhanced results module ready for integration');
         
         ext_state.isInitialized = true;
         console.log('Enhanced results module initialized successfully');
