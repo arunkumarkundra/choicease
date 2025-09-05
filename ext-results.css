@@ -1,0 +1,989 @@
+/* ==========================================================================
+   CHOICEASE - ENHANCED RESULTS STYLES
+   Executive-grade decision analysis interface
+   ========================================================================== */
+
+/* ==========================================================================
+   1. ACCORDION LAYOUT & STRUCTURE
+   ========================================================================== */
+
+/* Main accordion container */
+.ext-results-accordion {
+    margin-bottom: 20px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    background: white;
+}
+
+/* Individual accordion sections */
+.ext-accordion-section {
+    border-bottom: 1px solid #e9ecef;
+    position: relative;
+}
+
+.ext-accordion-section:last-child {
+    border-bottom: none;
+}
+
+/* Accordion headers (clickable buttons) */
+.ext-accordion-header {
+    width: 100%;
+    padding: 20px 25px;
+    background: linear-gradient(135deg, #f8f9fa, #ffffff);
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.ext-accordion-header:hover {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.ext-accordion-header:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* Active accordion header */
+.ext-accordion-header[aria-expanded="true"] {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-bottom: 2px solid #5a67d8;
+}
+
+/* Section icons and indicators */
+.ext-section-icon {
+    margin-right: 12px;
+    font-size: 1.2rem;
+    min-width: 24px;
+    text-align: center;
+}
+
+.ext-expand-icon {
+    font-size: 1rem;
+    transition: transform 0.3s ease;
+    margin-left: auto;
+}
+
+.ext-accordion-header[aria-expanded="true"] .ext-expand-icon {
+    transform: rotate(180deg);
+}
+
+/* Accordion content areas */
+.ext-accordion-content {
+    padding: 25px;
+    background: white;
+    border-top: 1px solid rgba(102, 126, 234, 0.1);
+    display: none;
+    animation: ext-fadeIn 0.4s ease-out;
+}
+
+.ext-accordion-content.active {
+    display: block;
+}
+
+/* ==========================================================================
+   2. EXECUTIVE SUMMARY STYLING
+   ========================================================================== */
+
+.ext-executive-summary {
+    padding: 30px;
+    background: linear-gradient(135deg, #f8f9ff, #ffffff);
+    border-radius: 15px;
+    border: 2px solid #e6f2ff;
+    margin-bottom: 20px;
+}
+
+/* Winner card styling */
+.ext-winner-card {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    border: 2px solid #28a745;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.ext-winner-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.ext-winner-badge {
+    background: #28a745;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    margin-right: 15px;
+    display: flex;
+    align-items: center;
+    min-width: 80px;
+    justify-content: center;
+}
+
+.ext-winner-details h3 {
+    margin: 0 0 5px 0;
+    color: #155724;
+    font-size: 1.3rem;
+}
+
+.ext-winner-score {
+    font-size: 1.1rem;
+    color: #155724;
+    font-weight: 600;
+}
+
+/* Confidence meter */
+.ext-confidence-meter {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.ext-confidence-bar {
+    width: 100%;
+    height: 12px;
+    background: #e9ecef;
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 10px 0;
+    position: relative;
+}
+
+.ext-confidence-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.8s ease-out;
+    position: relative;
+}
+
+.ext-confidence-fill.high {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.ext-confidence-fill.medium {
+    background: linear-gradient(135deg, #ffc107, #fd7e14);
+}
+
+.ext-confidence-fill.low {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
+.ext-confidence-label {
+    font-weight: 600;
+    margin-top: 5px;
+    font-size: 0.9rem;
+}
+
+/* Key differentiators */
+.ext-differentiators {
+    margin-top: 20px;
+}
+
+.ext-differentiator-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    background: rgba(102, 126, 234, 0.05);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.ext-differentiator-icon {
+    margin-right: 10px;
+    color: #667eea;
+    font-weight: bold;
+}
+
+/* ==========================================================================
+   3. RANKING TABLE STYLING
+   ========================================================================== */
+
+.ext-ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.ext-ranking-table th {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 15px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ext-ranking-table td {
+    padding: 15px 12px;
+    border-bottom: 1px solid #e9ecef;
+    vertical-align: middle;
+}
+
+.ext-ranking-table tr:hover {
+    background: rgba(102, 126, 234, 0.05);
+}
+
+.ext-ranking-table tr.winner {
+    background: rgba(40, 167, 69, 0.1);
+    border-left: 4px solid #28a745;
+}
+
+/* Rank styling with tie handling */
+.ext-rank-cell {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #667eea;
+    text-align: center;
+    min-width: 60px;
+}
+
+.ext-rank-cell.tied {
+    color: #fd7e14;
+    position: relative;
+}
+
+.ext-rank-cell.tied::after {
+    content: '=';
+    font-size: 0.8rem;
+    vertical-align: super;
+    margin-left: 2px;
+}
+
+/* Score visualization bars */
+.ext-score-visual {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.ext-score-bar {
+    flex: 1;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    min-width: 100px;
+}
+
+.ext-score-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 4px;
+    transition: width 0.8s ease-out;
+}
+
+.ext-score-fill.winner {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.ext-score-text {
+    font-weight: 600;
+    color: #333;
+    min-width: 70px;
+    text-align: right;
+}
+
+/* ==========================================================================
+   4. CHART CONTAINERS & STYLING
+   ========================================================================== */
+
+/* Chart container base styling */
+.ext-chart-container {
+    position: relative;
+    margin: 20px 0;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e9ecef;
+}
+
+.ext-chart-container h4 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 1.1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.ext-chart-container h4::before {
+    content: '';
+    width: 4px;
+    height: 20px;
+    background: #667eea;
+    margin-right: 10px;
+    border-radius: 2px;
+}
+
+/* Pie chart specific styling */
+.ext-pie-container {
+    max-width: 500px;
+    margin: 0 auto;
+    height: 400px;
+    position: relative;
+}
+
+/* Heatmap styling */
+.ext-heatmap {
+    overflow-x: auto;
+    margin: 20px 0;
+}
+
+.ext-heatmap-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 600px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+.ext-heatmap-table th {
+    background: #f8f9fa;
+    padding: 12px 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #495057;
+    text-align: center;
+    border: 1px solid #dee2e6;
+}
+
+.ext-heatmap-table td {
+    padding: 12px 8px;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    font-weight: 600;
+}
+
+/* Heatmap color scale */
+.ext-heatmap-cell {
+    position: relative;
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.ext-heatmap-cell.rating-5 { background: #28a745; color: white; }
+.ext-heatmap-cell.rating-4 { background: #20c997; color: white; }
+.ext-heatmap-cell.rating-3 { background: #ffc107; color: #333; }
+.ext-heatmap-cell.rating-2 { background: #fd7e14; color: white; }
+.ext-heatmap-cell.rating-1 { background: #dc3545; color: white; }
+
+.ext-heatmap-cell:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 10;
+}
+
+/* Heatmap tooltip */
+.ext-heatmap-tooltip {
+    position: absolute;
+    background: #333;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    white-space: nowrap;
+}
+
+.ext-heatmap-tooltip.visible {
+    opacity: 1;
+}
+
+/* ==========================================================================
+   5. SENSITIVITY ANALYSIS STYLING
+   ========================================================================== */
+
+.ext-sensitivity-container {
+    margin: 20px 0;
+}
+
+/* Tornado chart styling */
+.ext-tornado-chart {
+    margin: 20px 0;
+}
+
+.ext-tornado-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.ext-tornado-label {
+    min-width: 120px;
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+}
+
+.ext-tornado-bar {
+    flex: 1;
+    height: 20px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 0 15px;
+    position: relative;
+}
+
+.ext-tornado-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 10px;
+    transition: width 0.8s ease-out;
+}
+
+.ext-tornado-value {
+    min-width: 60px;
+    font-weight: 600;
+    color: #667eea;
+    font-size: 0.9rem;
+    text-align: right;
+}
+
+/* Flip point indicators */
+.ext-flip-point-critical {
+    border-left-color: #dc3545;
+}
+
+.ext-flip-point-critical .ext-tornado-fill {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
+.ext-flip-point-critical .ext-tornado-value {
+    color: #dc3545;
+}
+
+/* ==========================================================================
+   6. WHAT-IF CONTROLS STYLING
+   ========================================================================== */
+
+.ext-what-if-controls {
+    background: linear-gradient(135deg, #f8f9ff, #ffffff);
+    border: 2px solid #e6f2ff;
+    border-radius: 12px;
+    padding: 25px;
+    margin: 20px 0;
+}
+
+.ext-what-if-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.ext-what-if-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+}
+
+.ext-scenario-indicator {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    color: #856404;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: none;
+}
+
+.ext-scenario-indicator.active {
+    display: block;
+}
+
+/* What-if sliders */
+.ext-what-if-slider {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.ext-slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.ext-slider-label {
+    font-weight: 600;
+    color: #333;
+    font-size: 0.95rem;
+}
+
+.ext-slider-value {
+    font-weight: 600;
+    color: #667eea;
+    font-size: 0.9rem;
+    min-width: 50px;
+    text-align: right;
+}
+
+/* Custom range slider styling */
+.ext-range-slider {
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    background: #e9ecef;
+    outline: none;
+    -webkit-appearance: none;
+    margin: 10px 0;
+    cursor: pointer;
+}
+
+.ext-range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.ext-range-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+    background: #5a67d8;
+}
+
+.ext-range-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #667eea;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+/* Impact preview */
+.ext-impact-preview {
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(102, 126, 234, 0.05);
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.ext-impact-summary {
+    font-size: 0.9rem;
+    color: #495057;
+    margin-bottom: 10px;
+}
+
+.ext-winner-change {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    display: inline-block;
+}
+
+.ext-winner-change.same {
+    background: #d4edda;
+    color: #155724;
+}
+
+.ext-winner-change.different {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* ==========================================================================
+   7. RISKS & WEAKNESSES STYLING
+   ========================================================================== */
+
+.ext-risks-container {
+    margin: 20px 0;
+}
+
+.ext-risk-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 15px;
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    border-left: 4px solid #ffc107;
+}
+
+.ext-risk-icon {
+    margin-right: 12px;
+    color: #856404;
+    font-size: 1.2rem;
+    margin-top: 2px;
+}
+
+.ext-risk-content h5 {
+    margin: 0 0 5px 0;
+    color: #856404;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.ext-risk-content p {
+    margin: 0;
+    color: #856404;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+/* ==========================================================================
+   8. LOADING STATES & ANIMATIONS
+   ========================================================================== */
+
+/* Loading overlay */
+.ext-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    backdrop-filter: blur(5px);
+}
+
+.ext-loading-content {
+    background: white;
+    padding: 40px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    max-width: 300px;
+}
+
+.ext-loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e9ecef;
+    border-top: 4px solid #667eea;
+    border-radius: 50%;
+    animation: ext-spin 1s linear infinite;
+    margin: 0 auto 20px auto;
+}
+
+.ext-loading-content p {
+    margin: 10px 0 5px 0;
+    font-weight: 600;
+    color: #333;
+    font-size: 1.1rem;
+}
+
+.ext-loading-content small {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Chart loading placeholder */
+.ext-chart-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    color: #666;
+    font-style: italic;
+}
+
+/* ==========================================================================
+   9. LEGACY RESULTS HANDLING
+   ========================================================================== */
+
+/* Hide legacy results when enhanced accordion is active */
+.legacy-results {
+    display: none;
+}
+
+/* Show legacy results if enhanced accordion fails to load */
+.ext-results-accordion:empty + .legacy-results {
+    display: block;
+}
+
+/* ==========================================================================
+   10. ANIMATIONS & TRANSITIONS
+   ========================================================================== */
+
+@keyframes ext-fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(-10px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+@keyframes ext-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes ext-slideIn {
+    from { 
+        transform: translateX(-20px); 
+        opacity: 0; 
+    }
+    to { 
+        transform: translateX(0); 
+        opacity: 1; 
+    }
+}
+
+/* Subtle hover animations */
+.ext-chart-container:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    transition: all 0.3s ease;
+}
+
+/* ==========================================================================
+   11. MOBILE RESPONSIVENESS
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    /* Accordion mobile adjustments */
+    .ext-accordion-header {
+        padding: 15px 20px;
+        font-size: 1rem;
+    }
+    
+    .ext-accordion-content {
+        padding: 20px;
+    }
+    
+    /* Executive summary mobile */
+    .ext-executive-summary {
+        padding: 20px;
+    }
+    
+    .ext-winner-card {
+        flex-direction: column;
+        text-align: center;
+        padding: 15px;
+    }
+    
+    .ext-winner-badge {
+        margin: 0 0 10px 0;
+    }
+    
+    /* Table mobile responsiveness */
+    .ext-ranking-table {
+        font-size: 0.85rem;
+    }
+    
+    .ext-ranking-table th,
+    .ext-ranking-table td {
+        padding: 10px 8px;
+    }
+    
+    /* Chart containers mobile */
+    .ext-chart-container {
+        padding: 15px;
+        margin: 15px 0;
+    }
+    
+    .ext-pie-container {
+        height: 300px;
+    }
+    
+    /* Heatmap mobile scroll */
+    .ext-heatmap {
+        margin: 15px -20px;
+        padding: 0 20px;
+    }
+    
+    /* What-if controls mobile */
+    .ext-what-if-controls {
+        padding: 20px;
+    }
+    
+    .ext-what-if-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .ext-what-if-slider {
+        padding: 12px;
+    }
+    
+    .ext-slider-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    /* Tornado chart mobile */
+    .ext-tornado-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .ext-tornado-label {
+        min-width: auto;
+        width: 100%;
+    }
+    
+    .ext-tornado-bar {
+        width: 100%;
+        margin: 0;
+    }
+    
+    .ext-tornado-value {
+        width: 100%;
+        text-align: left;
+    }
+    
+    /* Loading overlay mobile */
+    .ext-loading-content {
+        margin: 20px;
+        padding: 30px 20px;
+    }
+}
+
+/* ==========================================================================
+   12. PRINT STYLES
+   ========================================================================== */
+
+@media print {
+    .ext-results-accordion {
+        box-shadow: none;
+        border: 1px solid #ccc;
+    }
+    
+    .ext-accordion-header {
+        background: #f8f9fa !important;
+        color: #333 !important;
+        page-break-after: avoid;
+    }
+    
+    .ext-accordion-content {
+        display: block !important;
+        page-break-inside: avoid;
+    }
+    
+    .ext-chart-container {
+        page-break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #ccc;
+    }
+    
+    .ext-loading-overlay {
+        display: none !important;
+    }
+}
+
+/* ==========================================================================
+   13. HIGH CONTRAST & ACCESSIBILITY
+   ========================================================================== */
+
+@media (prefers-contrast: high) {
+    .ext-accordion-header {
+        border: 2px solid #000;
+    }
+    
+    .ext-accordion-header[aria-expanded="true"] {
+        background: #000 !important;
+        color: #fff !important;
+    }
+    
+    .ext-chart-container {
+        border: 2px solid #000;
+    }
+    
+    .ext-confidence-fill.high {
+        background: #006600 !important;
+    }
+    
+    .ext-confidence-fill.medium {
+        background: #cc6600 !important;
+    }
+    
+    .ext-confidence-fill.low {
+        background: #cc0000 !important;
+    }
+}
+
+/* ==========================================================================
+   14. FOCUS STATES FOR ACCESSIBILITY
+   ========================================================================== */
+
+.ext-range-slider:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+.ext-heatmap-cell:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+button:focus,
+.ext-accordion-header:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+}
+
+/* ==========================================================================
+   END OF ENHANCED RESULTS STYLES
+   ========================================================================== */
