@@ -529,10 +529,26 @@ function setupRatingStep() {
                 });
             });
             results.sort((a, b) => b.totalScore - a.totalScore);
+            
+            // Existing displayResults call
             displayResults(results);
             nextStep();
+            
+            // ADD THIS: Load and render enhanced results for step 6
+            if (currentStep === 6) {
+                loadEnhancedResults().then(() => {
+                    // Wait a bit for DOM to be ready, then render enhanced results
+                    setTimeout(() => {
+                        if (window.ext_results && window.ext_results.renderResultsAccordion) {
+                            window.ext_results.renderResultsAccordion();
+                        }
+                    }, 200);
+                }).catch(error => {
+                    console.warn('Enhanced results not available:', error);
+                    // Continue with standard results
+                });
+            }
         }
-
         function displayResults(results) {
             const container = document.getElementById('resultsGrid');
     
