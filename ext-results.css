@@ -484,6 +484,95 @@
     text-align: right;
 }
 
+/* Enhanced Tornado Chart Styling */
+.ext-tornado-chart {
+    margin: 20px 0;
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    border: 1px solid #e9ecef;
+}
+
+.ext-tornado-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.ext-tornado-item:hover {
+    background: #e9ecef;
+    transform: translateY(-1px);
+}
+
+.ext-tornado-label {
+    min-width: 150px;
+    font-weight: 600;
+    color: #333;
+    font-size: 0.9rem;
+    text-align: right;
+    padding-right: 15px;
+}
+
+.ext-tornado-bar-container {
+    flex: 1;
+    height: 24px;
+    position: relative;
+    background: #e9ecef;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 0 15px;
+}
+
+.ext-tornado-bar {
+    position: absolute;
+    height: 100%;
+    border-radius: 12px;
+    transition: all 0.8s ease-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.ext-tornado-bar.critical {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
+.ext-tornado-bar.moderate {
+    background: linear-gradient(135deg, #ffc107, #fd7e14);
+}
+
+.ext-tornado-bar.stable {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.ext-tornado-value {
+    min-width: 80px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.ext-tornado-value.critical {
+    color: #dc3545;
+}
+
+.ext-tornado-value.moderate {
+    color: #fd7e14;
+}
+
+.ext-tornado-value.stable {
+    color: #28a745;
+}
+
+
+
 /* Flip point indicators */
 .ext-flip-point-critical {
     border-left-color: #dc3545;
