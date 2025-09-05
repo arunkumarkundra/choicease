@@ -560,7 +560,7 @@ function setupRatingStep() {
                 scoreBar.className = 'score-bar';
                 const scoreFill = document.createElement('div');
                 scoreFill.className = 'score-fill';
-                scoreFill.style.width = `${(result.totalScore / maxScore) * 100}%`;
+                scoreFill.style.width = `${(result.totalScore / 5) * 100}%`;
                 scoreBar.appendChild(scoreFill);
                 card.appendChild(scoreBar);
 
