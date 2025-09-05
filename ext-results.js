@@ -219,7 +219,7 @@ function ext_generateChartsForPDF() {
      * Create the PDF document with all sections
      */
     function ext_createPDFDocument(results, confidence, flipPoints, decisionCopy, chartImages, jsPDF) {
-        const { jsPDF } = window.jspdf;
+        // const { jsPDF } = window.jspdf;
         const doc = new jsPDF('portrait', 'mm', 'a4');
 
         // Enhanced error handling wrapper
