@@ -2414,14 +2414,23 @@ function updateUIWithImportedData() {
             }
         }
 
+// Enhanced toast function with warning support
 function showToast(message, type = 'success') {
     const toast = document.createElement('div');
     toast.textContent = message;
+    
+    const colors = {
+        success: '#4caf50',
+        warning: '#ff9800',
+        error: '#f44336',
+        info: '#2196f3'
+    };
+    
     toast.style.cssText = `
         position: fixed;
         bottom: 20px;
         right: 20px;
-        background: ${type === 'success' ? '#4caf50' : '#f44336'};
+        background: ${colors[type] || colors.success};
         color: white;
         padding: 12px 20px;
         border-radius: 8px;
@@ -2431,13 +2440,21 @@ function showToast(message, type = 'success') {
         max-width: 300px;
         word-wrap: break-word;
         transition: opacity 0.3s ease;
+        font-size: 14px;
+        line-height: 1.4;
     `;
     
     document.body.appendChild(toast);
-    setTimeout(() => toast.style.opacity = '0', 3000);
-    setTimeout(() => toast.remove(), 3500);
+    
+    // Auto-hide timing based on message length
+    const hideDelay = Math.max(3000, message.length * 50);
+    setTimeout(() => toast.style.opacity = '0', hideDelay);
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.remove();
+        }
+    }, hideDelay + 500);
 }
-
         
         function openModal() {
             document.getElementById('howItWorksModal').style.display = 'block';
