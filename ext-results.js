@@ -24,8 +24,7 @@ function ext_debounce(func, wait, immediate) {
      * Generate enhanced PDF report
      */
     function ext_generatePDFReport() {
-        const jsPDF = (window.jspdf && window.jspdf.jsPDF) || window.jsPDF;
-        if (!jsPDF) {
+        if (!window.jsPDF) {
             console.error('jsPDF library not available');
             alert('PDF generation library not available. Please try the standard PDF export.');
             return;
@@ -46,7 +45,7 @@ function ext_debounce(func, wait, immediate) {
             
             // Generate charts as images
             ext_generateChartsForPDF().then(chartImages => {
-                const doc = ext_createPDFDocument(rankedResults, confidence, flipPoints, decisionCopy, chartImages, jsPDF);
+                const doc = ext_createPDFDocument(rankedResults, confidence, flipPoints, decisionCopy, chartImages);
                 
                 // Download PDF
                 const safeTitle = (decisionCopy.title || 'decision').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
@@ -218,8 +217,8 @@ function ext_generateChartsForPDF() {
     /**
      * Create the PDF document with all sections
      */
-    function ext_createPDFDocument(results, confidence, flipPoints, decisionCopy, chartImages, jsPDF) {
-        // const { jsPDF } = window.jspdf;
+    function ext_createPDFDocument(results, confidence, flipPoints, decisionCopy, chartImages) {
+        const { jsPDF } = window.jspdf;
         const doc = new jsPDF('portrait', 'mm', 'a4');
 
         // Enhanced error handling wrapper
