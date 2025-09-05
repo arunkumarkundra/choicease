@@ -1,4 +1,629 @@
+// ========================================
+    // PDF GENERATION FUNCTIONS
+    // ========================================
+
+    /**
+     * Generate enhanced PDF report
+     */
+    function ext_generatePDFReport() {
+        if (!window.jsPDF) {
+            console.error('jsPDF library not available');
+            alert('PDF generation library not available. Please try the standard PDF export.');
+            return;
+        }
+
+        try {
+            ext_showLoading('Generating professional PDF report...');
+            
+            const decisionCopy = ext_cloneDecisionData();
+            if (!decisionCopy) {
+                throw new Error('Unable to load decision data for PDF generation');
+            }
+
+            const results = ext_computeResultsCopy(decisionCopy);
+            const rankedResults = ext_assignRanks(results);
+            const confidence = ext_computeConfidence(rankedResults);
+            const flipPoints = ext_computeFlipPoints(decisionCopy);
+            
+            // Generate charts as images
+            ext_generateChartsForPDF().then(chartImages => {
+                const doc = ext_createPDFDocument(rankedResults, confidence, flipPoints, decisionCopy, chartImages);
+                
+                // Download PDF
+                const safeTitle = (decisionCopy.title || 'decision').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
+                const filename = `choicease_report_${safeTitle}_${timestamp}.pdf`;
+                
+                doc.save(filename);
+                ext_hideLoading();
+                
+                // Show success message
+                setTimeout(() => {
+                    alert('Professional PDF report generated successfully!');
+                }, 500);
+                
+            }).catch(error => {
+                console.error('Error generating chart images:', error);
+                ext_hideLoading();
+                alert('Error generating PDF charts. Please try again.');
+            });
+            
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            ext_hideLoading();
+            alert('Error generating PDF report. Please try again.');
+        }
+    }
+
+    /**
+     * Generate chart images for PDF embedding
+     */
+    function ext_generateChartsForPDF() {
+        return new Promise((resolve, reject) => {
+            try {
+                const images = {};
+                
+                // Capture pie chart if available
+                if (ext_state.charts.pie && typeof ext_state.charts.pie.toBase64Image === 'function') {
+                    try {
+                        images.pieChart = ext_state.charts.pie.toBase64Image('image/png', 1.0);
+                    } catch (chartError) {
+                        console.warn('Could not capture pie chart:', chartError);
+                    }
+                }
+                
+                // Capture heatmap table if available
+                const heatmapTable = document.querySelector('.ext-heatmap-table');
+                if (heatmapTable && window.html2canvas) {
+                    html2canvas(heatmapTable, {
+                        backgroundColor: '#ffffff',
+                        scale: 2,
+                        useCORS: true,
+                        allowTaint: true
+                    }).then(canvas => {
+                        images.heatmap = canvas.toDataURL('image/png', 1.0);
+                        resolve(images);
+                    }).catch(error => {
+                        console.warn('Could not capture heatmap:', error);
+                        resolve(images); // Continue without heatmap
+                    });
+                } else {
+                    resolve(images);
+                }
+                
+            } catch (error) {
+                console.warn('Error in chart capture:', error);
+                resolve({}); // Continue with empty images object
+            }
+        });
+    }
+
+    /**
+     * Create the PDF document with all sections
+     */
+    function ext_createPDFDocument(results, confidence, flipPoints, decisionCopy, chartImages) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('portrait', 'mm', 'a4');
+        
+        // Colors and styling
+        const colors = {
+            primary: [102, 126, 234],
+            secondary: [118, 75, 162],
+            success: [40, 167, 69],
+            text: [51, 51, 51],
+            lightText: [102, 102, 102],
+            background: [248, 249, 250]
+        };
+        
+        let yPos = 20;
+        
+        // Cover Page
+        doc.setFillColor(...colors.primary);
+        doc.rect(0, 0, 210, 60, 'F');
+        
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(28);
+        doc.setFont(undefined, 'bold');
+        doc.text('Decision Analysis Report', 105, 25, { align: 'center' });
+        
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'normal');
+        doc.text('Professional Decision Intelligence', 105, 35, { align: 'center' });
+        
+        doc.setFontSize(10);
+        doc.text(`Generated by Choicease - ${new Date().toLocaleDateString()}`, 105, 50, { align: 'center' });
+        
+        yPos = 80;
+        
+        // Decision title and context
+        doc.setTextColor(...colors.text);
+        doc.setFillColor(...colors.background);
+        doc.rect(10, yPos, 190, 40, 'F');
+        doc.setDrawColor(200, 200, 200);
+        doc.rect(10, yPos, 190, 40, 'S');
+        
+        doc.setFontSize(18);
+        doc.setFont(undefined, 'bold');
+        doc.text(`Decision: ${decisionCopy.title}`, 15, yPos + 12);
+        
+        if (decisionCopy.description) {
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(...colors.lightText);
+            const descLines = doc.splitTextToSize(`Context: ${decisionCopy.description}`, 180);
+            doc.text(descLines, 15, yPos + 25);
+        }
+        
+        yPos = 140;
+        
+        // Executive Summary
+        doc.setTextColor(...colors.primary);
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text('Executive Summary', 15, yPos);
+        yPos += 15;
+        
+        const winner = results[0];
+        const runnerUp = results.length > 1 ? results[1] : null;
+        
+        // Winner box
+        doc.setFillColor(220, 237, 218);
+        doc.rect(15, yPos, 180, 25, 'F');
+        doc.setDrawColor(...colors.success);
+        doc.setLineWidth(1);
+        doc.rect(15, yPos, 180, 25, 'S');
+        
+        doc.setTextColor(...colors.success);
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text('Recommended Choice:', 20, yPos + 8);
+        
+        doc.setTextColor(...colors.text);
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text(winner.option.name, 20, yPos + 16);
+        doc.setFont(undefined, 'normal');
+        doc.text(`Score: ${ext_safeNumber(winner.totalScore, 2)}/5.0 (${Math.round((winner.totalScore/5)*100)}%)`, 20, yPos + 22);
+        
+        yPos += 35;
+        
+        // Confidence meter
+        doc.setTextColor(...colors.text);
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text(`Confidence: ${confidence.bucket.toUpperCase()} (${confidence.confidencePercent}%)`, 20, yPos);
+        
+        // Confidence bar
+        const barWidth = 100;
+        const barHeight = 6;
+        const confidenceWidth = (confidence.confidencePercent / 100) * barWidth;
+        
+        doc.setFillColor(230, 230, 230);
+        doc.rect(20, yPos + 5, barWidth, barHeight, 'F');
+        
+        const confidenceColor = confidence.bucket === 'high' ? colors.success : 
+                               confidence.bucket === 'medium' ? [255, 193, 7] : [220, 53, 69];
+        doc.setFillColor(...confidenceColor);
+        doc.rect(20, yPos + 5, confidenceWidth, barHeight, 'F');
+        
+        yPos += 20;
+        
+        // Key differentiators
+        doc.setFontSize(11);
+        doc.setFont(undefined, 'bold');
+        doc.text('Why this choice won:', 20, yPos);
+        yPos += 8;
+        
+        const topCriteria = Object.entries(winner.criteriaScores)
+            .sort((a, b) => b[1].weightedScore - a[1].weightedScore)
+            .slice(0, 3);
+        
+        doc.setFont(undefined, 'normal');
+        topCriteria.forEach(([criteriaName, scores], index) => {
+            doc.text(`• ${criteriaName}: Scored ${scores.rating}/5 with ${Math.round(scores.weight)}% weight`, 25, yPos);
+            yPos += 6;
+        });
+        
+        // Margin information
+        if (runnerUp) {
+            const margin = winner.totalScore - runnerUp.totalScore;
+            yPos += 5;
+            doc.setFont(undefined, 'bold');
+            doc.text(`Margin vs runner-up: +${ext_safeNumber(margin, 2)} points ahead of ${runnerUp.option.name}`, 20, yPos);
+        }
+        
+        // New page for rankings
+        doc.addPage();
+        yPos = 20;
+        
+        // Rankings section
+        doc.setTextColor(...colors.primary);
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text('Complete Rankings', 15, yPos);
+        yPos += 15;
+        
+        // Rankings table
+        const tableData = results.map((result, index) => [
+            result.rank.toString(),
+            result.option.name,
+            ext_safeNumber(result.totalScore, 2),
+            `${Math.round((result.totalScore/5)*100)}%`
+        ]);
+        
+        // Table headers
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'bold');
+        doc.setFillColor(240, 240, 240);
+        doc.rect(15, yPos, 180, 8, 'F');
+        doc.text('Rank', 20, yPos + 5);
+        doc.text('Option', 45, yPos + 5);
+        doc.text('Score', 130, yPos + 5);
+        doc.text('Percentage', 160, yPos + 5);
+        yPos += 8;
+        
+        // Table rows
+        doc.setFont(undefined, 'normal');
+        tableData.forEach((row, index) => {
+            if (index === 0) {
+                doc.setFillColor(220, 237, 218);
+                doc.rect(15, yPos, 180, 7, 'F');
+                doc.setFont(undefined, 'bold');
+            } else {
+                doc.setFont(undefined, 'normal');
+            }
+            
+            doc.text(row[0], 20, yPos + 5);
+            doc.text(row[1], 45, yPos + 5);
+            doc.text(row[2], 130, yPos + 5);
+            doc.text(row[3], 160, yPos + 5);
+            yPos += 7;
+        });
+        
+        // Add criteria weights section
+        yPos += 20;
+        doc.setTextColor(...colors.primary);
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text('Criteria Analysis', 15, yPos);
+        yPos += 15;
+        
+        // Embed pie chart if available
+        if (chartImages.pieChart) {
+            try {
+                doc.addImage(chartImages.pieChart, 'PNG', 15, yPos, 80, 60);
+                yPos += 70;
+            } catch (error) {
+                console.warn('Could not embed pie chart in PDF:', error);
+            }
+        }
+        
+        // Criteria weights table
+        doc.setTextColor(...colors.text);
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text('Criteria Weights:', 100, yPos - 40);
+        
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        let criteriaYPos = yPos - 30;
+        decisionCopy.criteria.forEach(criteria => {
+            const weight = Math.round(decisionCopy.normalizedWeights[criteria.id] || 0);
+            doc.text(`${criteria.name}: ${weight}%`, 105, criteriaYPos);
+            criteriaYPos += 6;
+        });
+        
+        // Sensitivity analysis
+        if (yPos > 200) {
+            doc.addPage();
+            yPos = 20;
+        } else {
+            yPos += 20;
+        }
+        
+        doc.setTextColor(...colors.primary);
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text('Sensitivity Analysis', 15, yPos);
+        yPos += 15;
+        
+        const validFlipPoints = flipPoints.filter(fp => !fp.impossible);
+        if (validFlipPoints.length > 0) {
+            doc.setTextColor(...colors.text);
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'bold');
+            doc.text('Decision Flip Points:', 20, yPos);
+            yPos += 10;
+            
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            validFlipPoints.slice(0, 5).forEach(fp => {
+                const isCritical = Math.abs(fp.flipDeltaPercentPoints) < 5;
+                if (isCritical) {
+                    doc.setTextColor(...colors.primary);
+                    doc.setFont(undefined, 'bold');
+                } else {
+                    doc.setTextColor(...colors.text);
+                    doc.setFont(undefined, 'normal');
+                }
+                
+                doc.text(`• ${fp.criterionName}: ${fp.flipDeltaPercentPoints > 0 ? '+' : ''}${fp.flipDeltaPercentPoints}pp change needed`, 25, yPos);
+                yPos += 5;
+            });
+        }
+        
+        // Methodology section
+        if (yPos > 220) {
+            doc.addPage();
+            yPos = 20;
+        } else {
+            yPos += 20;
+        }
+        
+        doc.setTextColor(...colors.primary);
+        doc.setFontSize(16);
+        doc.setFont(undefined, 'bold');
+        doc.text('Methodology', 15, yPos);
+        yPos += 15;
+        
+        doc.setTextColor(...colors.text);
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        const methodology = [
+            'This analysis uses a weighted multi-criteria decision model:',
+            '• Each option rated 1-5 on each criterion',
+            '• Criteria importance weights normalized to 100%',
+            '• Final scores = Σ(rating × weight) for each option',
+            '• Confidence based on score gaps and criteria consistency',
+            '• Sensitivity analysis shows weight changes needed to flip decision'
+        ];
+        
+        methodology.forEach(line => {
+            doc.text(line, 20, yPos);
+            yPos += 6;
+        });
+        
+        // Footer on all pages
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            
+            // Footer line
+            doc.setDrawColor(...colors.primary);
+            doc.setLineWidth(0.5);
+            doc.line(20, 285, 190, 285);
+            
+            doc.setTextColor(...colors.lightText);
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'normal');
+            doc.text('Powered by Choicease - Smart Choices, Made Easy', 105, 290, { align: 'center' });
+            doc.text(`choicease.com | Page ${i} of ${pageCount}`, 105, 295, { align: 'center' });
+        }
+        
+        return doc;
+    }
+
+    // ========================================
+    // UTILITY FUNCTIONS
+    // ========================================
+
+    /**
+     * Safe HTML escaping to prevent XSS
+     */
+    function ext_safeHtml(str) {
+        if (typeof str !== 'string') return '';
+        return str.replace(/[&<>"']/g, function(match) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[match];
+        });
+    }
+
+    /**
+     * Safe number formatting
+     */
+    function ext_safeNumber(num, decimals = 2) {
+        if (typeof num !== 'number' || isNaN(num)) return '0';
+        return Number(num.toFixed(decimals));
+    }
+
+    /**
+     * Format percentage strings
+     */
+    function ext_formatPercent(val) {
+        return `${Math.round(val)}%`;
+    }
+
+    /**
+     * Generate colors for charts
+     */
+    function ext_generateColors(count) {
+        const baseColors = [
+            '#667eea', '#764ba2', '#28a745', '#ffc107', '#dc3545', 
+            '#17a2b8', '#6610f2', '#e83e8c', '#fd7e14', '#20c997'
+        ];
+        
+        const colors = [];
+        for (let i = 0; i < count; i++) {
+            colors.push(baseColors[i % baseColors.length]);
+        }
+        return colors;
+    }
+
+    /**
+     * Show loading overlay
+     */
+    function ext_showLoading(message = 'Loading...') {
+        const overlay = document.getElementById('ext_loadingOverlay');
+        if (overlay) {
+            const messageEl = overlay.querySelector('p');
+            if (messageEl) messageEl.textContent = message;
+            overlay.style.display = 'flex';
+        }
+    }
+
+    /**
+     * Hide loading overlay
+     */
+    function ext_hideLoading() {
+        const overlay = document.getElementById('ext_loadingOverlay');
+        if (overlay) {
+            overlay.style.display = 'none';
+        }
+    }
+
+    /**
+     * Show fallback message if enhanced results fail
+     */
+    function ext_showFallbackMessage() {
+        const container = document.getElementById('ext_resultsAccordion');
+        if (container) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <h3>Enhanced results temporarily unavailable</h3>
+                    <p>Please use the standard results below, or refresh the page to try again.</p>
+                </div>
+            `;
+        }
+        
+        // Show legacy results
+        const legacyResults = document.getElementById('resultsGrid');
+        if (legacyResults) {
+            legacyResults.style.display = 'block';
+        }
+    }
+
+    /**
+     * Hook into export dropdown for enhanced PDF
+     */
+    function ext_hookExportHandlers() {
+        // Hook into existing export dropdown handler
+        document.addEventListener('click', function(event) {
+            if (event.target.classList.contains('export-option')) {
+                const type = event.target.getAttribute('data-type');
+                if (type === 'ext_pdf') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    ext_generatePDFReport();
+                    
+                    // Close dropdown
+                    const dropdown = document.getElementById('exportDropdown');
+                    if (dropdown) {
+                        dropdown.classList.remove('show');
+                    }
+                }
+            }
+        });
+
+        // Hook into enhanced PDF button in export section
+        const pdfBtn = document.getElementById('ext_pdfPreviewBtn');
+        if (pdfBtn) {
+            pdfBtn.addEventListener('click', ext_generatePDFReport);
+        }
+    }
+
+    // ========================================
+    // INTEGRATION & INITIALIZATION
+    // ========================================
+
+    /**
+     * Initialize the enhanced results module
+     */
+    function ext_initializeModule() {
+        if (ext_state.isInitialized) return;
+        
+        console.log('Initializing enhanced results module...');
+        
+        // Check dependencies
+        if (!window.ExtChart) {
+            console.warn('Chart.js not available - some features may be limited');
+        }
+        
+        if (!window.jsPDF) {
+            console.warn('jsPDF not available - enhanced PDF generation disabled');
+        }
+        
+        // Hook into the existing calculateResults flow
+        const originalCalculateResults = window.calculateResults;
+        if (typeof originalCalculateResults === 'function') {
+            window.calculateResults = function() {
+                // Call original function first
+                const result = originalCalculateResults.apply(this, arguments);
+                
+                // Then add enhanced results
+                setTimeout(() => {
+                    if (currentStep === 6) { // Only on results step
+                        ext_renderResultsAccordion();
+                    }
+                }, 100);
+                
+                return result;
+            };
+        } else {
+            console.warn('calculateResults function not found - enhanced results may not trigger automatically');
+        }
+        
+        ext_state.isInitialized = true;
+        console.log('Enhanced results module initialized successfully');
+    }
+
+    // ========================================
+    // MODULE EXPORTS & AUTO-INITIALIZATION
+    // ========================================
+
+    // Export functions to global scope for debugging and manual calling
+    window.ext_results = {
+        renderResultsAccordion: ext_renderResultsAccordion,
+        generatePDFReport: ext_generatePDFReport,
+        computeResultsCopy: ext_computeResultsCopy,
+        assignRanks: ext_assignRanks,
+        computeConfidence: ext_computeConfidence,
+        computeFlipPoints: ext_computeFlipPoints,
+        state: ext_state,
+        config: ext_config
+    };
+
+    // Auto-initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', ext_initializeModule);
+    } else {
+        // DOM already loaded
+        ext_initializeModule();
+    }
+
+    // Also initialize when script loads (backup)
+    setTimeout(ext_initializeModule, 100);
+
+})();
+
 /**
+ * Integration Notes:
+ * 
+ * 1. This module automatically hooks into the existing calculateResults() function
+ * 2. All functions are prefixed with 'ext_' to avoid conflicts
+ * 3. No modifications to existing decisionData or state-mutating functions
+ * 4. Graceful degradation if Chart.js or jsPDF fail to load
+ * 5. Maintains backward compatibility with existing results
+ * 6. Professional-grade PDF generation with embedded charts
+ * 7. Interactive what-if analysis with real-time updates
+ * 8. Comprehensive sensitivity analysis and risk assessment
+ * 9. Mobile-responsive design with touch-friendly controls
+ * 10. Accessibility features with proper ARIA labels and keyboard support
+ * 
+ * Key Fixes Applied:
+ * - Fixed Chart.js plugin detection and error handling
+ * - Added fallback displays for failed chart renders
+ * - Improved null/undefined checks throughout
+ * - Enhanced XSS protection with proper HTML escaping
+ * - Better error handling in PDF generation
+ * - Fixed slider event handlers with proper null checks
+ * - Added chart fallback functionality
+ * - Improved dependency detection and graceful degradation
+ *//**
  * CHOICEASE - ENHANCED RESULTS MODULE
  * Executive-grade decision analysis with interactive charts and insights
  * 
@@ -709,1097 +1334,4 @@
      */
     function ext_renderWeightsPie(decisionCopy) {
         if (!window.ExtChart) {
-            console.warn('Chart.js not available for pie chart');
-            return;
-        }
-
-        const canvas = document.getElementById('ext_weightsPie');
-        const container = document.getElementById('ext_weightsPieContainer');
-        if (!canvas || !container) return;
-
-        // Prepare data
-        const labels = decisionCopy.criteria.map(c => c.name);
-        const data = decisionCopy.criteria.map(c => Math.round(decisionCopy.normalizedWeights[c.id] || 0));
-        const colors = ext_generateColors(labels.length);
-
-        // Destroy existing chart if it exists
-        if (ext_state.charts.pie) {
-            ext_state.charts.pie.destroy();
-        }
-
-        const ctx = canvas.getContext('2d');
-        ext_state.charts.pie = new ExtChart(ctx, {
-            type: 'pie',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: data,
-                    backgroundColor: colors,
-                    borderColor: '#fff',
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 20,
-                            usePointStyle: true,
-                            font: {
-                                size: 12
-                            }
-                        }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                const label = context.label || '';
-                                const value = context.parsed;
-                                return `${label}: ${value}%`;
-                            }
-                        }
-                    },
-                    datalabels: {
-                        color: '#fff',
-                        font: {
-                            weight: 'bold',
-                            size: 14
-                        },
-                        formatter: function(value, context) {
-                            return value > 5 ? `${value}%` : ''; // Only show label if slice is large enough
-                        }
-                    }
-                },
-                animation: {
-                    duration: ext_config.animationDuration
-                }
-            },
-            plugins: [window.ChartDataLabels]
-        });
-    }
-
-    /**
-     * Render performance heatmap
-     */
-    function ext_renderHeatmap(decisionCopy, results) {
-        const container = document.getElementById('ext_heatmapContainer');
-        if (!container) return;
-
-        const heatmapHTML = `
-            <div class="ext-chart-container">
-                <h4>Performance Matrix</h4>
-                <p style="color: #666; margin-bottom: 15px;">
-                    Color scale: Rating 4-5 (green), 3 (yellow), 1-2 (red). Click cells for details.
-                </p>
-                <div class="ext-heatmap">
-                    <table class="ext-heatmap-table">
-                        <thead>
-                            <tr>
-                                <th>Option</th>
-                                ${decisionCopy.criteria.map(c => `<th>${ext_safeHtml(c.name)}</th>`).join('')}
-                                <th>Total Score</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${results.map(result => `
-                                <tr>
-                                    <td style="text-align: left; font-weight: 600;">
-                                        ${ext_safeHtml(result.option.name)}
-                                    </td>
-                                    ${decisionCopy.criteria.map(criteria => {
-                                        const scores = result.criteriaScores[criteria.name];
-                                        const rating = scores ? scores.rating : 3;
-                                        const weightedScore = scores ? scores.weightedScore : 0;
-                                        const weight = scores ? scores.weight : 0;
-                                        
-                                        return `
-                                            <td class="ext-heatmap-cell rating-${rating}" 
-                                                data-rating="${rating}" 
-                                                data-weighted="${ext_safeNumber(weightedScore, 3)}"
-                                                data-weight="${Math.round(weight)}"
-                                                data-option="${ext_safeHtml(result.option.name)}"
-                                                data-criteria="${ext_safeHtml(criteria.name)}">
-                                                ${rating}
-                                            </td>
-                                        `;
-                                    }).join('')}
-                                    <td style="font-weight: bold; background: ${result === results[0] ? '#28a745' : '#f8f9fa'}; color: ${result === results[0] ? 'white' : '#333'};">
-                                        ${ext_safeNumber(result.totalScore, 2)}
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        `;
-
-        container.innerHTML = heatmapHTML;
-        ext_initializeHeatmapTooltips();
-    }
-
-    /**
-     * Initialize heatmap cell tooltips
-     */
-    function ext_initializeHeatmapTooltips() {
-        const cells = document.querySelectorAll('.ext-heatmap-cell[data-rating]');
-        const tooltip = document.createElement('div');
-        tooltip.className = 'ext-heatmap-tooltip';
-        document.body.appendChild(tooltip);
-
-        cells.forEach(cell => {
-            cell.addEventListener('mouseenter', function(e) {
-                const option = this.dataset.option;
-                const criteria = this.dataset.criteria;
-                const rating = this.dataset.rating;
-                const weighted = this.dataset.weighted;
-                const weight = this.dataset.weight;
-                
-                tooltip.innerHTML = `
-                    <strong>${option}</strong><br>
-                    ${criteria}: ${rating}/5<br>
-                    Weight: ${weight}%<br>
-                    Contribution: ${weighted}
-                `;
-                
-                tooltip.classList.add('visible');
-            });
-
-            cell.addEventListener('mousemove', function(e) {
-                tooltip.style.left = (e.pageX + 10) + 'px';
-                tooltip.style.top = (e.pageY - 10) + 'px';
-            });
-
-            cell.addEventListener('mouseleave', function() {
-                tooltip.classList.remove('visible');
-            });
-        });
-    }
-
-    /**
-     * Render sensitivity analysis
-     */
-    function ext_renderSensitivity(flipPoints) {
-        const container = document.getElementById('ext_sensitivityContainer');
-        if (!container) return;
-
-        const validFlipPoints = flipPoints.filter(fp => !fp.impossible);
-        const criticalThreshold = 5; // Less than 5% change is critical
-
-        container.innerHTML = `
-            <div class="ext-sensitivity-container">
-                <h4>Decision Sensitivity Analysis</h4>
-                <p style="color: #666; margin-bottom: 20px;">
-                    How much would criteria weights need to change to flip the decision?
-                </p>
-                
-                <div class="ext-tornado-chart">
-                    <h5>Flip-Point Analysis</h5>
-                    ${validFlipPoints.length > 0 ? validFlipPoints.map(fp => {
-                        const isCritical = Math.abs(fp.flipDeltaPercentPoints) < criticalThreshold;
-                        const barWidth = Math.min(Math.abs(fp.flipDeltaPercentPoints) / 20 * 100, 100);
-                        
-                        return `
-                            <div class="ext-tornado-item ${isCritical ? 'ext-flip-point-critical' : ''}">
-                                <div class="ext-tornado-label">${ext_safeHtml(fp.criterionName)}</div>
-                                <div class="ext-tornado-bar">
-                                    <div class="ext-tornado-fill" style="width: ${barWidth}%"></div>
-                                </div>
-                                <div class="ext-tornado-value">
-                                    ${fp.flipDeltaPercentPoints > 0 ? '+' : ''}${fp.flipDeltaPercentPoints}pp
-                                </div>
-                            </div>
-                            ${isCritical ? `
-                                <div style="margin-left: 135px; font-size: 0.85rem; color: #dc3545; margin-bottom: 10px;">
-                                    <strong>Decision-critical:</strong> Small weight changes on ${fp.criterionName} 
-                                    (Δ ${Math.abs(fp.flipDeltaPercentPoints)}pp) could change the winner.
-                                </div>
-                            ` : ''}
-                        `;
-                    }).join('') : '<p style="color: #666;">No feasible flip points found - decision is very stable.</p>'}
-                </div>
-
-                ${validFlipPoints.length > 0 ? `
-                    <div style="margin-top: 20px; padding: 15px; background: #e7f3ff; border-radius: 8px; border-left: 4px solid #17a2b8;">
-                        <h5 style="margin: 0 0 8px 0; color: #17a2b8;">Example Scenario:</h5>
-                        <p style="margin: 0; color: #17a2b8;">
-                            If you increase <strong>${validFlipPoints[0].criterionName}</strong> 
-                            by ${Math.abs(validFlipPoints[0].flipDeltaPercentPoints)} percentage points 
-                            (from ${validFlipPoints[0].currentWeight}% → ${validFlipPoints[0].newWeight}%), 
-                            the runner-up becomes the top choice.
-                        </p>
-                    </div>
-                ` : ''}
-            </div>
-        `;
-    }
-
-    /**
-     * Initialize what-if controls
-     */
-    function ext_initWhatIfControls(decisionCopy) {
-        const container = document.getElementById('ext_sensitivityContainer');
-        if (!container) return;
-
-        // Add what-if section to sensitivity container
-        const whatIfHTML = `
-            <div class="ext-what-if-controls" style="margin-top: 30px;">
-                <div class="ext-what-if-header">
-                    <h4 class="ext-what-if-title">What-If Analysis</h4>
-                    <div class="ext-scenario-indicator" id="ext_scenarioIndicator">
-                        Scenario-only view - this does not change your saved decision
-                    </div>
-                </div>
-                <p style="color: #666; margin-bottom: 20px;">
-                    Adjust criteria weights to see how it affects the ranking. Changes are temporary and for exploration only.
-                </p>
-                
-                <div id="ext_whatIfSliders">
-                    ${decisionCopy.criteria.map(criteria => `
-                        <div class="ext-what-if-slider">
-                            <div class="ext-slider-header">
-                                <div class="ext-slider-label">${ext_safeHtml(criteria.name)}</div>
-                                <div class="ext-slider-value" id="ext_slider_${criteria.id}">${Math.round(decisionCopy.normalizedWeights[criteria.id])}%</div>
-                            </div>
-                            <input type="range" 
-                                   class="ext-range-slider" 
-                                   id="ext_range_${criteria.id}"
-                                   min="1" 
-                                   max="80" 
-                                   value="${Math.round(decisionCopy.normalizedWeights[criteria.id])}"
-                                   data-criteria-id="${criteria.id}"
-                                   aria-label="Weight for ${criteria.name}">
-                        </div>
-                    `).join('')}
-                </div>
-                
-                <div class="ext-impact-preview" id="ext_impactPreview">
-                    <div class="ext-impact-summary">Adjust weights above to see impact on rankings</div>
-                </div>
-                
-                <div style="text-align: center; margin-top: 20px;">
-                    <button class="btn btn-secondary" id="ext_resetWeights">Reset to Original</button>
-                </div>
-            </div>
-        `;
-
-        container.insertAdjacentHTML('beforeend', whatIfHTML);
-        ext_initializeWhatIfSliders(decisionCopy);
-    }
-
-    /**
-     * Initialize what-if slider event handlers
-     */
-    function ext_initializeWhatIfSliders(decisionCopy) {
-        const sliders = document.querySelectorAll('.ext-range-slider');
-        const resetBtn = document.getElementById('ext_resetWeights');
-        const scenarioIndicator = document.getElementById('ext_scenarioIndicator');
-        
-        let isModified = false;
-
-        sliders.forEach(slider => {
-            slider.addEventListener('input', function() {
-                const criteriaId = this.dataset.criteriaId;
-                const newValue = parseInt(this.value);
-                
-                // Update display
-                document.getElementById(`ext_slider_${criteriaId}`).textContent = `${newValue}%`;
-                
-                // Update temporary weights
-                ext_state.tmpWeights[criteriaId] = newValue;
-                
-                // Renormalize weights
-                ext_renormalizeWeights();
-                
-                // Update all slider displays after renormalization
-                ext_updateSliderDisplays();
-                
-                // Show scenario indicator
-                if (!isModified) {
-                    isModified = true;
-                    scenarioIndicator.classList.add('active');
-                }
-                
-                // Update impact preview
-                ext_updateWhatIfPreview(decisionCopy);
-            });
-        });
-
-        resetBtn.addEventListener('click', function() {
-            // Reset to original weights
-            ext_state.tmpWeights = { ...decisionCopy.normalizedWeights };
-            
-            // Update all sliders
-            ext_updateSliderDisplays();
-            
-            // Hide scenario indicator
-            isModified = false;
-            scenarioIndicator.classList.remove('active');
-            
-            // Update preview
-            ext_updateWhatIfPreview(decisionCopy);
-        });
-    }
-
-    /**
-     * Renormalize weights to maintain 100% total
-     */
-    function ext_renormalizeWeights() {
-        const total = Object.values(ext_state.tmpWeights).reduce((sum, weight) => sum + weight, 0);
-        if (total <= 0) return;
-        
-        // Normalize to 100%
-        Object.keys(ext_state.tmpWeights).forEach(id => {
-            ext_state.tmpWeights[id] = (ext_state.tmpWeights[id] / total) * 100;
-        });
-    }
-
-    /**
-     * Update slider displays after renormalization
-     */
-    function ext_updateSliderDisplays() {
-        Object.keys(ext_state.tmpWeights).forEach(id => {
-            const value = Math.round(ext_state.tmpWeights[id]);
-            const slider = document.getElementById(`ext_range_${id}`);
-            const display = document.getElementById(`ext_slider_${id}`);
-            
-            if (slider && display) {
-                slider.value = value;
-                display.textContent = `${value}%`;
-            }
-        });
-    }
-
-    /**
-     * Update what-if preview with new rankings
-     */
-    function ext_updateWhatIfPreview(decisionCopy) {
-        const previewContainer = document.getElementById('ext_impactPreview');
-        if (!previewContainer) return;
-
-        // Create a copy with modified weights
-        const modifiedCopy = ext_cloneDecisionData();
-        modifiedCopy.normalizedWeights = { ...ext_state.tmpWeights };
-        
-        // Compute new results
-        const newResults = ext_computeResultsCopy(modifiedCopy);
-        const newRanked = ext_assignRanks(newResults);
-        
-        // Compare with original
-        const originalWinner = ext_state.currentResults[0];
-        const newWinner = newRanked[0];
-        const winnerChanged = originalWinner.option.id !== newWinner.option.id;
-        
-        previewContainer.innerHTML = `
-            <div class="ext-impact-summary">
-                Impact Preview: 
-                <span class="ext-winner-change ${winnerChanged ? 'different' : 'same'}">
-                    ${winnerChanged ? 
-                        `Winner changed! Now: ${ext_safeHtml(newWinner.option.name)} (${ext_safeNumber(newWinner.totalScore, 2)})` :
-                        `Same winner: ${ext_safeHtml(newWinner.option.name)} (${ext_safeNumber(newWinner.totalScore, 2)})`
-                    }
-                </span>
-            </div>
-            <div style="font-size: 0.85rem; color: #666; margin-top: 8px;">
-                Top 3: ${newRanked.slice(0, 3).map(r => 
-                    `${ext_safeHtml(r.option.name)} (${ext_safeNumber(r.totalScore, 1)})`
-                ).join(', ')}
-            </div>
-        `;
-    }
-
-    /**
-     * Render risks and weaknesses analysis
-     */
-    function ext_renderRisksAnalysis(results, decisionCopy) {
-        const container = document.getElementById('ext_risksContainer');
-        if (!container || !results.length) return;
-
-        const winner = results[0];
-        const risks = [];
-
-        // Find criteria where winner scored poorly
-        Object.entries(winner.criteriaScores).forEach(([criteriaName, scores]) => {
-            if (scores.rating <= 2) {
-                risks.push({
-                    type: 'low_score',
-                    criteria: criteriaName,
-                    rating: scores.rating,
-                    weight: Math.round(scores.weight),
-                    message: `Weak performance on ${criteriaName} (${scores.rating}/5 rating)`
-                });
-            }
-        });
-
-        // Find highly weighted criteria where winner is not the best
-        decisionCopy.criteria.forEach(criteria => {
-            const weight = Math.round(decisionCopy.normalizedWeights[criteria.id] || 0);
-            if (weight > 20) { // High weight threshold
-                const allScores = results.map(r => ({
-                    option: r.option.name,
-                    rating: r.criteriaScores[criteria.name]?.rating || 3
-                }));
-                
-                const maxRating = Math.max(...allScores.map(s => s.rating));
-                const winnerRating = winner.criteriaScores[criteria.name]?.rating || 3;
-                
-                if (winnerRating < maxRating) {
-                    const betterOptions = allScores.filter(s => s.rating > winnerRating);
-                    risks.push({
-                        type: 'not_best',
-                        criteria: criteria.name,
-                        rating: winnerRating,
-                        weight: weight,
-                        betterOptions: betterOptions,
-                        message: `Not the best choice for highly weighted ${criteria.name} (${weight}% weight)`
-                    });
-                }
-            }
-        });
-
-        container.innerHTML = `
-            <div class="ext-risks-container">
-                <h4>Potential Risks & Weaknesses</h4>
-                <p style="color: #666; margin-bottom: 20px;">
-                    Areas where ${ext_safeHtml(winner.option.name)} might need attention or consideration.
-                </p>
-                
-                ${risks.length > 0 ? risks.map(risk => `
-                    <div class="ext-risk-item">
-                        <div class="ext-risk-icon">⚠️</div>
-                        <div class="ext-risk-content">
-                            <h5>${risk.message}</h5>
-                            <p>
-                                ${risk.type === 'low_score' ? 
-                                    `Consider if this ${risk.weight}%-weighted criterion is acceptable at current level, or if improvements are needed.` :
-                                    `Other options (${risk.betterOptions.map(o => o.option).join(', ')}) score higher on this important criterion.`
-                                }
-                            </p>
-                        </div>
-                    </div>
-                `).join('') : `
-                    <div style="text-align: center; padding: 20px; color: #28a745;">
-                        <h5>✅ No significant risks identified</h5>
-                        <p>${ext_safeHtml(winner.option.name)} performs well across all important criteria!</p>
-                    </div>
-                `}
-                
-                ${risks.length > 0 ? `
-                    <div style="margin-top: 20px; padding: 15px; background: #e7f3ff; border-radius: 8px; border-left: 4px solid #17a2b8;">
-                        <h5 style="margin: 0 0 8px 0; color: #17a2b8;">Suggested Actions:</h5>
-                        <ul style="margin: 0; color: #17a2b8;">
-                            ${risks.slice(0, 3).map(risk => 
-                                `<li>Review and potentially improve ${risk.criteria} aspects</li>`
-                            ).join('')}
-                            ${risks.length > 1 ? '<li>Consider whether identified weaknesses are deal-breakers</li>' : ''}
-                            <li>Compare with runner-up options for these specific criteria</li>
-                        </ul>
-                    </div>
-                ` : ''}
-            </div>
-        `;
-    }
-
-    // ========================================
-    // PDF GENERATION FUNCTIONS
-    // ========================================
-
-    /**
-     * Generate enhanced PDF report
-     */
-    function ext_generatePDFReport() {
-        if (!window.jsPDF) {
-            console.error('jsPDF library not available');
-            alert('PDF generation library not available. Please try the standard PDF export.');
-            return;
-        }
-
-        try {
-            ext_showLoading('Generating professional PDF report...');
-            
-            const decisionCopy = ext_cloneDecisionData();
-            const results = ext_computeResultsCopy(decisionCopy);
-            const rankedResults = ext_assignRanks(results);
-            const confidence = ext_computeConfidence(rankedResults);
-            const flipPoints = ext_computeFlipPoints(decisionCopy);
-            
-            // Generate charts as images
-            ext_generateChartsForPDF().then(chartImages => {
-                const doc = ext_createPDFDocument(rankedResults, confidence, flipPoints, decisionCopy, chartImages);
-                
-                // Download PDF
-                const safeTitle = (decisionCopy.title || 'decision').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
-                const filename = `choicease_report_${safeTitle}_${timestamp}.pdf`;
-                
-                doc.save(filename);
-                ext_hideLoading();
-                
-                // Show success message
-                setTimeout(() => {
-                    alert('Professional PDF report generated successfully!');
-                }, 500);
-                
-            }).catch(error => {
-                console.error('Error generating chart images:', error);
-                ext_hideLoading();
-                alert('Error generating PDF charts. Please try again.');
-            });
-            
-        } catch (error) {
-            console.error('Error generating PDF:', error);
-            ext_hideLoading();
-            alert('Error generating PDF report. Please try again.');
-        }
-    }
-
-    /**
-     * Generate chart images for PDF embedding
-     */
-    function ext_generateChartsForPDF() {
-        return new Promise((resolve, reject) => {
-            try {
-                const images = {};
-                
-                // Capture pie chart
-                if (ext_state.charts.pie) {
-                    images.pieChart = ext_state.charts.pie.toBase64Image('image/png', 1.0);
-                }
-                
-                // Capture heatmap table
-                const heatmapTable = document.querySelector('.ext-heatmap-table');
-                if (heatmapTable) {
-                    html2canvas(heatmapTable, {
-                        backgroundColor: '#ffffff',
-                        scale: 2
-                    }).then(canvas => {
-                        images.heatmap = canvas.toDataURL('image/png', 1.0);
-                        resolve(images);
-                    }).catch(reject);
-                } else {
-                    resolve(images);
-                }
-                
-            } catch (error) {
-                reject(error);
-            }
-        });
-    }
-
-    /**
-     * Create the PDF document with all sections
-     */
-    function ext_createPDFDocument(results, confidence, flipPoints, decisionCopy, chartImages) {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF('portrait', 'mm', 'a4');
-        
-        // Colors and styling
-        const colors = {
-            primary: [102, 126, 234],
-            secondary: [118, 75, 162],
-            success: [40, 167, 69],
-            text: [51, 51, 51],
-            lightText: [102, 102, 102],
-            background: [248, 249, 250]
-        };
-        
-        let yPos = 20;
-        
-        // Cover Page
-        doc.setFillColor(...colors.primary);
-        doc.rect(0, 0, 210, 60, 'F');
-        
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(28);
-        doc.setFont(undefined, 'bold');
-        doc.text('Decision Analysis Report', 105, 25, { align: 'center' });
-        
-        doc.setFontSize(14);
-        doc.setFont(undefined, 'normal');
-        doc.text('Professional Decision Intelligence', 105, 35, { align: 'center' });
-        
-        doc.setFontSize(10);
-        doc.text(`Generated by Choicease - ${new Date().toLocaleDateString()}`, 105, 50, { align: 'center' });
-        
-        yPos = 80;
-        
-        // Decision title and context
-        doc.setTextColor(...colors.text);
-        doc.setFillColor(...colors.background);
-        doc.rect(10, yPos, 190, 40, 'F');
-        doc.setDrawColor(200, 200, 200);
-        doc.rect(10, yPos, 190, 40, 'S');
-        
-        doc.setFontSize(18);
-        doc.setFont(undefined, 'bold');
-        doc.text(`Decision: ${decisionCopy.title}`, 15, yPos + 12);
-        
-        if (decisionCopy.description) {
-            doc.setFontSize(12);
-            doc.setFont(undefined, 'normal');
-            doc.setTextColor(...colors.lightText);
-            const descLines = doc.splitTextToSize(`Context: ${decisionCopy.description}`, 180);
-            doc.text(descLines, 15, yPos + 25);
-        }
-        
-        yPos = 140;
-        
-        // Executive Summary
-        doc.setTextColor(...colors.primary);
-        doc.setFontSize(16);
-        doc.setFont(undefined, 'bold');
-        doc.text('Executive Summary', 15, yPos);
-        yPos += 15;
-        
-        const winner = results[0];
-        const runnerUp = results.length > 1 ? results[1] : null;
-        
-        // Winner box
-        doc.setFillColor(220, 237, 218);
-        doc.rect(15, yPos, 180, 25, 'F');
-        doc.setDrawColor(...colors.success);
-        doc.setLineWidth(1);
-        doc.rect(15, yPos, 180, 25, 'S');
-        
-        doc.setTextColor(...colors.success);
-        doc.setFontSize(14);
-        doc.setFont(undefined, 'bold');
-        doc.text('Recommended Choice:', 20, yPos + 8);
-        
-        doc.setTextColor(...colors.text);
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'bold');
-        doc.text(winner.option.name, 20, yPos + 16);
-        doc.setFont(undefined, 'normal');
-        doc.text(`Score: ${ext_safeNumber(winner.totalScore, 2)}/5.0 (${Math.round((winner.totalScore/5)*100)}%)`, 20, yPos + 22);
-        
-        yPos += 35;
-        
-        // Confidence meter
-        doc.setTextColor(...colors.text);
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'bold');
-        doc.text(`Confidence: ${confidence.bucket.toUpperCase()} (${confidence.confidencePercent}%)`, 20, yPos);
-        
-        // Confidence bar
-        const barWidth = 100;
-        const barHeight = 6;
-        const confidenceWidth = (confidence.confidencePercent / 100) * barWidth;
-        
-        doc.setFillColor(230, 230, 230);
-        doc.rect(20, yPos + 5, barWidth, barHeight, 'F');
-        
-        const confidenceColor = confidence.bucket === 'high' ? colors.success : 
-                               confidence.bucket === 'medium' ? [255, 193, 7] : [220, 53, 69];
-        doc.setFillColor(...confidenceColor);
-        doc.rect(20, yPos + 5, confidenceWidth, barHeight, 'F');
-        
-        yPos += 20;
-        
-        // Key differentiators
-        doc.setFontSize(11);
-        doc.setFont(undefined, 'bold');
-        doc.text('Why this choice won:', 20, yPos);
-        yPos += 8;
-        
-        const topCriteria = Object.entries(winner.criteriaScores)
-            .sort((a, b) => b[1].weightedScore - a[1].weightedScore)
-            .slice(0, 3);
-        
-        doc.setFont(undefined, 'normal');
-        topCriteria.forEach(([criteriaName, scores], index) => {
-            doc.text(`• ${criteriaName}: Scored ${scores.rating}/5 with ${Math.round(scores.weight)}% weight`, 25, yPos);
-            yPos += 6;
-        });
-        
-        // Margin information
-        if (runnerUp) {
-            const margin = winner.totalScore - runnerUp.totalScore;
-            yPos += 5;
-            doc.setFont(undefined, 'bold');
-            doc.text(`Margin vs runner-up: +${ext_safeNumber(margin, 2)} points ahead of ${runnerUp.option.name}`, 20, yPos);
-        }
-        
-        // New page for rankings
-        doc.addPage();
-        yPos = 20;
-        
-        // Rankings section
-        doc.setTextColor(...colors.primary);
-        doc.setFontSize(16);
-        doc.setFont(undefined, 'bold');
-        doc.text('Complete Rankings', 15, yPos);
-        yPos += 15;
-        
-        // Rankings table
-        const tableData = results.map((result, index) => [
-            result.rank.toString(),
-            result.option.name,
-            ext_safeNumber(result.totalScore, 2),
-            `${Math.round((result.totalScore/5)*100)}%`
-        ]);
-        
-        // Table headers
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'bold');
-        doc.setFillColor(240, 240, 240);
-        doc.rect(15, yPos, 180, 8, 'F');
-        doc.text('Rank', 20, yPos + 5);
-        doc.text('Option', 45, yPos + 5);
-        doc.text('Score', 130, yPos + 5);
-        doc.text('Percentage', 160, yPos + 5);
-        yPos += 8;
-        
-        // Table rows
-        doc.setFont(undefined, 'normal');
-        tableData.forEach((row, index) => {
-            if (index === 0) {
-                doc.setFillColor(220, 237, 218);
-                doc.rect(15, yPos, 180, 7, 'F');
-                doc.setFont(undefined, 'bold');
-            } else {
-                doc.setFont(undefined, 'normal');
-            }
-            
-            doc.text(row[0], 20, yPos + 5);
-            doc.text(row[1], 45, yPos + 5);
-            doc.text(row[2], 130, yPos + 5);
-            doc.text(row[3], 160, yPos + 5);
-            yPos += 7;
-        });
-        
-        // Add criteria weights section
-        yPos += 20;
-        doc.setTextColor(...colors.primary);
-        doc.setFontSize(16);
-        doc.setFont(undefined, 'bold');
-        doc.text('Criteria Analysis', 15, yPos);
-        yPos += 15;
-        
-        // Embed pie chart if available
-        if (chartImages.pieChart) {
-            try {
-                doc.addImage(chartImages.pieChart, 'PNG', 15, yPos, 80, 60);
-                yPos += 70;
-            } catch (error) {
-                console.warn('Could not embed pie chart in PDF:', error);
-            }
-        }
-        
-        // Criteria weights table
-        doc.setTextColor(...colors.text);
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'bold');
-        doc.text('Criteria Weights:', 100, yPos - 40);
-        
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'normal');
-        let criteriaYPos = yPos - 30;
-        decisionCopy.criteria.forEach(criteria => {
-            const weight = Math.round(decisionCopy.normalizedWeights[criteria.id] || 0);
-            doc.text(`${criteria.name}: ${weight}%`, 105, criteriaYPos);
-            criteriaYPos += 6;
-        });
-        
-        // Sensitivity analysis
-        if (yPos > 200) {
-            doc.addPage();
-            yPos = 20;
-        } else {
-            yPos += 20;
-        }
-        
-        doc.setTextColor(...colors.primary);
-        doc.setFontSize(16);
-        doc.setFont(undefined, 'bold');
-        doc.text('Sensitivity Analysis', 15, yPos);
-        yPos += 15;
-        
-        const validFlipPoints = flipPoints.filter(fp => !fp.impossible);
-        if (validFlipPoints.length > 0) {
-            doc.setTextColor(...colors.text);
-            doc.setFontSize(11);
-            doc.setFont(undefined, 'bold');
-            doc.text('Decision Flip Points:', 20, yPos);
-            yPos += 10;
-            
-            doc.setFontSize(9);
-            doc.setFont(undefined, 'normal');
-            validFlipPoints.slice(0, 5).forEach(fp => {
-                const isCritical = Math.abs(fp.flipDeltaPercentPoints) < 5;
-                if (isCritical) {
-                    doc.setTextColor(...colors.primary);
-                    doc.setFont(undefined, 'bold');
-                } else {
-                    doc.setTextColor(...colors.text);
-                    doc.setFont(undefined, 'normal');
-                }
-                
-                doc.text(`• ${fp.criterionName}: ${fp.flipDeltaPercentPoints > 0 ? '+' : ''}${fp.flipDeltaPercentPoints}pp change needed`, 25, yPos);
-                yPos += 5;
-            });
-        }
-        
-        // Methodology section
-        if (yPos > 220) {
-            doc.addPage();
-            yPos = 20;
-        } else {
-            yPos += 20;
-        }
-        
-        doc.setTextColor(...colors.primary);
-        doc.setFontSize(16);
-        doc.setFont(undefined, 'bold');
-        doc.text('Methodology', 15, yPos);
-        yPos += 15;
-        
-        doc.setTextColor(...colors.text);
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'normal');
-        const methodology = [
-            'This analysis uses a weighted multi-criteria decision model:',
-            '• Each option rated 1-5 on each criterion',
-            '• Criteria importance weights normalized to 100%',
-            '• Final scores = Σ(rating × weight) for each option',
-            '• Confidence based on score gaps and criteria consistency',
-            '• Sensitivity analysis shows weight changes needed to flip decision'
-        ];
-        
-        methodology.forEach(line => {
-            doc.text(line, 20, yPos);
-            yPos += 6;
-        });
-        
-        // Footer on all pages
-        const pageCount = doc.internal.getNumberOfPages();
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i);
-            
-            // Footer line
-            doc.setDrawColor(...colors.primary);
-            doc.setLineWidth(0.5);
-            doc.line(20, 285, 190, 285);
-            
-            doc.setTextColor(...colors.lightText);
-            doc.setFontSize(8);
-            doc.setFont(undefined, 'normal');
-            doc.text('Powered by Choicease - Smart Choices, Made Easy', 105, 290, { align: 'center' });
-            doc.text(`choicease.com | Page ${i} of ${pageCount}`, 105, 295, { align: 'center' });
-        }
-        
-        return doc;
-    }
-
-    // ========================================
-    // UTILITY FUNCTIONS
-    // ========================================
-
-    /**
-     * Safe HTML escaping to prevent XSS
-     */
-    function ext_safeHtml(str) {
-        if (typeof str !== 'string') return '';
-        return str.replace(/[&<>"']/g, function(match) {
-            return {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#39;'
-            }[match];
-        });
-    }
-
-    /**
-     * Safe number formatting
-     */
-    function ext_safeNumber(num, decimals = 2) {
-        if (typeof num !== 'number' || isNaN(num)) return '0';
-        return Number(num.toFixed(decimals));
-    }
-
-    /**
-     * Format percentage strings
-     */
-    function ext_formatPercent(val) {
-        return `${Math.round(val)}%`;
-    }
-
-    /**
-     * Generate colors for charts
-     */
-    function ext_generateColors(count) {
-        const baseColors = [
-            '#667eea', '#764ba2', '#28a745', '#ffc107', '#dc3545', 
-            '#17a2b8', '#6610f2', '#e83e8c', '#fd7e14', '#20c997'
-        ];
-        
-        const colors = [];
-        for (let i = 0; i < count; i++) {
-            colors.push(baseColors[i % baseColors.length]);
-        }
-        return colors;
-    }
-
-    /**
-     * Show loading overlay
-     */
-    function ext_showLoading(message = 'Loading...') {
-        const overlay = document.getElementById('ext_loadingOverlay');
-        if (overlay) {
-            const messageEl = overlay.querySelector('p');
-            if (messageEl) messageEl.textContent = message;
-            overlay.style.display = 'flex';
-        }
-    }
-
-    /**
-     * Hide loading overlay
-     */
-    function ext_hideLoading() {
-        const overlay = document.getElementById('ext_loadingOverlay');
-        if (overlay) {
-            overlay.style.display = 'none';
-        }
-    }
-
-    /**
-     * Show fallback message if enhanced results fail
-     */
-    function ext_showFallbackMessage() {
-        const container = document.getElementById('ext_resultsAccordion');
-        if (container) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #666;">
-                    <h3>Enhanced results temporarily unavailable</h3>
-                    <p>Please use the standard results below, or refresh the page to try again.</p>
-                </div>
-            `;
-        }
-        
-        // Show legacy results
-        const legacyResults = document.getElementById('resultsGrid');
-        if (legacyResults) {
-            legacyResults.style.display = 'block';
-        }
-    }
-
-    /**
-     * Hook into export dropdown for enhanced PDF
-     */
-    function ext_hookExportHandlers() {
-        // Hook into existing export dropdown handler
-        document.addEventListener('click', function(event) {
-            if (event.target.classList.contains('export-option')) {
-                const type = event.target.getAttribute('data-type');
-                if (type === 'ext_pdf') {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    ext_generatePDFReport();
-                    
-                    // Close dropdown
-                    const dropdown = document.getElementById('exportDropdown');
-                    if (dropdown) {
-                        dropdown.classList.remove('show');
-                    }
-                }
-            }
-        });
-
-        // Hook into enhanced PDF button in export section
-        const pdfBtn = document.getElementById('ext_pdfPreviewBtn');
-        if (pdfBtn) {
-            pdfBtn.addEventListener('click', ext_generatePDFReport);
-        }
-    }
-
-    // ========================================
-    // INTEGRATION & INITIALIZATION
-    // ========================================
-
-    /**
-     * Initialize the enhanced results module
-     */
-    function ext_initializeModule() {
-        if (ext_state.isInitialized) return;
-        
-        console.log('Initializing enhanced results module...');
-        
-        // Check dependencies
-        if (!window.ExtChart) {
-            console.warn('Chart.js not available - some features may be limited');
-        }
-        
-        if (!window.jsPDF) {
-            console.warn('jsPDF not available - enhanced PDF generation disabled');
-        }
-        
-        // Hook into the existing calculateResults flow
-        const originalCalculateResults = window.calculateResults;
-        if (typeof originalCalculateResults === 'function') {
-            window.calculateResults = function() {
-                // Call original function first
-                const result = originalCalculateResults.apply(this, arguments);
-                
-                // Then add enhanced results
-                setTimeout(() => {
-                    if (currentStep === 6) { // Only on results step
-                        ext_renderResultsAccordion();
-                    }
-                }, 100);
-                
-                return result;
-            };
-        }
-        
-        ext_state.isInitialized = true;
-        console.log('Enhanced results module initialized successfully');
-    }
-
-    // ========================================
-    // MODULE EXPORTS & AUTO-INITIALIZATION
-    // ========================================
-
-    // Export functions to global scope for debugging and manual calling
-    window.ext_results = {
-        renderResultsAccordion: ext_renderResultsAccordion,
-        generatePDFReport: ext_generatePDFReport,
-        computeResultsCopy: ext_computeResultsCopy,
-        assignRanks: ext_assignRanks,
-        computeConfidence: ext_computeConfidence,
-        computeFlipPoints: ext_computeFlipPoints,
-        state: ext_state,
-        config: ext_config
-    };
-
-    // Auto-initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', ext_initializeModule);
-    } else {
-        // DOM already loaded
-        ext_initializeModule();
-    }
-
-    // Also initialize when script loads (backup)
-    setTimeout(ext_initializeModule, 100);
-
-})();
-
-/**
- * Integration Notes:
- * 
- * 1. This module automatically hooks into the existing calculateResults() function
- * 2. All functions are prefixed with 'ext_' to avoid conflicts
- * 3. No modifications to existing decisionData or state-mutating functions
- * 4. Graceful degradation if Chart.js or jsPDF fail to load
- * 5. Maintains backward compatibility with existing results
- * 6. Professional-grade PDF generation with embedded charts
- * 7. Interactive what-if analysis with real-time updates
- * 8. Comprehensive sensitivity analysis and risk assessment
- * 9. Mobile-responsive design with touch-friendly controls
- * 10. Accessibility features with proper ARIA labels and keyboard support
- */
+            console.warn('Chart.js not available for pie chart
