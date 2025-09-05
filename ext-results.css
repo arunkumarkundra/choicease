@@ -496,153 +496,396 @@
 }
 
 /* Tornado chart styling */
-.ext-tornado-chart {
-    margin: 20px 0;
-}
 
-.ext-tornado-item {
-    display: flex;
-    align-items: center;
-    margin-bottom: 12px;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    border-left: 4px solid #667eea;
-}
+/* ==========================================================================
+   ENHANCED TORNADO CHART STYLING
+   ========================================================================== */
 
-.ext-tornado-label {
-    min-width: 120px;
-    font-weight: 600;
-    color: #333;
-    font-size: 0.9rem;
-}
-
-.ext-tornado-bar {
-    flex: 1;
-    height: 20px;
-    background: #e9ecef;
-    border-radius: 10px;
-    overflow: hidden;
-    margin: 0 15px;
-    position: relative;
-}
-
-.ext-tornado-fill {
-    height: 100%;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    border-radius: 10px;
-    transition: width 0.8s ease-out;
-}
-
-.ext-tornado-value {
-    min-width: 60px;
-    font-weight: 600;
-    color: #667eea;
-    font-size: 0.9rem;
-    text-align: right;
-}
-
-/* Enhanced Tornado Chart Styling */
 .ext-tornado-chart {
     margin: 20px 0;
     background: white;
-    border-radius: 8px;
-    padding: 20px;
+    border-radius: 12px;
+    padding: 25px;
     border: 1px solid #e9ecef;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.ext-tornado-chart h5 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+}
+
+.ext-tornado-chart h5::before {
+    content: '🌪️';
+    margin-right: 10px;
+    font-size: 1.2rem;
 }
 
 .ext-tornado-item {
     display: flex;
     align-items: center;
-    margin-bottom: 15px;
-    padding: 12px;
-    background: #f8f9fa;
-    border-radius: 8px;
+    margin-bottom: 18px;
+    padding: 15px;
+    background: linear-gradient(135deg, #f8f9fa, #ffffff);
+    border-radius: 10px;
     transition: all 0.3s ease;
+    border: 1px solid #e9ecef;
+    position: relative;
+    overflow: hidden;
 }
 
 .ext-tornado-item:hover {
-    background: #e9ecef;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-color: #667eea;
+}
+
+.ext-tornado-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--tornado-color, #667eea);
+    border-radius: 0 2px 2px 0;
+}
+
+.ext-tornado-item.critical::before {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
+.ext-tornado-item.moderate::before {
+    background: linear-gradient(135deg, #ffc107, #fd7e14);
+}
+
+.ext-tornado-item.stable::before {
+    background: linear-gradient(135deg, #28a745, #20c997);
 }
 
 .ext-tornado-label {
-    min-width: 150px;
+    min-width: 160px;
     font-weight: 600;
     color: #333;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     text-align: right;
-    padding-right: 15px;
+    padding-right: 20px;
+    line-height: 1.3;
 }
 
 .ext-tornado-bar-container {
     flex: 1;
-    height: 24px;
+    height: 28px;
     position: relative;
     background: #e9ecef;
-    border-radius: 12px;
+    border-radius: 14px;
     overflow: hidden;
-    margin: 0 15px;
+    margin: 0 20px;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .ext-tornado-bar {
     position: absolute;
     height: 100%;
-    border-radius: 12px;
-    transition: all 0.8s ease-out;
+    border-radius: 14px;
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     font-weight: 600;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.ext-tornado-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: tornado-shine 2s infinite;
 }
 
 .ext-tornado-bar.critical {
     background: linear-gradient(135deg, #dc3545, #c82333);
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
 }
 
 .ext-tornado-bar.moderate {
     background: linear-gradient(135deg, #ffc107, #fd7e14);
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
 }
 
 .ext-tornado-bar.stable {
     background: linear-gradient(135deg, #28a745, #20c997);
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
 }
 
 .ext-tornado-value {
-    min-width: 80px;
-    font-weight: 600;
+    min-width: 90px;
+    font-weight: 700;
     font-size: 0.9rem;
     text-align: center;
+    padding: 8px 12px;
+    border-radius: 20px;
+    background: rgba(102, 126, 234, 0.1);
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
 }
 
 .ext-tornado-value.critical {
     color: #dc3545;
+    background: rgba(220, 53, 69, 0.1);
+    border-color: rgba(220, 53, 69, 0.2);
 }
 
 .ext-tornado-value.moderate {
     color: #fd7e14;
+    background: rgba(255, 193, 7, 0.1);
+    border-color: rgba(255, 193, 7, 0.2);
 }
 
 .ext-tornado-value.stable {
     color: #28a745;
+    background: rgba(40, 167, 69, 0.1);
+    border-color: rgba(40, 167, 69, 0.2);
 }
 
-
-
-/* Flip point indicators */
-.ext-flip-point-critical {
-    border-left-color: #dc3545;
+/* Tornado chart legend */
+.ext-tornado-legend {
+    display: flex;
+    justify-content: center;
+    gap: 25px;
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(102, 126, 234, 0.05);
+    border-radius: 8px;
+    flex-wrap: wrap;
 }
 
-.ext-flip-point-critical .ext-tornado-fill {
+.ext-tornado-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.ext-tornado-legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.ext-tornado-legend-dot.critical {
     background: linear-gradient(135deg, #dc3545, #c82333);
 }
 
-.ext-flip-point-critical .ext-tornado-value {
-    color: #dc3545;
+.ext-tornado-legend-dot.moderate {
+    background: linear-gradient(135deg, #ffc107, #fd7e14);
 }
+
+.ext-tornado-legend-dot.stable {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+/* Animation for tornado bar shine effect */
+@keyframes tornado-shine {
+    0% { left: -100%; }
+    50% { left: 100%; }
+    100% { left: 100%; }
+}
+
+/* Mobile responsiveness for tornado chart */
+@media (max-width: 768px) {
+    .ext-tornado-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 15px;
+    }
+    
+    .ext-tornado-label {
+        min-width: auto;
+        width: 100%;
+        text-align: center;
+        padding-right: 0;
+    }
+    
+    .ext-tornado-bar-container {
+        margin: 0;
+        width: 100%;
+    }
+    
+    .ext-tornado-value {
+        width: 100%;
+        min-width: auto;
+    }
+    
+    .ext-tornado-legend {
+        gap: 15px;
+    }
+}
+
+/* ==========================================================================
+   ENHANCED RISKS ANALYSIS STYLING
+   ========================================================================== */
+
+.ext-risks-container {
+    margin: 20px 0;
+}
+
+.ext-risks-summary {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    border-radius: 8px;
+    border-left: 4px solid #ffc107;
+}
+
+.ext-risks-summary p {
+    margin: 0;
+    color: #856404;
+    font-weight: 500;
+}
+
+.ext-risks-list {
+    margin: 20px 0;
+}
+
+.ext-risk-item {
+    display: flex;
+    flex-direction: column;
+    padding: 18px;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.ext-risk-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--risk-color, #ffc107);
+}
+
+.ext-risk-item.high {
+    background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+    border-color: #dc3545;
+    --risk-color: #dc3545;
+}
+
+.ext-risk-item.medium {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    border-color: #ffc107;
+    --risk-color: #ffc107;
+}
+
+.ext-risk-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.ext-risk-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.ext-risk-icon {
+    font-size: 1.2rem;
+    margin-right: 10px;
+}
+
+.ext-risk-header strong {
+    flex: 1;
+    color: #333;
+    font-size: 1.05rem;
+}
+
+.ext-risk-score {
+    background: rgba(0,0,0,0.1);
+    color: #333;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.ext-risk-details {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+.ext-risk-suggestion {
+    font-size: 0.9rem;
+    color: #495057;
+    font-style: italic;
+    padding: 10px;
+    background: rgba(255,255,255,0.7);
+    border-radius: 6px;
+    border-left: 3px solid var(--risk-color, #ffc107);
+}
+
+.ext-no-risks {
+    text-align: center;
+    padding: 40px 20px;
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    border-radius: 12px;
+    border: 2px solid #28a745;
+}
+
+.ext-no-risks p:first-child {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #155724;
+    margin-bottom: 10px;
+}
+
+.ext-risks-actions {
+    margin-top: 25px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #17a2b8;
+}
+
+.ext-risks-actions h5 {
+    margin: 0 0 15px 0;
+    color: #17a2b8;
+    font-weight: 600;
+}
+
+.ext-risks-actions ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.ext-risks-actions li {
+    margin-bottom: 8px;
+    color: #495057;
+    line-height: 1.4;
+}
+
 
 /* ==========================================================================
    6. WHAT-IF CONTROLS STYLING
