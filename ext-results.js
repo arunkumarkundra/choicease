@@ -672,112 +672,6 @@ function ext_generateChartsForPDF() {
         }
     }
 
-    // ========================================
-    // INTEGRATION & INITIALIZATION
-    // ========================================
-
-    /**
-     * Initialize the enhanced results module
-     */
-    function ext_initializeModule() {
-        if (ext_state.isInitialized) return;
-        
-        console.log('Initializing enhanced results module...');
-        
-        // Check dependencies
-        if (!window.ExtChart) {
-            console.warn('Chart.js not available - some features may be limited');
-        }
-        
-        if (!window.jsPDF) {
-            console.warn('jsPDF not available - enhanced PDF generation disabled');
-        }
-        
-        // Hook into the existing calculateResults flow
-        const originalCalculateResults = window.calculateResults;
-        if (typeof originalCalculateResults === 'function') {
-            window.calculateResults = function() {
-                // Call original function first
-                const result = originalCalculateResults.apply(this, arguments);
-                
-                // Then add enhanced results
-                setTimeout(() => {
-                    if (currentStep === 6) { // Only on results step
-                        ext_renderResultsAccordion();
-                    }
-                }, 100);
-                
-                return result;
-            };
-        } else {
-            console.warn('calculateResults function not found - enhanced results may not trigger automatically');
-        }
-        
-        ext_state.isInitialized = true;
-        console.log('Enhanced results module initialized successfully');
-    }
-
-    // ========================================
-    // MODULE EXPORTS & AUTO-INITIALIZATION
-    // ========================================
-
-    // Export functions to global scope for debugging and manual calling
-    window.ext_results = {
-        renderResultsAccordion: ext_renderResultsAccordion,
-        generatePDFReport: ext_generatePDFReport,
-        computeResultsCopy: ext_computeResultsCopy,
-        assignRanks: ext_assignRanks,
-        computeConfidence: ext_computeConfidence,
-        computeFlipPoints: ext_computeFlipPoints,
-        state: ext_state,
-        config: ext_config
-    };
-
-    // Auto-initialize when DOM is ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', ext_initializeModule);
-    } else {
-        // DOM already loaded
-        ext_initializeModule();
-    }
-
-    // Also initialize when script loads (backup)
-    setTimeout(ext_initializeModule, 100);
-
-})();
-
-/**
- * Integration Notes:
- * 
- * 1. This module automatically hooks into the existing calculateResults() function
- * 2. All functions are prefixed with 'ext_' to avoid conflicts
- * 3. No modifications to existing decisionData or state-mutating functions
- * 4. Graceful degradation if Chart.js or jsPDF fail to load
- * 5. Maintains backward compatibility with existing results
- * 6. Professional-grade PDF generation with embedded charts
- * 7. Interactive what-if analysis with real-time updates
- * 8. Comprehensive sensitivity analysis and risk assessment
- * 9. Mobile-responsive design with touch-friendly controls
- * 10. Accessibility features with proper ARIA labels and keyboard support
- * 
- * Key Fixes Applied:
- * - Fixed Chart.js plugin detection and error handling
- * - Added fallback displays for failed chart renders
- * - Improved null/undefined checks throughout
- * - Enhanced XSS protection with proper HTML escaping
- * - Better error handling in PDF generation
- * - Fixed slider event handlers with proper null checks
- * - Added chart fallback functionality
- * - Improved dependency detection and graceful degradation
- *//**
- * CHOICEASE - ENHANCED RESULTS MODULE
- * Executive-grade decision analysis with interactive charts and insights
- * 
- * This module provides enhanced results functionality without modifying
- * the existing decisionData or calling state-mutating functions.
- * All functions are prefixed with 'ext_' to avoid conflicts.
- */
-
 (function() {
     'use strict';
 
@@ -812,6 +706,7 @@ function ext_generateChartsForPDF() {
             clientName: '<<CLIENT NAME>>'
         }
     };
+})();
 
     /**
      * Check if Chart.js is properly loaded
