@@ -80,6 +80,9 @@
     <!-- ================================= -->
     <!-- Main application stylesheet -->
     <link rel="stylesheet" href="styles.css">
+    
+    <!-- Enhanced results stylesheet -->
+    <link rel="stylesheet" href="ext-results.css">
 
     <!-- ================================= -->
     <!-- EXTERNAL JAVASCRIPT LIBRARIES    -->
@@ -98,6 +101,27 @@
     
     <!-- HTML to canvas conversion (for result sharing images) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- ================================= -->
+    <!-- ENHANCED RESULTS LIBRARIES        -->
+    <!-- ================================= -->
+    <!-- Chart.js for enhanced visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+    
+    <!-- Chart.js datalabels plugin for pie chart labels -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    
+    <!-- Initialize Chart.js alias to prevent conflicts -->
+    <script>
+    window.addEventListener('DOMContentLoaded', function() {
+        if (typeof Chart !== 'undefined') {
+            window.ExtChart = Chart;
+            console.log('Chart.js loaded and aliased to ExtChart');
+        } else {
+            console.warn('Chart.js failed to load - enhanced results may not work properly');
+        }
+    });
+    </script>
 </head>
 <body>
     <!-- ================================= -->
@@ -362,8 +386,21 @@
             <div class="section hidden" id="section6">
                 <div class="section-title">Your Results Are In! 🎉</div>
                 
-                <!-- Dynamic results grid (populated by JavaScript with calculated scores) -->
-                <div class="results-grid" id="resultsGrid"></div>
+                <!-- ================================= -->
+                <!-- ENHANCED RESULTS ACCORDION        -->
+                <!-- ================================= -->
+                <!-- This will be populated by ext_renderResultsAccordion() -->
+                <div id="ext_resultsAccordion" class="ext-results-accordion" role="tablist" aria-label="Decision analysis results">
+                    <!-- Accordion sections will be dynamically inserted here -->
+                </div>
+                
+                <!-- ================================= -->
+                <!-- LEGACY RESULTS GRID               -->
+                <!-- ================================= -->
+                <!-- Keep original results for backward compatibility (can be hidden via CSS) -->
+                <div class="results-grid legacy-results" id="resultsGrid">
+                    <!-- Original results will still be populated here by displayResults() -->
+                </div>
                 
                 <!-- Hidden canvas element used for generating shareable images -->
                 <div id="shareCanvas" style="position: absolute; left: -9999px; top: -9999px; width: 800px; background: white; padding: 40px; font-family: 'Segoe UI', sans-serif;">
@@ -388,6 +425,7 @@
                             <button class="export-option" data-type="json">📁 JSON File</button>    <!-- Raw data for re-import -->
                             <button class="export-option" data-type="pdf">📄 PDF Report</button>    <!-- Professional report -->
                             <button class="export-option" data-type="csv">📊 CSV Data</button>      <!-- Spreadsheet format -->
+                            <button class="export-option" data-type="ext_pdf">📄 Enhanced PDF</button> <!-- NEW: Enhanced professional PDF -->
                         </div>
                     </div>
                     
@@ -396,7 +434,7 @@
                 </div>
                 
                 <!-- Reddit community promotion -->
-                <div id="redditShareNote" class="muted" style="margin-top:12px;  text-align: center;">
+                <div id="redditShareNote" class="muted" style="margin-top:12px">
                     Craving feedback or want to inspire others? 
                     <a href="#" onclick="shareToReddit(); return false;" target="_blank" rel="noopener">
                     <strong>Post your decision QR on r/choicease</strong>
@@ -444,6 +482,7 @@
                     <li>🔁 Free forever, use it anytime!</li>
                     <li>📢 Share and get feedback from our Reddit community <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a>.</li>
                     <li>🔍 Get inspired on our Reddit community! Browse through cool ideas, import and adapt them to your needs.</li>
+                    <li>📈 <strong>Enhanced Analytics</strong> - deep insights with interactive charts, sensitivity analysis, and professional reports!</li>
                   </ul>
                 </div>
                 
@@ -456,8 +495,8 @@
                     <li><strong>Set criteria:</strong> What matters in making the choice? <em>💡 Need ideas? Ask our AI Helper!</em></li>
                     <li><strong>Weigh 'em:</strong> Rate how important each criterion is. <em>🎯 Not sure? Our AI can help prioritize!</em></li>
                     <li><strong>Score options:</strong> How do they measure up on these criteria? <em>⚖️ Want fair ratings? Let AI guide you!</em></li>
-                    <li><strong>Results time:</strong> See the winners, rankings + breakdowns.</li>
-                    <li><strong>Share/Save:</strong> Export or post on <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a> for vibes.</li>
+                    <li><strong>Results time:</strong> See the winners, rankings + breakdowns with interactive charts and insights.</li>
+                    <li><strong>Share/Save:</strong> Export professional reports or post on <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener">r/choicease</a> for vibes.</li>
                   </ol>
                 </div>
                 
@@ -472,6 +511,19 @@
                     <li>🧠 <strong>Avoid decision traps</strong> - Spot biases and think more clearly!</li>
                   </ul>
                   <p>Just look for the AI helper links in each step—it's like having a decision coach right there with you! 😊</p>
+                </div>
+                
+                <!-- Enhanced Results explanation -->
+                <div>
+                  <h3>📊 Enhanced Results & Analytics</h3>
+                  <p>Our new interactive results give you consultant-grade insights:</p>
+                  <ul>
+                    <li>📈 <strong>Interactive Charts</strong> - Visual breakdowns of your decision</li>
+                    <li>🎯 <strong>Confidence Analysis</strong> - How certain should you be?</li>
+                    <li>⚖️ <strong>Sensitivity Testing</strong> - What if you change priorities?</li>
+                    <li>🔍 <strong>Risk Analysis</strong> - Spot potential weaknesses</li>
+                    <li>📄 <strong>Professional PDFs</strong> - Executive-grade reports ready for sharing</li>
+                  </ul>
                 </div>
                 
                 <!-- Export/sharing options explanation -->
@@ -491,6 +543,18 @@
     </div>
 
     <!-- ================================= -->
+    <!-- LOADING INDICATOR FOR CHARTS     -->
+    <!-- ================================= -->
+    <!-- Loading overlay for enhanced results processing -->
+    <div id="ext_loadingOverlay" class="ext-loading-overlay" style="display: none;" role="status" aria-live="polite">
+        <div class="ext-loading-content">
+            <div class="ext-loading-spinner"></div>
+            <p>Analyzing your decision...</p>
+            <small>Generating insights and visualizations</small>
+        </div>
+    </div>
+
+    <!-- ================================= -->
     <!-- FOOTER SECTION                   -->
     <!-- ================================= -->
     <footer class="site-footer">
@@ -502,5 +566,11 @@
     <!-- ================================= -->
     <!-- Custom JavaScript containing all application logic -->
     <script src="script.js"></script>
+    
+    <!-- ================================= -->
+    <!-- ENHANCED RESULTS MODULE           -->
+    <!-- ================================= -->
+    <!-- Enhanced results functionality - loaded after main script -->
+    <script src="ext-results.js"></script>
 </body>
 </html>
