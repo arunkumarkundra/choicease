@@ -1,3 +1,21 @@
+/**
+ * Debounce utility for performance optimization
+ */
+function ext_debounce(func, wait, immediate) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            timeout = null;
+            if (!immediate) func.apply(this, args);
+        };
+        const callNow = immediate && !timeout;
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+        if (callNow) func.apply(this, args);
+    };
+}
+
+
 // ========================================
     // PDF GENERATION FUNCTIONS
     // ========================================
@@ -58,48 +76,143 @@
     /**
      * Generate chart images for PDF embedding
      */
-    function ext_generateChartsForPDF() {
-        return new Promise((resolve, reject) => {
-            try {
-                const images = {};
-                
-                // Capture pie chart if available
-                if (ext_state.charts.pie && typeof ext_state.charts.pie.toBase64Image === 'function') {
+
+/**
+ * Generate chart images for PDF embedding with enhanced error handling
+ */
+function ext_generateChartsForPDF() {
+    return new Promise((resolve, reject) => {
+        const images = {};
+        const errors = [];
+        
+        try {
+            console.log('Starting chart image generation for PDF...');
+            
+            // Capture pie chart with multiple fallback strategies
+            const capturePromises = [];
+            
+            // 1. Try to capture pie chart
+            if (ext_state.charts.pie) {
+                const piePromise = new Promise((pieResolve) => {
                     try {
-                        const imageData = ext_state.charts.pie.toBase64Image('image/png', 1.0);
-                        if (imageData && imageData.length > 100) { // Basic validation
-                            images.pieChart = imageData;
+                        // Strategy 1: Use Chart.js built-in toBase64Image
+                        if (typeof ext_state.charts.pie.toBase64Image === 'function') {
+                            const imageData = ext_state.charts.pie.toBase64Image('image/png', 1.0);
+                            if (imageData && imageData.length > 100 && !imageData.includes('data:,')) {
+                                images.pieChart = imageData;
+                                console.log('✓ Pie chart captured via toBase64Image');
+                                pieResolve();
+                                return;
+                            }
                         }
-                    } catch (chartError) {
-                        console.warn('Could not capture pie chart:', chartError);
+                        
+                        // Strategy 2: Canvas toDataURL
+                        const canvas = document.getElementById('ext_weightsPie');
+                        if (canvas) {
+                            const dataURL = canvas.toDataURL('image/png', 1.0);
+                            if (dataURL && dataURL.length > 100 && !dataURL.includes('data:,')) {
+                                images.pieChart = dataURL;
+                                console.log('✓ Pie chart captured via canvas.toDataURL');
+                                pieResolve();
+                                return;
+                            }
+                        }
+                        
+                        console.warn('⚠ Could not capture pie chart - will generate text alternative');
+                        errors.push('Pie chart capture failed');
+                        pieResolve();
+                        
+                    } catch (error) {
+                        console.warn('Pie chart capture error:', error);
+                        errors.push(`Pie chart error: ${error.message}`);
+                        pieResolve();
                     }
-                }
+                });
                 
-                // Capture heatmap table if available
+                capturePromises.push(piePromise);
+            } else {
+                console.log('No pie chart available for capture');
+            }
+            
+            // 2. Try to capture heatmap table
+            const heatmapPromise = new Promise((heatmapResolve) => {
                 const heatmapTable = document.querySelector('.ext-heatmap-table');
+                
                 if (heatmapTable && window.html2canvas) {
+                    console.log('Attempting heatmap capture...');
+                    
                     html2canvas(heatmapTable, {
                         backgroundColor: '#ffffff',
                         scale: 2,
                         useCORS: true,
-                        allowTaint: true
+                        allowTaint: true,
+                        logging: false,
+                        timeout: 10000
                     }).then(canvas => {
-                        images.heatmap = canvas.toDataURL('image/png', 1.0);
-                        resolve(images);
+                        try {
+                            const dataURL = canvas.toDataURL('image/png', 1.0);
+                            if (dataURL && dataURL.length > 100) {
+                                images.heatmap = dataURL;
+                                console.log('✓ Heatmap captured successfully');
+                            } else {
+                                console.warn('⚠ Heatmap capture produced invalid data');
+                                errors.push('Heatmap capture invalid');
+                            }
+                        } catch (error) {
+                            console.warn('Heatmap canvas conversion error:', error);
+                            errors.push(`Heatmap conversion error: ${error.message}`);
+                        }
+                        heatmapResolve();
                     }).catch(error => {
-                        console.warn('Could not capture heatmap:', error);
-                        resolve(images); // Continue without heatmap
+                        console.warn('html2canvas heatmap error:', error);
+                        errors.push(`Heatmap html2canvas error: ${error.message}`);
+                        heatmapResolve();
                     });
                 } else {
-                    resolve(images);
+                    if (!heatmapTable) {
+                        console.log('No heatmap table found for capture');
+                    }
+                    if (!window.html2canvas) {
+                        console.warn('html2canvas not available for heatmap capture');
+                        errors.push('html2canvas library missing');
+                    }
+                    heatmapResolve();
+                }
+            });
+            
+            capturePromises.push(heatmapPromise);
+            
+            // Wait for all capture attempts with timeout
+            const timeoutPromise = new Promise((timeoutResolve) => {
+                setTimeout(() => {
+                    console.log('Chart capture timeout reached');
+                    timeoutResolve();
+                }, 15000); // 15 second timeout
+            });
+            
+            Promise.race([
+                Promise.all(capturePromises),
+                timeoutPromise
+            ]).then(() => {
+                console.log(`Chart capture completed. Images: ${Object.keys(images).length}, Errors: ${errors.length}`);
+                
+                if (errors.length > 0) {
+                    console.warn('Chart capture warnings:', errors);
                 }
                 
-            } catch (error) {
-                console.warn('Error in chart capture:', error);
-                resolve({}); // Continue with empty images object
-            }
-        });
-    }
+                // Always resolve with whatever we captured
+                resolve(images);
+            });
+            
+        } catch (error) {
+            console.error('Fatal error in chart capture:', error);
+            // Still resolve with empty images rather than reject
+            resolve({});
+        }
+    });
+}
+
+
 
     /**
      * Create the PDF document with all sections
@@ -107,6 +220,31 @@
     function ext_createPDFDocument(results, confidence, flipPoints, decisionCopy, chartImages) {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF('portrait', 'mm', 'a4');
+
+        // Enhanced error handling wrapper
+        const safeAddImage = (imageData, format, x, y, width, height) => {
+            try {
+                if (imageData && imageData.length > 100 && !imageData.includes('data:,')) {
+                    doc.addImage(imageData, format, x, y, width, height);
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.warn(`Failed to add image to PDF: ${error.message}`);
+                return false;
+            }
+        };
+        
+        const safeText = (text, x, y, options) => {
+            try {
+                const cleanText = String(text || '').replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+                doc.text(cleanText, x, y, options);
+            } catch (error) {
+                console.warn(`Failed to add text to PDF: ${error.message}`);
+                doc.text('(Text rendering error)', x, y, options);
+            }
+        };
+
         
         // Colors and styling
         const colors = {
@@ -127,14 +265,14 @@
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(28);
         doc.setFont(undefined, 'bold');
-        doc.text('Decision Analysis Report', 105, 25, { align: 'center' });
+        safeText('Decision Analysis Report', 105, 25, { align: 'center' });
         
         doc.setFontSize(14);
         doc.setFont(undefined, 'normal');
-        doc.text('Professional Decision Intelligence', 105, 35, { align: 'center' });
+        safeText('Professional Decision Intelligence', 105, 35, { align: 'center' });
         
         doc.setFontSize(10);
-        doc.text(`Generated by Choicease - ${new Date().toLocaleDateString()}`, 105, 50, { align: 'center' });
+        safeText(`Generated by Choicease - ${new Date().toLocaleDateString()}`, 105, 50, { align: 'center' });
         
         yPos = 80;
         
@@ -147,14 +285,14 @@
         
         doc.setFontSize(18);
         doc.setFont(undefined, 'bold');
-        doc.text(`Decision: ${decisionCopy.title}`, 15, yPos + 12);
+        safeText(`Decision: ${decisionCopy.title}`, 15, yPos + 12);
         
         if (decisionCopy.description) {
             doc.setFontSize(12);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(...colors.lightText);
             const descLines = doc.splitTextToSize(`Context: ${decisionCopy.description}`, 180);
-            doc.text(descLines, 15, yPos + 25);
+            safeText(descLines, 15, yPos + 25);
         }
         
         yPos = 140;
@@ -163,7 +301,7 @@
         doc.setTextColor(...colors.primary);
         doc.setFontSize(16);
         doc.setFont(undefined, 'bold');
-        doc.text('Executive Summary', 15, yPos);
+        safeText('Executive Summary', 15, yPos);
         yPos += 15;
         
         const winner = results[0];
@@ -179,14 +317,14 @@
         doc.setTextColor(...colors.success);
         doc.setFontSize(14);
         doc.setFont(undefined, 'bold');
-        doc.text('Recommended Choice:', 20, yPos + 8);
+        safeText('Recommended Choice:', 20, yPos + 8);
         
         doc.setTextColor(...colors.text);
         doc.setFontSize(12);
         doc.setFont(undefined, 'bold');
-        doc.text(winner.option.name, 20, yPos + 16);
+        safeText(winner.option.name, 20, yPos + 16);
         doc.setFont(undefined, 'normal');
-        doc.text(`Score: ${ext_safeNumber(winner.totalScore, 2)}/5.0 (${Math.round((winner.totalScore/5)*100)}%)`, 20, yPos + 22);
+        safeText(`Score: ${ext_safeNumber(winner.totalScore, 2)}/5.0 (${Math.round((winner.totalScore/5)*100)}%)`, 20, yPos + 22);
         
         yPos += 35;
         
@@ -194,7 +332,7 @@
         doc.setTextColor(...colors.text);
         doc.setFontSize(12);
         doc.setFont(undefined, 'bold');
-        doc.text(`Confidence: ${confidence.bucket.toUpperCase()} (${confidence.confidencePercent}%)`, 20, yPos);
+        safeText(`Confidence: ${confidence.bucket.toUpperCase()} (${confidence.confidencePercent}%)`, 20, yPos);
         
         // Confidence bar
         const barWidth = 100;
@@ -214,7 +352,7 @@
         // Key differentiators
         doc.setFontSize(11);
         doc.setFont(undefined, 'bold');
-        doc.text('Why this choice won:', 20, yPos);
+        safeText('Why this choice won:', 20, yPos);
         yPos += 8;
         
         const topCriteria = Object.entries(winner.criteriaScores)
@@ -223,7 +361,7 @@
         
         doc.setFont(undefined, 'normal');
         topCriteria.forEach(([criteriaName, scores], index) => {
-            doc.text(`• ${criteriaName}: Scored ${scores.rating}/5 with ${Math.round(scores.weight)}% weight`, 25, yPos);
+            safeText(`• ${criteriaName}: Scored ${scores.rating}/5 with ${Math.round(scores.weight)}% weight`, 25, yPos);
             yPos += 6;
         });
         
@@ -232,7 +370,7 @@
             const margin = winner.totalScore - runnerUp.totalScore;
             yPos += 5;
             doc.setFont(undefined, 'bold');
-            doc.text(`Margin vs runner-up: +${ext_safeNumber(margin, 2)} points ahead of ${runnerUp.option.name}`, 20, yPos);
+            safeText(`Margin vs runner-up: +${ext_safeNumber(margin, 2)} points ahead of ${runnerUp.option.name}`, 20, yPos);
         }
         
         // New page for rankings
@@ -243,7 +381,7 @@
         doc.setTextColor(...colors.primary);
         doc.setFontSize(16);
         doc.setFont(undefined, 'bold');
-        doc.text('Complete Rankings', 15, yPos);
+        safeText('Complete Rankings', 15, yPos);
         yPos += 15;
         
         // Rankings table
@@ -259,10 +397,10 @@
         doc.setFont(undefined, 'bold');
         doc.setFillColor(240, 240, 240);
         doc.rect(15, yPos, 180, 8, 'F');
-        doc.text('Rank', 20, yPos + 5);
-        doc.text('Option', 45, yPos + 5);
-        doc.text('Score', 130, yPos + 5);
-        doc.text('Percentage', 160, yPos + 5);
+        safeText('Rank', 20, yPos + 5);
+        safeText('Option', 45, yPos + 5);
+        safeText('Score', 130, yPos + 5);
+        safeText('Percentage', 160, yPos + 5);
         yPos += 8;
         
         // Table rows
@@ -276,10 +414,10 @@
                 doc.setFont(undefined, 'normal');
             }
             
-            doc.text(row[0], 20, yPos + 5);
-            doc.text(row[1], 45, yPos + 5);
-            doc.text(row[2], 130, yPos + 5);
-            doc.text(row[3], 160, yPos + 5);
+            safeText(row[0], 20, yPos + 5);
+            safeText(row[1], 45, yPos + 5);
+            safeText(row[2], 130, yPos + 5);
+            safeText(row[3], 160, yPos + 5);
             yPos += 7;
         });
         
@@ -288,13 +426,13 @@
         doc.setTextColor(...colors.primary);
         doc.setFontSize(16);
         doc.setFont(undefined, 'bold');
-        doc.text('Criteria Analysis', 15, yPos);
+        safeText('Criteria Analysis', 15, yPos);
         yPos += 15;
         
         // Embed pie chart if available
         if (chartImages.pieChart) {
             try {
-                doc.addImage(chartImages.pieChart, 'PNG', 15, yPos, 80, 60);
+                safeAddImage(chartImages.pieChart, 'PNG', 15, yPos, 80, 60);
                 yPos += 70;
             } catch (error) {
                 console.warn('Could not embed pie chart in PDF:', error);
@@ -305,14 +443,14 @@
         doc.setTextColor(...colors.text);
         doc.setFontSize(12);
         doc.setFont(undefined, 'bold');
-        doc.text('Criteria Weights:', 100, yPos - 40);
+        safeText('Criteria Weights:', 100, yPos - 40);
         
         doc.setFontSize(10);
         doc.setFont(undefined, 'normal');
         let criteriaYPos = yPos - 30;
         decisionCopy.criteria.forEach(criteria => {
             const weight = Math.round(decisionCopy.normalizedWeights[criteria.id] || 0);
-            doc.text(`${criteria.name}: ${weight}%`, 105, criteriaYPos);
+            safeText(`${criteria.name}: ${weight}%`, 105, criteriaYPos);
             criteriaYPos += 6;
         });
         
@@ -327,7 +465,7 @@
         doc.setTextColor(...colors.primary);
         doc.setFontSize(16);
         doc.setFont(undefined, 'bold');
-        doc.text('Sensitivity Analysis', 15, yPos);
+        safeText('Sensitivity Analysis', 15, yPos);
         yPos += 15;
         
         const validFlipPoints = flipPoints.filter(fp => !fp.impossible);
@@ -335,7 +473,7 @@
             doc.setTextColor(...colors.text);
             doc.setFontSize(11);
             doc.setFont(undefined, 'bold');
-            doc.text('Decision Flip Points:', 20, yPos);
+            safeText('Decision Flip Points:', 20, yPos);
             yPos += 10;
             
             doc.setFontSize(9);
@@ -350,7 +488,7 @@
                     doc.setFont(undefined, 'normal');
                 }
                 
-                doc.text(`• ${fp.criterionName}: ${fp.flipDeltaPercentPoints > 0 ? '+' : ''}${fp.flipDeltaPercentPoints}pp change needed`, 25, yPos);
+                safeText(`• ${fp.criterionName}: ${fp.flipDeltaPercentPoints > 0 ? '+' : ''}${fp.flipDeltaPercentPoints}pp change needed`, 25, yPos);
                 yPos += 5;
             });
         }
@@ -366,7 +504,7 @@
         doc.setTextColor(...colors.primary);
         doc.setFontSize(16);
         doc.setFont(undefined, 'bold');
-        doc.text('Methodology', 15, yPos);
+        safeText('Methodology', 15, yPos);
         yPos += 15;
         
         doc.setTextColor(...colors.text);
@@ -382,7 +520,7 @@
         ];
         
         methodology.forEach(line => {
-            doc.text(line, 20, yPos);
+            safeText(line, 20, yPos);
             yPos += 6;
         });
         
@@ -399,8 +537,8 @@
             doc.setTextColor(...colors.lightText);
             doc.setFontSize(8);
             doc.setFont(undefined, 'normal');
-            doc.text('Powered by Choicease - Smart Choices, Made Easy', 105, 290, { align: 'center' });
-            doc.text(`choicease.com | Page ${i} of ${pageCount}`, 105, 295, { align: 'center' });
+            safeText('Powered by Choicease - Smart Choices, Made Easy', 105, 290, { align: 'center' });
+            safeText(`choicease.com | Page ${i} of ${pageCount}`, 105, 295, { align: 'center' });
         }
         
         return doc;
@@ -1776,29 +1914,55 @@ function ext_renderTornadoChart(flipPoints) {
     /**
      * Handle what-if slider changes
      */
+    /**
+     * Handle what-if slider changes with debouncing for performance
+     */
     function ext_handleWhatIfChange(event) {
         const criteriaId = event.target.getAttribute('data-criteria-id');
         const newValue = parseInt(event.target.value);
         
         if (!criteriaId || isNaN(newValue)) return;
-
-        // Update the display
+    
+        // Update the display immediately for responsiveness
         const valueDisplay = document.getElementById(`value-${criteriaId}`);
         if (valueDisplay) {
             valueDisplay.textContent = `${newValue}%`;
         }
-
+    
         // Update temporary weights
         ext_state.tmpWeights[criteriaId] = newValue;
-
-        // Renormalize all weights to sum to 100%
-        ext_renormalizeWhatIfWeights();
-
-        // Update all slider displays and results
-        const decisionCopy = ext_cloneDecisionData();
-        ext_updateWhatIfResults(decisionCopy);
+    
+        // Debounced heavy calculations
+        if (!ext_state.debouncedUpdate) {
+            ext_state.debouncedUpdate = ext_debounce(() => {
+                try {
+                    // Renormalize all weights to sum to 100%
+                    ext_renormalizeWhatIfWeights();
+                    
+                    // Update results
+                    const decisionCopy = ext_cloneDecisionData();
+                    if (decisionCopy) {
+                        ext_updateWhatIfResults(decisionCopy);
+                    }
+                } catch (error) {
+                    console.error('Error in what-if update:', error);
+                    // Show user-friendly error
+                    const resultsContainer = document.getElementById('ext_whatIfResults');
+                    if (resultsContainer) {
+                        resultsContainer.innerHTML = `
+                            <div style="color: #dc3545; padding: 10px; text-align: center;">
+                                <small>Error updating results. Please try adjusting the values again.</small>
+                            </div>
+                        `;
+                    }
+                }
+            }, 300); // 300ms debounce
+        }
+    
+        ext_state.debouncedUpdate();
     }
-
+    
+    
     /**
      * Renormalize what-if weights to sum to 100%
      */
