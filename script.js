@@ -474,37 +474,60 @@ function setupRatingStep() {
 
 
         // Dynamic loading for enhanced results
+        // Enhanced dynamic loading for results system
         function loadEnhancedResults() {
             return new Promise((resolve, reject) => {
                 // Check if already loaded
-                if (window.ext_results) {
+                if (window.ext_results && window.ext_results.renderResultsAccordion) {
+                    console.log('Enhanced results already loaded');
                     resolve();
                     return;
                 }
+                
+                console.log('Loading enhanced results system...');
                 
                 // Load CSS first
                 const cssLink = document.createElement('link');
                 cssLink.rel = 'stylesheet';
                 cssLink.href = 'ext-results.css';
+                cssLink.onload = () => {
+                    console.log('Enhanced results CSS loaded');
+                    loadEnhancedJS();
+                };
+                cssLink.onerror = () => {
+                    console.warn('Failed to load enhanced results CSS');
+                    loadEnhancedJS(); // Continue anyway
+                };
                 document.head.appendChild(cssLink);
                 
                 // Load JavaScript
-                const script = document.createElement('script');
-                script.src = 'ext-results.js';
-                script.onload = () => {
-                    console.log('Enhanced results module loaded successfully');
-                    resolve();
-                };
-                script.onerror = () => {
-                    console.error('Failed to load enhanced results module');
-                    reject(new Error('Enhanced results failed to load'));
-                };
-                document.head.appendChild(script);
+                function loadEnhancedJS() {
+                    const script = document.createElement('script');
+                    script.src = 'ext-results.js';
+                    script.onload = () => {
+                        console.log('Enhanced results module loaded successfully');
+                        
+                        // Wait a bit for module initialization
+                        setTimeout(() => {
+                            if (window.ext_results && window.ext_results.renderResultsAccordion) {
+                                resolve();
+                            } else {
+                                console.warn('Enhanced results module loaded but functions not available');
+                                reject(new Error('Enhanced results functions not available'));
+                            }
+                        }, 200);
+                    };
+                    script.onerror = () => {
+                        console.error('Failed to load enhanced results module');
+                        reject(new Error('Enhanced results failed to load'));
+                    };
+                    document.head.appendChild(script);
+                }
             });
         }
 
-
         // Results calculation
+        // Updated calculateResults function with proper enhanced results integration
         function calculateResults() {
             const results = [];
             decisionData.options.forEach(option => {
@@ -530,25 +553,73 @@ function setupRatingStep() {
             });
             results.sort((a, b) => b.totalScore - a.totalScore);
             
-            // Existing displayResults call
+            // Always display legacy results first for immediate feedback
             displayResults(results);
             nextStep();
             
-            // ADD THIS: Load and render enhanced results for step 6
+            // Load and render enhanced results for step 6
             if (currentStep === 6) {
+                console.log('Loading enhanced results for step 6...');
+                
                 loadEnhancedResults().then(() => {
-                    // Wait a bit for DOM to be ready, then render enhanced results
-                    setTimeout(() => {
-                        if (window.ext_results && window.ext_results.renderResultsAccordion) {
-                            window.ext_results.renderResultsAccordion();
+                    console.log('Enhanced results loaded, rendering accordion...');
+                    
+                    // Ensure the accordion container exists
+                    let accordionContainer = document.getElementById('ext_resultsAccordion');
+                    if (!accordionContainer) {
+                        console.log('Creating accordion container...');
+                        const resultsSection = document.getElementById('section6');
+                        const legacyResults = document.getElementById('resultsGrid');
+                        
+                        if (resultsSection && legacyResults) {
+                            accordionContainer = document.createElement('div');
+                            accordionContainer.id = 'ext_resultsAccordion';
+                            accordionContainer.className = 'ext-results-accordion';
+                            accordionContainer.setAttribute('role', 'tablist');
+                            accordionContainer.setAttribute('aria-label', 'Decision analysis results');
+                            
+                            // Insert before the legacy results
+                            resultsSection.insertBefore(accordionContainer, legacyResults);
+                        } else {
+                            console.warn('Could not find results section or legacy results container');
+                            return;
                         }
-                    }, 200);
+                    }
+                    
+                    // Render enhanced results
+                    if (window.ext_results && window.ext_results.renderResultsAccordion) {
+                        try {
+                            window.ext_results.renderResultsAccordion();
+                            
+                            // Hide legacy results after enhanced results are rendered
+                            const legacyResults = document.getElementById('resultsGrid');
+                            if (legacyResults) {
+                                legacyResults.style.display = 'none';
+                            }
+                        } catch (error) {
+                            console.error('Error rendering enhanced results:', error);
+                            showToast('Enhanced results unavailable, using standard view', 'warning');
+                        }
+                    } else {
+                        console.warn('Enhanced results functions not available after loading');
+                    }
+                    
                 }).catch(error => {
                     console.warn('Enhanced results not available:', error);
-                    // Continue with standard results
+                    showToast('Enhanced features unavailable, using standard results', 'warning');
+                    // Continue with standard results - they're already displayed
                 });
             }
         }
+
+
+
+
+
+
+
+
+
         function displayResults(results) {
             const container = document.getElementById('resultsGrid');
     
@@ -985,6 +1056,7 @@ function toggleExportDropdown() {
 }
 
 // Handle export selection
+// Updated export dropdown handler with enhanced PDF support
 function handleExportSelection(type) {
     // Hide dropdown
     document.getElementById('exportDropdown').classList.remove('show');
@@ -999,6 +1071,22 @@ function handleExportSelection(type) {
             break;
         case 'pdf':
             downloadPDFReport();
+            break;
+        case 'ext_pdf':
+            // Enhanced PDF export
+            if (window.ext_results && window.ext_results.generatePDFReport) {
+                try {
+                    window.ext_results.generatePDFReport();
+                } catch (error) {
+                    console.error('Enhanced PDF generation failed:', error);
+                    alert('Enhanced PDF generation failed. Falling back to standard PDF.');
+                    downloadPDFReport(); // Fallback to standard PDF
+                }
+            } else {
+                console.warn('Enhanced PDF not available, using standard PDF');
+                alert('Enhanced PDF features not available. Using standard PDF.');
+                downloadPDFReport(); // Fallback to standard PDF
+            }
             break;
         case 'csv':
             exportToCSV();
