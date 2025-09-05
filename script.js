@@ -478,7 +478,7 @@ function setupRatingStep() {
         function loadEnhancedResults() {
             return new Promise((resolve, reject) => {
                 // Check if already loaded
-                if (window.ext_results && window.ext_results.renderResultsAccordion) {
+                if (window.ext_results && typeof window.ext_results.renderResultsAccordion === 'function') {
                     console.log('Enhanced results already loaded');
                     resolve();
                     return;
@@ -607,7 +607,17 @@ function setupRatingStep() {
                 }).catch(error => {
                     console.warn('Enhanced results not available:', error);
                     showToast('Enhanced features unavailable, using standard results', 'warning');
-                    // Continue with standard results - they're already displayed
+                    // Show standard results since enhanced failed
+                    const legacyResults = document.getElementById('resultsGrid');
+                    if (legacyResults) {
+                        legacyResults.style.display = 'block';
+                    }
+                    
+                    // Hide the empty enhanced accordion
+                    const accordionContainer = document.getElementById('ext_resultsAccordion');
+                    if (accordionContainer) {
+                        accordionContainer.style.display = 'none';
+                    }
                 });
             }
         }
