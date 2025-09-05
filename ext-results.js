@@ -1509,74 +1509,127 @@
     /**
      * Render sensitivity analysis
      */
-    function ext_renderSensitivity(flipPoints) {
-        const container = document.getElementById('ext_sensitivityContainer');
-        if (!container) return;
+function ext_renderSensitivity(flipPoints) {
+    const container = document.getElementById('ext_sensitivityContainer');
+    if (!container) return;
 
-        const validFlipPoints = flipPoints.filter(fp => !fp.impossible);
-        const criticalFlipPoints = validFlipPoints.filter(fp => Math.abs(fp.flipDeltaPercentPoints) < 10);
+    const validFlipPoints = flipPoints.filter(fp => !fp.impossible);
+    const criticalFlipPoints = validFlipPoints.filter(fp => Math.abs(fp.flipDeltaPercentPoints) < 10);
 
-        container.innerHTML = `
-            <div class="ext-chart-container">
-                <h4>Sensitivity Analysis</h4>
-                <p style="color: #666; margin-bottom: 20px;">
-                    This shows how sensitive your decision is to changes in criteria weights.
-                </p>
-                
-                ${criticalFlipPoints.length > 0 ? `
-                    <div class="ext-sensitivity-alert">
-                        <h5>⚠️ Decision-Critical Criteria</h5>
-                        <p>Small changes to these criteria could flip your decision:</p>
-                        ${criticalFlipPoints.slice(0, 3).map(fp => `
-                            <div class="ext-flip-point-item">
-                                <strong>${ext_safeHtml(fp.criterionName)}:</strong> 
-                                ${fp.flipDeltaPercentPoints > 0 ? '+' : ''}${fp.flipDeltaPercentPoints}pp change needed
-                            </div>
-                        `).join('')}
-                    </div>
-                ` : ''}
-                
-                <div class="ext-flip-points-table">
-                    <h5>All Criteria Flip Points</h5>
-                    <div style="overflow-x: auto;">
-                        <table class="ext-table">
-                            <thead>
+    container.innerHTML = `
+        <div class="ext-chart-container">
+            <h4>Sensitivity Analysis</h4>
+            <p style="color: #666; margin-bottom: 20px;">
+                This shows how sensitive your decision is to changes in criteria weights.
+            </p>
+            
+            ${criticalFlipPoints.length > 0 ? `
+                <div class="ext-sensitivity-alert" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                    <h5 style="color: #856404; margin: 0 0 10px 0;">⚠️ Decision-Critical Criteria</h5>
+                    <p style="color: #856404; margin: 0;">Small changes to these criteria could flip your decision:</p>
+                </div>
+            ` : ''}
+            
+            ${validFlipPoints.length > 0 ? `
+                <div class="ext-tornado-chart">
+                    <h5 style="margin: 0 0 15px 0; color: #333;">Decision Sensitivity (Tornado Chart)</h5>
+                    <p style="color: #666; margin: 0 0 20px 0; font-size: 0.9rem;">
+                        Shorter bars = more sensitive criteria. Shows weight change needed to flip the decision.
+                    </p>
+                    ${ext_renderTornadoChart(validFlipPoints)}
+                </div>
+            ` : ''}
+            
+            <div class="ext-flip-points-table">
+                <h5>Detailed Flip Points Analysis</h5>
+                <div style="overflow-x: auto;">
+                    <table class="ext-ranking-table">
+                        <thead>
+                            <tr>
+                                <th>Criteria</th>
+                                <th>Current Weight</th>
+                                <th>Change Needed</th>
+                                <th>Sensitivity</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${flipPoints.map(fp => `
                                 <tr>
-                                    <th>Criteria</th>
-                                    <th>Current Weight</th>
-                                    <th>Change Needed</th>
-                                    <th>Status</th>
+                                    <td><strong>${ext_safeHtml(fp.criterionName)}</strong></td>
+                                    <td>${fp.currentWeight || 'N/A'}%</td>
+                                    <td>
+                                        ${fp.impossible ? 'Cannot flip' : 
+                                          `${fp.flipDeltaPercentPoints > 0 ? '+' : ''}${fp.flipDeltaPercentPoints}pp`}
+                                    </td>
+                                    <td>
+                                        ${fp.impossible ? 
+                                          '<span style="color: #666;">No Impact</span>' :
+                                          Math.abs(fp.flipDeltaPercentPoints) < 5 ?
+                                          '<span style="color: #dc3545; font-weight: 600;">Critical</span>' :
+                                          Math.abs(fp.flipDeltaPercentPoints) < 15 ?
+                                          '<span style="color: #fd7e14; font-weight: 600;">Moderate</span>' :
+                                          '<span style="color: #28a745; font-weight: 600;">Stable</span>'
+                                        }
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                ${flipPoints.map(fp => `
-                                    <tr>
-                                        <td>${ext_safeHtml(fp.criterionName)}</td>
-                                        <td>${fp.currentWeight || 'N/A'}%</td>
-                                        <td>
-                                            ${fp.impossible ? 'Cannot flip' : 
-                                              `${fp.flipDeltaPercentPoints > 0 ? '+' : ''}${fp.flipDeltaPercentPoints}pp`}
-                                        </td>
-                                        <td>
-                                            ${fp.impossible ? 
-                                              '<span class="ext-status-neutral">No Impact</span>' :
-                                              Math.abs(fp.flipDeltaPercentPoints) < 5 ?
-                                              '<span class="ext-status-critical">Critical</span>' :
-                                              Math.abs(fp.flipDeltaPercentPoints) < 15 ?
-                                              '<span class="ext-status-moderate">Moderate</span>' :
-                                              '<span class="ext-status-stable">Stable</span>'
-                                            }
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+
+/**
+ * Render tornado chart visualization
+ */
+function ext_renderTornadoChart(flipPoints) {
+    // Sort by absolute flip point magnitude (most critical first)
+    const sortedFlipPoints = [...flipPoints].sort((a, b) => 
+        Math.abs(a.flipDeltaPercentPoints) - Math.abs(b.flipDeltaPercentPoints)
+    );
+    
+    // Find maximum absolute change for scaling
+    const maxChange = Math.max(...sortedFlipPoints.map(fp => Math.abs(fp.flipDeltaPercentPoints)));
+    
+    return sortedFlipPoints.map(fp => {
+        const absChange = Math.abs(fp.flipDeltaPercentPoints);
+        const barWidth = maxChange > 0 ? (absChange / maxChange) * 100 : 0;
+        
+        // Determine criticality level
+        let criticalityClass, criticalityLabel;
+        if (absChange < 5) {
+            criticalityClass = 'critical';
+            criticalityLabel = 'Critical';
+        } else if (absChange < 15) {
+            criticalityClass = 'moderate';
+            criticalityLabel = 'Moderate';
+        } else {
+            criticalityClass = 'stable';
+            criticalityLabel = 'Stable';
+        }
+        
+        return `
+            <div class="ext-tornado-item">
+                <div class="ext-tornado-label">${ext_safeHtml(fp.criterionName)}</div>
+                <div class="ext-tornado-bar-container">
+                    <div class="ext-tornado-bar ${criticalityClass}" 
+                         style="width: ${barWidth}%"
+                         title="${ext_safeHtml(fp.criterionName)}: ${fp.flipDeltaPercentPoints > 0 ? '+' : ''}${fp.flipDeltaPercentPoints}pp change needed">
+                        ${barWidth > 20 ? `${absChange}pp` : ''}
                     </div>
+                </div>
+                <div class="ext-tornado-value ${criticalityClass}">
+                    ${fp.flipDeltaPercentPoints > 0 ? '+' : ''}${fp.flipDeltaPercentPoints}pp
                 </div>
             </div>
         `;
-    }
+    }).join('');
+}
 
+    
     /**
      * Initialize what-if controls
      */
