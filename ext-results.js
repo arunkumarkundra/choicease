@@ -678,28 +678,61 @@
     /**
      * Check if Chart.js is properly loaded
      */
-    function ext_checkChartJSDependency() {
-        if (typeof window.Chart !== 'undefined') {
-            // Check Chart.js version compatibility
-            const version = window.Chart.version;
-            if (version && version.startsWith('4.')) {
-                window.ExtChart = window.Chart;
-                console.log(`Chart.js v${version} detected and aliased to ExtChart`);
-                return true;
-            } else if (version && (version.startsWith('3.') || version.startsWith('2.'))) {
-                console.warn(`Chart.js v${version} detected but v4+ required for optimal compatibility`);
-                window.ExtChart = window.Chart; // Try anyway
-                return true;
-            } else {
-                console.warn('Chart.js version could not be determined');
-                window.ExtChart = window.Chart;
-                return true;
-            }
-        } else {
-            console.warn('Chart.js not detected - charts will show fallback content');
-            return false;
-        }
+
+/**
+ * Enhanced Chart.js dependency check with better version handling
+ */
+function ext_checkChartJSDependency() {
+    // Check for Chart.js in multiple possible locations
+    const chartSources = [
+        window.Chart,
+        window.ExtChart,
+        (window.Chart && window.Chart.Chart) // Some versions nest Chart
+    ].filter(Boolean);
+
+    if (chartSources.length === 0) {
+        console.warn('Chart.js not detected - charts will show fallback content');
+        return false;
     }
+
+    // Use the first available Chart.js instance
+    const Chart = chartSources[0];
+    
+    // Try to determine version
+    let version = 'unknown';
+    if (Chart.version) {
+        version = Chart.version;
+    } else if (Chart.Chart && Chart.Chart.version) {
+        version = Chart.Chart.version;
+    }
+
+    console.log(`Chart.js detected - version: ${version}`);
+    
+    // Set up global reference
+    if (!window.ExtChart) {
+        window.ExtChart = Chart;
+    }
+
+    // Register default plugins if needed and available
+    try {
+        if (Chart.register && Chart.defaults) {
+            // Chart.js v3+ style
+            console.log('Chart.js v3+ detected');
+        } else if (Chart.Chart && Chart.Chart.register) {
+            // Alternative v3+ structure
+            window.ExtChart = Chart.Chart;
+        } else {
+            // Likely v2.x or earlier
+            console.log('Chart.js v2.x or earlier detected');
+        }
+    } catch (error) {
+        console.warn('Chart.js setup warning:', error);
+    }
+
+    return true;
+}
+
+    
     
     // ========================================
     // CORE DATA MANAGEMENT FUNCTIONS
@@ -1379,68 +1412,106 @@
     /**
      * Render criteria weights pie chart
      */
-    function ext_renderWeightsPie(decisionCopy) {
-        const container = document.getElementById('ext_weightsPieContainer');
-        const canvas = document.getElementById('ext_weightsPie');
-        
-        if (!container || !canvas) {
-            console.warn('Pie chart container or canvas not found');
-            return;
+/**
+ * Render criteria weights pie chart with improved compatibility
+ */
+function ext_renderWeightsPie(decisionCopy) {
+    const container = document.getElementById('ext_weightsPieContainer');
+    const canvas = document.getElementById('ext_weightsPie');
+    
+    if (!container || !canvas) {
+        console.warn('Pie chart container or canvas not found');
+        return;
+    }
+
+    // Enhanced Chart.js detection and compatibility
+    if (!window.ExtChart && !window.Chart) {
+        console.warn('Chart.js not available for pie chart');
+        ext_showChartFallback(container, 'Interactive pie chart requires Chart.js library');
+        return;
+    }
+
+    // Use available Chart.js instance
+    const ChartJS = window.ExtChart || window.Chart;
+    
+    const ctx = canvas.getContext('2d');
+    const criteriaNames = decisionCopy.criteria.map(c => c.name);
+    const weights = decisionCopy.criteria.map(c => 
+        Math.round(decisionCopy.normalizedWeights[c.id] || 0)
+    );
+    const colors = ext_generateColors(criteriaNames.length);
+
+    try {
+        // Destroy existing chart if it exists
+        if (ext_state.charts.pie) {
+            ext_state.charts.pie.destroy();
         }
-    
-        if (!window.ExtChart) {
-            console.warn('Chart.js not available for pie chart');
-            ext_showChartFallback(container, 'Pie chart could not be rendered. Chart.js may not be available.');
-            return;
-        }
-    
-        const ctx = canvas.getContext('2d');
-        const criteriaNames = decisionCopy.criteria.map(c => c.name);
-        const weights = decisionCopy.criteria.map(c => 
-            Math.round(decisionCopy.normalizedWeights[c.id] || 0)
-        );
-        const colors = ext_generateColors(criteriaNames.length);
-    
-        try {
-            const chart = new window.ExtChart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: criteriaNames,
-                    datasets: [{
-                        data: weights,
-                        backgroundColor: colors,
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                padding: 20,
-                                usePointStyle: true
+
+        // Chart configuration with version compatibility
+        const chartConfig = {
+            type: 'pie',
+            data: {
+                labels: criteriaNames,
+                datasets: [{
+                    data: weights,
+                    backgroundColor: colors,
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    hoverBorderWidth: 3,
+                    hoverBorderColor: '#333333'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            usePointStyle: true,
+                            font: {
+                                size: 12
                             }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return `${context.label}: ${context.parsed}%`;
-                                }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.parsed || 0;
+                                return `${label}: ${value}%`;
                             }
                         }
                     }
+                },
+                // Fallback for older Chart.js versions
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
                 }
-            });
-    
-            ext_state.charts.pie = chart;
-        } catch (error) {
-            console.error('Error creating pie chart:', error);
-            ext_showChartFallback(container, 'Error creating pie chart visualization.');
-        }
+            }
+        };
+
+        const chart = new ChartJS(ctx, chartConfig);
+        ext_state.charts.pie = chart;
+        
+        console.log('Pie chart rendered successfully');
+
+    } catch (error) {
+        console.error('Error creating pie chart:', error);
+        ext_showChartFallback(container, 'Could not render pie chart visualization');
     }
+}
+
+
+
+
+
+    
     /**
      * Render performance heatmap
      */
