@@ -1334,4 +1334,619 @@
      */
     function ext_renderWeightsPie(decisionCopy) {
         if (!window.ExtChart) {
-            console.warn('Chart.js not available for pie chart
+            console.warn('Chart.js not available for pie chart');
+            ext_showChartFallback(container, 'Pie chart could not be rendered. Chart.js may not be available.');
+            return;
+        }
+
+        const ctx = canvas.getContext('2d');
+        const criteriaNames = decisionCopy.criteria.map(c => c.name);
+        const weights = decisionCopy.criteria.map(c => 
+            Math.round(decisionCopy.normalizedWeights[c.id] || 0)
+        );
+        const colors = ext_generateColors(criteriaNames.length);
+
+        try {
+            const chart = new window.ExtChart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: criteriaNames,
+                    datasets: [{
+                        data: weights,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.label}: ${context.parsed}%`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            ext_state.charts.pie = chart;
+        } catch (error) {
+            console.error('Error creating pie chart:', error);
+            ext_showChartFallback(container, 'Error creating pie chart visualization.');
+        }
+    }
+
+    /**
+     * Render performance heatmap
+     */
+    function ext_renderHeatmap(decisionCopy) {
+        const container = document.getElementById('ext_heatmapContainer');
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="ext-chart-container">
+                <h4>Performance Matrix</h4>
+                <div class="ext-heatmap-wrapper" style="overflow-x: auto;">
+                    <table class="ext-heatmap-table">
+                        <thead>
+                            <tr>
+                                <th>Option</th>
+                                ${decisionCopy.criteria.map(c => `<th>${ext_safeHtml(c.name)}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${decisionCopy.options.map(option => {
+                                return `
+                                    <tr>
+                                        <td class="ext-heatmap-label">${ext_safeHtml(option.name)}</td>
+                                        ${decisionCopy.criteria.map(criteria => {
+                                            const ratingKey = `${option.id}-${criteria.id}`;
+                                            const rating = decisionCopy.ratings[ratingKey] || 3;
+                                            const weight = (decisionCopy.normalizedWeights[criteria.id] || 0) / 100;
+                                            const weightedScore = rating * weight;
+                                            
+                                            let colorClass = 'ext-heatmap-low';
+                                            if (rating >= 4) colorClass = 'ext-heatmap-high';
+                                            else if (rating >= 3) colorClass = 'ext-heatmap-medium';
+                                            
+                                            return `
+                                                <td class="ext-heatmap-cell ${colorClass}" 
+                                                    title="${ext_safeHtml(option.name)} on ${ext_safeHtml(criteria.name)}: ${rating}/5 (weighted: ${ext_safeNumber(weightedScore, 3)})">
+                                                    <div class="ext-heatmap-rating">${rating}</div>
+                                                    <div class="ext-heatmap-weighted">${ext_safeNumber(weightedScore, 2)}</div>
+                                                </td>
+                                            `;
+                                        }).join('')}
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="ext-heatmap-legend">
+                    <span class="ext-legend-item">
+                        <span class="ext-legend-color ext-heatmap-low"></span>
+                        1-2: Needs Improvement
+                    </span>
+                    <span class="ext-legend-item">
+                        <span class="ext-legend-color ext-heatmap-medium"></span>
+                        3: Adequate
+                    </span>
+                    <span class="ext-legend-item">
+                        <span class="ext-legend-color ext-heatmap-high"></span>
+                        4-5: Excellent
+                    </span>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Render sensitivity analysis
+     */
+    function ext_renderSensitivity(flipPoints) {
+        const container = document.getElementById('ext_sensitivityContainer');
+        if (!container) return;
+
+        const validFlipPoints = flipPoints.filter(fp => !fp.impossible);
+        const criticalFlipPoints = validFlipPoints.filter(fp => Math.abs(fp.flipDeltaPercentPoints) < 10);
+
+        container.innerHTML = `
+            <div class="ext-chart-container">
+                <h4>Sensitivity Analysis</h4>
+                <p style="color: #666; margin-bottom: 20px;">
+                    This shows how sensitive your decision is to changes in criteria weights.
+                </p>
+                
+                ${criticalFlipPoints.length > 0 ? `
+                    <div class="ext-sensitivity-alert">
+                        <h5>⚠️ Decision-Critical Criteria</h5>
+                        <p>Small changes to these criteria could flip your decision:</p>
+                        ${criticalFlipPoints.slice(0, 3).map(fp => `
+                            <div class="ext-flip-point-item">
+                                <strong>${ext_safeHtml(fp.criterionName)}:</strong> 
+                                ${fp.flipDeltaPercentPoints > 0 ? '+' : ''}${fp.flipDeltaPercentPoints}pp change needed
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+                
+                <div class="ext-flip-points-table">
+                    <h5>All Criteria Flip Points</h5>
+                    <div style="overflow-x: auto;">
+                        <table class="ext-table">
+                            <thead>
+                                <tr>
+                                    <th>Criteria</th>
+                                    <th>Current Weight</th>
+                                    <th>Change Needed</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${flipPoints.map(fp => `
+                                    <tr>
+                                        <td>${ext_safeHtml(fp.criterionName)}</td>
+                                        <td>${fp.currentWeight || 'N/A'}%</td>
+                                        <td>
+                                            ${fp.impossible ? 'Cannot flip' : 
+                                              `${fp.flipDeltaPercentPoints > 0 ? '+' : ''}${fp.flipDeltaPercentPoints}pp`}
+                                        </td>
+                                        <td>
+                                            ${fp.impossible ? 
+                                              '<span class="ext-status-neutral">No Impact</span>' :
+                                              Math.abs(fp.flipDeltaPercentPoints) < 5 ?
+                                              '<span class="ext-status-critical">Critical</span>' :
+                                              Math.abs(fp.flipDeltaPercentPoints) < 15 ?
+                                              '<span class="ext-status-moderate">Moderate</span>' :
+                                              '<span class="ext-status-stable">Stable</span>'
+                                            }
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Initialize what-if controls
+     */
+    function ext_initWhatIfControls(decisionCopy) {
+        const container = document.getElementById('ext_sensitivityContainer');
+        if (!container) return;
+
+        // Initialize temporary weights
+        ext_state.tmpWeights = { ...decisionCopy.normalizedWeights };
+
+        const whatIfHTML = `
+            <div class="ext-what-if-section">
+                <h5>What-If Analysis</h5>
+                <p style="color: #666; margin-bottom: 15px;">
+                    Adjust criteria weights to see how it affects the ranking. 
+                    <em>This is scenario-only - it won't change your saved decision.</em>
+                </p>
+                
+                <div class="ext-what-if-controls">
+                    ${decisionCopy.criteria.map(criteria => {
+                        const currentWeight = Math.round(decisionCopy.normalizedWeights[criteria.id] || 0);
+                        return `
+                            <div class="ext-what-if-item">
+                                <label for="whatif-${criteria.id}">${ext_safeHtml(criteria.name)}</label>
+                                <div class="ext-slider-container">
+                                    <input type="range" 
+                                           id="whatif-${criteria.id}" 
+                                           class="ext-what-if-slider"
+                                           min="1" 
+                                           max="50" 
+                                           value="${currentWeight}"
+                                           data-criteria-id="${criteria.id}">
+                                    <span class="ext-slider-value" id="value-${criteria.id}">${currentWeight}%</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                
+                <div class="ext-what-if-results" id="ext_whatIfResults">
+                    <!-- Results will be updated dynamically -->
+                </div>
+                
+                <div class="ext-what-if-actions">
+                    <button class="btn btn-secondary" id="ext_resetWhatIf">Reset to Original</button>
+                </div>
+            </div>
+        `;
+
+        container.insertAdjacentHTML('beforeend', whatIfHTML);
+
+        // Attach event listeners
+        const sliders = container.querySelectorAll('.ext-what-if-slider');
+        sliders.forEach(slider => {
+            if (slider) {
+                slider.addEventListener('input', ext_handleWhatIfChange);
+            }
+        });
+
+        const resetBtn = document.getElementById('ext_resetWhatIf');
+        if (resetBtn) {
+            resetBtn.addEventListener('click', () => ext_resetWhatIfWeights(decisionCopy));
+        }
+
+        // Initial update
+        ext_updateWhatIfResults(decisionCopy);
+    }
+
+    /**
+     * Handle what-if slider changes
+     */
+    function ext_handleWhatIfChange(event) {
+        const criteriaId = event.target.getAttribute('data-criteria-id');
+        const newValue = parseInt(event.target.value);
+        
+        if (!criteriaId || isNaN(newValue)) return;
+
+        // Update the display
+        const valueDisplay = document.getElementById(`value-${criteriaId}`);
+        if (valueDisplay) {
+            valueDisplay.textContent = `${newValue}%`;
+        }
+
+        // Update temporary weights
+        ext_state.tmpWeights[criteriaId] = newValue;
+
+        // Renormalize all weights to sum to 100%
+        ext_renormalizeWhatIfWeights();
+
+        // Update all slider displays and results
+        const decisionCopy = ext_cloneDecisionData();
+        ext_updateWhatIfResults(decisionCopy);
+    }
+
+    /**
+     * Renormalize what-if weights to sum to 100%
+     */
+    function ext_renormalizeWhatIfWeights() {
+        const total = Object.values(ext_state.tmpWeights).reduce((sum, w) => sum + w, 0);
+        
+        if (total > 0) {
+            Object.keys(ext_state.tmpWeights).forEach(id => {
+                ext_state.tmpWeights[id] = (ext_state.tmpWeights[id] / total) * 100;
+            });
+        }
+
+        // Update all slider displays
+        Object.keys(ext_state.tmpWeights).forEach(id => {
+            const slider = document.getElementById(`whatif-${id}`);
+            const valueDisplay = document.getElementById(`value-${id}`);
+            
+            if (slider && valueDisplay) {
+                const normalizedValue = Math.round(ext_state.tmpWeights[id]);
+                slider.value = normalizedValue;
+                valueDisplay.textContent = `${normalizedValue}%`;
+            }
+        });
+    }
+
+    /**
+     * Update what-if results display
+     */
+    function ext_updateWhatIfResults(decisionCopy) {
+        const resultsContainer = document.getElementById('ext_whatIfResults');
+        if (!resultsContainer) return;
+
+        // Create temporary decision copy with what-if weights
+        const whatIfCopy = JSON.parse(JSON.stringify(decisionCopy));
+        whatIfCopy.normalizedWeights = { ...ext_state.tmpWeights };
+
+        // Compute new results
+        const whatIfResults = ext_computeResultsCopy(whatIfCopy);
+        const rankedResults = ext_assignRanks(whatIfResults);
+
+        // Compare with original
+        const originalResults = ext_computeResultsCopy(decisionCopy);
+        const originalWinner = originalResults[0];
+        const whatIfWinner = rankedResults[0];
+
+        const winnerChanged = originalWinner.option.id !== whatIfWinner.option.id;
+
+        resultsContainer.innerHTML = `
+            <div class="ext-what-if-summary">
+                ${winnerChanged ? `
+                    <div class="ext-winner-change-alert">
+                        🔄 <strong>Winner Changed!</strong> 
+                        ${ext_safeHtml(whatIfWinner.option.name)} is now the top choice 
+                        (was ${ext_safeHtml(originalWinner.option.name)})
+                    </div>
+                ` : `
+                    <div class="ext-winner-stable">
+                        ✓ Winner remains: ${ext_safeHtml(whatIfWinner.option.name)}
+                    </div>
+                `}
+                
+                <div class="ext-what-if-top3">
+                    <h6>Current Top 3:</h6>
+                    ${rankedResults.slice(0, 3).map((result, index) => `
+                        <div class="ext-what-if-rank-item">
+                            ${index + 1}. ${ext_safeHtml(result.option.name)} 
+                            (${ext_safeNumber(result.totalScore, 2)}/5.0)
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Reset what-if weights to original
+     */
+    function ext_resetWhatIfWeights(decisionCopy) {
+        ext_state.tmpWeights = { ...decisionCopy.normalizedWeights };
+        
+        // Update all sliders
+        Object.keys(ext_state.tmpWeights).forEach(id => {
+            const slider = document.getElementById(`whatif-${id}`);
+            const valueDisplay = document.getElementById(`value-${id}`);
+            
+            if (slider && valueDisplay) {
+                const value = Math.round(ext_state.tmpWeights[id]);
+                slider.value = value;
+                valueDisplay.textContent = `${value}%`;
+            }
+        });
+
+        ext_updateWhatIfResults(decisionCopy);
+    }
+
+    /**
+     * Render risks analysis
+     */
+    function ext_renderRisksAnalysis(results, decisionCopy) {
+        const container = document.getElementById('ext_risksContainer');
+        if (!container || !results.length) return;
+
+        const winner = results[0];
+        const risks = [];
+
+        // Find criteria where winner scored poorly
+        decisionCopy.criteria.forEach(criteria => {
+            const ratingKey = `${winner.option.id}-${criteria.id}`;
+            const rating = decisionCopy.ratings[ratingKey] || 3;
+            
+            if (rating <= 2) {
+                risks.push({
+                    criterion: criteria.name,
+                    rating: rating,
+                    weight: Math.round(decisionCopy.normalizedWeights[criteria.id] || 0),
+                    severity: rating === 1 ? 'high' : 'medium'
+                });
+            }
+        });
+
+        // Find criteria where winner is significantly behind runner-up
+        if (results.length > 1) {
+            const runnerUp = results[1];
+            decisionCopy.criteria.forEach(criteria => {
+                const winnerRatingKey = `${winner.option.id}-${criteria.id}`;
+                const runnerUpRatingKey = `${runnerUp.option.id}-${criteria.id}`;
+                const winnerRating = decisionCopy.ratings[winnerRatingKey] || 3;
+                const runnerUpRating = decisionCopy.ratings[runnerUpRatingKey] || 3;
+                
+                if (runnerUpRating - winnerRating >= 2 && !risks.find(r => r.criterion === criteria.name)) {
+                    risks.push({
+                        criterion: criteria.name,
+                        rating: winnerRating,
+                        weight: Math.round(decisionCopy.normalizedWeights[criteria.id] || 0),
+                        severity: 'medium',
+                        gap: runnerUpRating - winnerRating
+                    });
+                }
+            });
+        }
+
+        container.innerHTML = `
+            <div class="ext-chart-container">
+                <h4>Risks & Weaknesses Analysis</h4>
+                
+                ${risks.length === 0 ? `
+                    <div class="ext-no-risks">
+                        <p>✅ No significant weaknesses identified for ${ext_safeHtml(winner.option.name)}.</p>
+                        <p style="color: #666;">Your top choice performs well across all criteria.</p>
+                    </div>
+                ` : `
+                    <div class="ext-risks-summary">
+                        <p>Areas where <strong>${ext_safeHtml(winner.option.name)}</strong> could be vulnerable:</p>
+                    </div>
+                    
+                    <div class="ext-risks-list">
+                        ${risks.map(risk => `
+                            <div class="ext-risk-item ${risk.severity}">
+                                <div class="ext-risk-header">
+                                    <span class="ext-risk-icon">${risk.severity === 'high' ? '🔴' : '🟡'}</span>
+                                    <strong>${ext_safeHtml(risk.criterion)}</strong>
+                                    <span class="ext-risk-score">${risk.rating}/5</span>
+                                </div>
+                                <div class="ext-risk-details">
+                                    Weight: ${risk.weight}% | 
+                                    ${risk.gap ? `Behind runner-up by ${risk.gap} points | ` : ''}
+                                    ${risk.severity === 'high' ? 'High Priority' : 'Monitor Closely'}
+                                </div>
+                                <div class="ext-risk-suggestion">
+                                    ${ext_getRiskSuggestion(risk.criterion, risk.rating)}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="ext-risks-actions">
+                        <h5>Recommended Actions:</h5>
+                        <ul>
+                            ${risks.slice(0, 3).map(risk => `
+                                <li>Investigate ${ext_safeHtml(risk.criterion)} more thoroughly before final decision</li>
+                            `).join('')}
+                            ${risks.some(r => r.weight > 15) ? 
+                                '<li>Consider if these weaknesses are acceptable given the high importance weights</li>' : ''}
+                            <li>Compare detailed specifications with runner-up options</li>
+                        </ul>
+                    </div>
+                `}
+            </div>
+        `;
+    }
+
+    /**
+     * Get risk mitigation suggestion
+     */
+    function ext_getRiskSuggestion(criterion, rating) {
+        const suggestions = {
+            'price': 'Review budget allocation and consider total cost of ownership',
+            'cost': 'Review budget allocation and consider total cost of ownership',
+            'performance': 'Verify performance benchmarks meet your minimum requirements',
+            'quality': 'Research user reviews and quality assessments',
+            'reliability': 'Check warranty terms and failure rates',
+            'support': 'Evaluate customer service reputation and availability',
+            'features': 'Confirm essential features are included or can be added',
+            'ease': 'Consider training needs and learning curve',
+            'usability': 'Consider training needs and learning curve'
+        };
+
+        const lowerCriterion = criterion.toLowerCase();
+        for (const [key, suggestion] of Object.entries(suggestions)) {
+            if (lowerCriterion.includes(key)) {
+                return suggestion;
+            }
+        }
+
+        return rating === 1 ? 
+            'This is a significant weakness - verify it won\'t impact your goals' :
+            'Consider whether this limitation is acceptable for your needs';
+    }
+
+    /**
+     * Show chart fallback when Chart.js fails
+     */
+    function ext_showChartFallback(container, message) {
+        const fallbackHTML = `
+            <div class="ext-chart-fallback">
+                <div class="ext-fallback-icon">📊</div>
+                <div class="ext-fallback-message">${ext_safeHtml(message)}</div>
+                <div class="ext-fallback-note">Charts require Chart.js library to display properly.</div>
+            </div>
+        `;
+        
+        const chartContainer = container.querySelector('.ext-chart-container') || container;
+        chartContainer.innerHTML = fallbackHTML;
+    }
+
+    // ========================================
+    // INTEGRATION & INITIALIZATION
+    // ========================================
+
+    /**
+     * Initialize the enhanced results module
+     */
+    function ext_initializeModule() {
+        if (ext_state.isInitialized) return;
+        
+        console.log('Initializing enhanced results module...');
+        
+        // Check dependencies
+        if (!window.ExtChart) {
+            console.warn('Chart.js not available - some features may be limited');
+        }
+        
+        if (!window.jsPDF) {
+            console.warn('jsPDF not available - enhanced PDF generation disabled');
+        }
+        
+        // Hook into the existing calculateResults flow
+        const originalCalculateResults = window.calculateResults;
+        if (typeof originalCalculateResults === 'function') {
+            window.calculateResults = function() {
+                // Call original function first
+                const result = originalCalculateResults.apply(this, arguments);
+                
+                // Then add enhanced results
+                setTimeout(() => {
+                    if (currentStep === 6) { // Only on results step
+                        ext_renderResultsAccordion();
+                    }
+                }, 100);
+                
+                return result;
+            };
+        } else {
+            console.warn('calculateResults function not found - enhanced results may not trigger automatically');
+        }
+        
+        ext_state.isInitialized = true;
+        console.log('Enhanced results module initialized successfully');
+    }
+
+    // ========================================
+    // MODULE EXPORTS & AUTO-INITIALIZATION
+    // ========================================
+
+    // Export functions to global scope for debugging and manual calling
+    window.ext_results = {
+        renderResultsAccordion: ext_renderResultsAccordion,
+        generatePDFReport: ext_generatePDFReport,
+        computeResultsCopy: ext_computeResultsCopy,
+        assignRanks: ext_assignRanks,
+        computeConfidence: ext_computeConfidence,
+        computeFlipPoints: ext_computeFlipPoints,
+        state: ext_state,
+        config: ext_config
+    };
+
+    // Auto-initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', ext_initializeModule);
+    } else {
+        // DOM already loaded
+        ext_initializeModule();
+    }
+
+    // Also initialize when script loads (backup)
+    setTimeout(ext_initializeModule, 100);
+
+})();
+
+/**
+ * Integration Notes:
+ * 
+ * 1. This module automatically hooks into the existing calculateResults() function
+ * 2. All functions are prefixed with 'ext_' to avoid conflicts
+ * 3. No modifications to existing decisionData or state-mutating functions
+ * 4. Graceful degradation if Chart.js or jsPDF fail to load
+ * 5. Maintains backward compatibility with existing results
+ * 6. Professional-grade PDF generation with embedded charts
+ * 7. Interactive what-if analysis with real-time updates
+ * 8. Comprehensive sensitivity analysis and risk assessment
+ * 9. Mobile-responsive design with touch-friendly controls
+ * 10. Accessibility features with proper ARIA labels and keyboard support
+ * 
+ * Key Fixes Applied:
+ * - Fixed Chart.js plugin detection and error handling
+ * - Added fallback displays for failed chart renders
+ * - Improved null/undefined checks throughout
+ * - Enhanced XSS protection with proper HTML escaping
+ * - Better error handling in PDF generation
+ * - Fixed slider event handlers with proper null checks
+ * - Added chart fallback functionality
+ * - Improved dependency detection and graceful degradation
+ */
