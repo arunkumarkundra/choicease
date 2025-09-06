@@ -1666,47 +1666,6 @@ function setupRatingStep() {
 
 
 
-
-
-        function updateWhatIfResults() {
-            // Create cache key from current weights
-            const cacheKey = JSON.stringify(decisionData.normalizedWeights);
-            const cached = getCachedResults(cacheKey);
-            
-            if (cached) {
-                renderWhatIfResults(cached.newResults, cached.previousWinner);
-                return;
-            }
-            
-            // Store current winner before changes
-            const previousWinner = advancedAnalytics.results[0];
-            
-            // Recalculate results with new weights
-            const newResults = [];
-            decisionData.options.forEach(option => {
-                let totalScore = 0;
-                decisionData.criteria.forEach(criteria => {
-                    const ratingKey = `${option.id}-${criteria.id}`;
-                    const rating = decisionData.ratings[ratingKey] || 3;
-                    const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
-                    totalScore += rating * weight;
-                });
-                newResults.push({
-                    option: option,
-                    totalScore: totalScore
-                });
-            });
-            newResults.sort((a, b) => b.totalScore - a.totalScore);
-            
-            // Cache results
-            setCachedResults(cacheKey, { newResults, previousWinner });
-            
-            // Render results
-            renderWhatIfResults(newResults, previousWinner);
-        }
-
-
-
         
         function renderWhatIfResults(newResults, previousWinner) {
             // Check for winner change
@@ -1745,6 +1704,47 @@ function setupRatingStep() {
                     </div>
                 </div>
             `).join('');
+        }
+
+
+
+
+
+        function updateWhatIfResults() {
+            // Create cache key from current weights
+            const cacheKey = JSON.stringify(decisionData.normalizedWeights);
+            const cached = getCachedResults(cacheKey);
+            
+            if (cached) {
+                renderWhatIfResults(cached.newResults, cached.previousWinner);
+                return;
+            }
+            
+            // Store current winner before changes
+            const previousWinner = advancedAnalytics.results[0];
+            
+            // Recalculate results with new weights
+            const newResults = [];
+            decisionData.options.forEach(option => {
+                let totalScore = 0;
+                decisionData.criteria.forEach(criteria => {
+                    const ratingKey = `${option.id}-${criteria.id}`;
+                    const rating = decisionData.ratings[ratingKey] || 3;
+                    const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
+                    totalScore += rating * weight;
+                });
+                newResults.push({
+                    option: option,
+                    totalScore: totalScore
+                });
+            });
+            newResults.sort((a, b) => b.totalScore - a.totalScore);
+            
+            // Cache results
+            setCachedResults(cacheKey, { newResults, previousWinner });
+            
+            // Render results
+            renderWhatIfResults(newResults, previousWinner);
         }
 
 
@@ -1842,14 +1842,15 @@ function setupRatingStep() {
 
 
         
+        // FIND the generateEnhancedPDF function and REPLACE it with:
+        
         function generateEnhancedPDF() {
             if (advancedAnalytics.results && advancedAnalytics.confidence) {
-                generateEnhancedPDFReport();
+                generateEnhancedPDFWithErrorHandling();
             } else {
-                alert('Please calculate results and show advanced analytics first.');
+                showToast('Please calculate results and show advanced analytics first.', 'warning');
             }
         }
-
 
 
         function generateEnhancedPDFWithErrorHandling() {
@@ -4252,48 +4253,47 @@ function updateUIWithImportedData() {
             }
         }
 
-// Enhanced toast function with warning support
-function showToast(message, type = 'success') {
-    const toast = document.createElement('div');
-    toast.textContent = message;
-    
-    const colors = {
-        success: '#4caf50',
-        warning: '#ff9800',
-        error: '#f44336',
-        info: '#2196f3'
-    };
-    
-    toast.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: ${colors[type] || colors.success};
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        z-index: 10000;
-        font-weight: 500;
-        max-width: 300px;
-        word-wrap: break-word;
-        transition: opacity 0.3s ease;
-        font-size: 14px;
-        line-height: 1.4;
-    `;
-    
-    document.body.appendChild(toast);
-    
-    // Auto-hide timing based on message length
-    const hideDelay = Math.max(3000, message.length * 50);
-    setTimeout(() => toast.style.opacity = '0', hideDelay);
-    setTimeout(() => {
-        if (toast.parentNode) {
-            toast.remove();
-        }
-    }, hideDelay + 500);
-}
-        
+        // Enhanced toast function with warning support
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.textContent = message;
+            
+            const colors = {
+                success: '#4caf50',
+                warning: '#ff9800',
+                error: '#f44336',
+                info: '#2196f3'
+            };
+            
+            toast.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: ${colors[type] || colors.success};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 10000;
+                font-weight: 500;
+                max-width: 300px;
+                word-wrap: break-word;
+                transition: opacity 0.3s ease;
+                font-size: 14px;
+                line-height: 1.4;
+            `;
+            
+            document.body.appendChild(toast);
+            
+            // Auto-hide timing based on message length
+            const hideDelay = Math.max(3000, message.length * 50);
+            setTimeout(() => toast.style.opacity = '0', hideDelay);
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.remove();
+                }
+            }, hideDelay + 500);
+        }        
         function openModal() {
             document.getElementById('howItWorksModal').style.display = 'block';
             document.body.style.overflow = 'hidden'; // Prevent background scrolling
