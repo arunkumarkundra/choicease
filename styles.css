@@ -69,6 +69,13 @@ body {
     color: #fff; /* brighten on hover */
 }
 
+
+/* 1. CENTER ALIGN REDDIT SHARE NOTE */
+#redditShareNote {
+    margin-top: 12px;
+    text-align: center; /* Added: Center alignment */
+}
+
 /* ==========================================================================
    3. PROGRESS & NAVIGATION
    ========================================================================== */
@@ -141,13 +148,18 @@ body {
     margin-bottom: 30px;
     animation: fadeIn 0.5s ease-out;
 }
-
+.section {
+    scroll-margin-top: 20px; /* Ensures proper scroll positioning */
+}
 .section-title {
     font-size: 1.5rem;
     margin-bottom: 15px;
     color: #333;
     display: flex;
     align-items: center;
+}
+.section-title {
+    scroll-margin-top: 30px; /* Extra margin for section titles */
 }
 
 /* Colored bar next to section titles */
@@ -461,13 +473,30 @@ body {
 
 /* Individual result cards */
 .result-card {
-    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    position: relative;
+    margin-top: 20px; /* Increased margin for badge clearance */
     padding: 25px;
     border-radius: 15px;
     border: 2px solid #dee2e6;
     transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
+    overflow: visible; /* Changed from hidden to visible */
+}
+
+.result-card .rank-badge {
+    position: absolute;
+    top: -15px; /* Moved up more to create proper clearance */
+    left: 20px; /* Slightly adjusted positioning */
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 10;
 }
 
 /* Top accent bar for result cards */
@@ -491,6 +520,58 @@ body {
 .result-card.winner::before {
     background: linear-gradient(135deg, #28a745, #20c997);
 }
+.result-card.winner .rank-badge {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+/* Ensure content doesn't overlap with badge */
+.result-card h3 {
+    margin-top: 10px; /* Added top margin to clear the badge */
+    margin-bottom: 10px;
+}
+
+/* 3. TIE HANDLING STYLES */
+.result-card.tied {
+    border-color: #ffc107;
+    background: linear-gradient(135deg, #fff8e1, #ffecb3);
+}
+
+.result-card.tied .rank-badge {
+    background: linear-gradient(135deg, #ffc107, #ff8f00);
+}
+
+.tie-indicator {
+    background: #fff3cd;
+    color: #856404;
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-left: 10px;
+    display: inline-block;
+}
+
+/* 5. MOBILE RESPONSIVENESS FOR RANK BADGES */
+@media (max-width: 768px) {
+    .result-card {
+        margin-top: 25px; /* More margin on mobile */
+        padding: 20px;
+    }
+    
+    .result-card .rank-badge {
+        top: -12px;
+        left: 15px;
+        width: 35px;
+        height: 35px;
+        font-size: 1rem;
+    }
+    
+    .result-card h3 {
+        margin-top: 15px; /* More clearance on mobile */
+        font-size: 1.1rem;
+    }
+}
+
 
 /* Score visualization bars */
 .score-bar {
