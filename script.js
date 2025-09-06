@@ -2705,7 +2705,7 @@ function exportResults() {
                 doc.setTextColor(255, 255, 255);
                 doc.setFontSize(12);
                 doc.setFont(undefined, 'bold');
-                doc.text(`${result.rank}`, 30, yPos + 14, { align: 'center' });
+                doc.text(`${result.rank}`, 30, yPos + 13, { align: 'center' });
                 
                 // Option name and details
                 doc.setTextColor(...textDark);
@@ -2716,9 +2716,6 @@ function exportResults() {
                     optionText += ' (Co-Winner)';
                 } else if (isWinner) {
                     optionText += ' (Winner)';
-                }
-                if (result.isTied && result.rank > 1) {
-                    optionText += ` (Tied)`;
                 }
                 doc.text(optionText, 45, yPos + 10);
                 
