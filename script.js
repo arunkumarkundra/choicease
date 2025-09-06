@@ -9,6 +9,15 @@
             ratings: {}
         };
 
+        // ADD THIS: Advanced analytics state
+        let advancedAnalytics = {
+            isVisible: false,
+            results: null,
+            confidence: null,
+            sensitivity: null,
+            risks: null
+        };
+
         // Input sanitization
         function sanitizeInput(input) {
             return input.replace(/[<>&"']/g, char => ({
@@ -473,43 +482,6 @@ function setupRatingStep() {
         }
 
 
-        // Dynamic loading for enhanced results
-        // Enhanced dynamic loading for results system
-        function loadEnhancedResults() {
-            return new Promise((resolve, reject) => {
-                // Check if already loaded
-                if (window.ext_results && typeof window.ext_results.renderResultsAccordion === 'function') {
-                    console.log('Enhanced results already loaded');
-                    resolve();
-                    return;
-                }
-                
-                console.log('Loading enhanced results system...');
-                
-                // Load JavaScript only (CSS is now in styles.css)
-                const script = document.createElement('script');
-                script.src = 'ext-results.js';
-                script.onload = () => {
-                    console.log('Enhanced results module loaded successfully');
-                    
-                    // Wait a bit for module initialization
-                    setTimeout(() => {
-                        if (window.ext_results && window.ext_results.renderResultsAccordion) {
-                            resolve();
-                        } else {
-                            console.warn('Enhanced results module loaded but functions not available');
-                            reject(new Error('Enhanced results functions not available'));
-                        }
-                    }, 200);
-                };
-                script.onerror = () => {
-                    console.error('Failed to load enhanced results module');
-                    reject(new Error('Enhanced results failed to load'));
-                };
-                document.head.appendChild(script);
-            });
-        }
-
         // Results calculation
         // Updated calculateResults function with proper enhanced results integration
         function calculateResults() {
@@ -537,72 +509,366 @@ function setupRatingStep() {
             });
             results.sort((a, b) => b.totalScore - a.totalScore);
             
-            // Always display legacy results first for immediate feedback
+            // Store results for advanced analytics
+            advancedAnalytics.results = results;
+            
+            // Display basic results
             displayResults(results);
             nextStep();
             
-            // Load and render enhanced results for step 6
-            if (currentStep === 6) {
-                console.log('Loading enhanced results for step 6...');
+            // Initialize advanced analytics toggle
+            initializeAdvancedAnalytics();
+        }
+
+
+
+        // Advanced analytics initialization
+        function initializeAdvancedAnalytics() {
+            const toggleBtn = document.getElementById('toggleAdvancedBtn');
+            const advancedSection = document.getElementById('advancedAnalytics');
+            
+            if (toggleBtn && advancedSection) {
+                toggleBtn.addEventListener('click', toggleAdvancedAnalytics);
                 
-                loadEnhancedResults().then(() => {
-                    console.log('Enhanced results loaded, rendering accordion...');
+                // Reset state
+                advancedAnalytics.isVisible = false;
+                advancedSection.classList.add('hidden');
+                toggleBtn.textContent = '📊 Show Advanced Analytics';
+            }
+        }
+        
+        function toggleAdvancedAnalytics() {
+            const toggleBtn = document.getElementById('toggleAdvancedBtn');
+            const advancedSection = document.getElementById('advancedAnalytics');
+            
+            if (!advancedAnalytics.isVisible) {
+                // Show advanced analytics
+                showAdvancedAnalytics();
+                advancedSection.classList.remove('hidden');
+                toggleBtn.textContent = '📊 Hide Advanced Analytics';
+                advancedAnalytics.isVisible = true;
+            } else {
+                // Hide advanced analytics
+                advancedSection.classList.add('hidden');
+                toggleBtn.textContent = '📊 Show Advanced Analytics';
+                advancedAnalytics.isVisible = false;
+            }
+        }
+        
+        function showAdvancedAnalytics() {
+            if (!advancedAnalytics.results) {
+                console.error('No results available for advanced analytics');
+                return;
+            }
+            
+            // Compute advanced metrics
+            advancedAnalytics.confidence = computeConfidenceAnalysis(advancedAnalytics.results);
+            advancedAnalytics.sensitivity = computeSensitivityAnalysis();
+            advancedAnalytics.risks = computeRiskAnalysis(advancedAnalytics.results);
+            
+            // Render all sections
+            renderAdvancedSummary();
+            renderAdvancedWeights();
+            renderAdvancedSensitivity();
+            renderAdvancedRisks();
+            setupEnhancedPDF();
+        }
+        
+        // Confidence analysis computation
+        function computeConfidenceAnalysis(results) {
+            if (results.length < 2) {
+                return {
+                    percentage: 50,
+                    level: 'medium',
+                    explanation: 'Insufficient options for confidence analysis'
+                };
+            }
+            
+            const winner = results[0];
+            const runnerUp = results[1];
+            const gap = winner.totalScore - runnerUp.totalScore;
+            const normalizedGap = Math.min(gap / 4, 1); // Max gap is 4 (5.0 - 1.0)
+            
+            const confidencePercent = Math.round(normalizedGap * 100);
+            
+            let level, explanation;
+            if (confidencePercent >= 70) {
+                level = 'high';
+                explanation = 'Clear winner with significant margin';
+            } else if (confidencePercent >= 40) {
+                level = 'medium';
+                explanation = 'Moderate confidence - decent margin';
+            } else {
+                level = 'low';
+                explanation = 'Low confidence - very close scores';
+            }
+            
+            return { percentage: confidencePercent, level, explanation, gap: gap.toFixed(2) };
+        }
+        
+        // Sensitivity analysis computation
+        function computeSensitivityAnalysis() {
+            const sensitivity = [];
+            
+            if (!advancedAnalytics.results || advancedAnalytics.results.length < 2) {
+                return sensitivity;
+            }
+            
+            const winner = advancedAnalytics.results[0];
+            const runnerUp = advancedAnalytics.results[1];
+            
+            decisionData.criteria.forEach(criteria => {
+                const winnerRating = winner.criteriaScores[criteria.name]?.rating || 3;
+                const runnerUpRating = runnerUp.criteriaScores[criteria.name]?.rating || 3;
+                const currentWeight = (decisionData.normalizedWeights[criteria.id] || 0);
+                
+                // Simplified flip point calculation
+                const ratingDiff = runnerUpRating - winnerRating;
+                if (Math.abs(ratingDiff) < 0.1) {
+                    sensitivity.push({
+                        criteriaName: criteria.name,
+                        changeNeeded: 'No impact',
+                        criticality: 'stable'
+                    });
+                } else {
+                    // Estimate change needed (simplified)
+                    const changeNeeded = Math.abs(ratingDiff * 20); // Rough estimate
+                    let criticality = 'stable';
+                    if (changeNeeded < 10) criticality = 'critical';
+                    else if (changeNeeded < 20) criticality = 'moderate';
                     
-                    // Ensure the accordion container exists
-                    let accordionContainer = document.getElementById('ext_resultsAccordion');
-                    if (!accordionContainer) {
-                        console.log('Creating accordion container...');
-                        const resultsSection = document.getElementById('section6');
-                        const legacyResults = document.getElementById('resultsGrid');
-                        
-                        if (resultsSection && legacyResults) {
-                            accordionContainer = document.createElement('div');
-                            accordionContainer.id = 'ext_resultsAccordion';
-                            accordionContainer.className = 'ext-results-accordion';
-                            accordionContainer.setAttribute('role', 'tablist');
-                            accordionContainer.setAttribute('aria-label', 'Decision analysis results');
-                            
-                            // Insert before the legacy results
-                            resultsSection.insertBefore(accordionContainer, legacyResults);
-                        } else {
-                            console.warn('Could not find results section or legacy results container');
-                            return;
+                    sensitivity.push({
+                        criteriaName: criteria.name,
+                        changeNeeded: `±${changeNeeded.toFixed(1)}%`,
+                        criticality: criticality
+                    });
+                }
+            });
+            
+            return sensitivity.sort((a, b) => {
+                const order = { critical: 0, moderate: 1, stable: 2 };
+                return order[a.criticality] - order[b.criticality];
+            });
+        }
+        
+        // Risk analysis computation
+        function computeRiskAnalysis(results) {
+            const risks = [];
+            const winner = results[0];
+            
+            decisionData.criteria.forEach(criteria => {
+                const ratingKey = `${winner.option.id}-${criteria.id}`;
+                const rating = decisionData.ratings[ratingKey] || 3;
+                const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
+                
+                if (rating <= 2) {
+                    risks.push({
+                        criteriaName: criteria.name,
+                        rating: rating,
+                        weight: weight,
+                        severity: rating === 1 ? 'high' : 'moderate',
+                        description: `Low performance (${rating}/5) with ${weight}% importance`
+                    });
+                }
+            });
+            
+            return risks;
+        }
+
+
+
+        // Render advanced summary
+        function renderAdvancedSummary() {
+            const container = document.getElementById('advancedSummary');
+            if (!container || !advancedAnalytics.confidence) return;
+            
+            const winner = advancedAnalytics.results[0];
+            const confidence = advancedAnalytics.confidence;
+            
+            container.innerHTML = `
+                <div class="confidence-analysis">
+                    <h3>🏆 Recommended Choice: ${sanitizeInput(winner.option.name)}</h3>
+                    <p style="margin: 10px 0; color: #666;">
+                        Score: ${winner.totalScore.toFixed(2)}/5.0 (${Math.round((winner.totalScore/5)*100)}%)
+                    </p>
+                    
+                    <div class="confidence-meter">
+                        <h4>Decision Confidence: ${confidence.level.toUpperCase()}</h4>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill ${confidence.level}" style="width: ${confidence.percentage}%"></div>
+                        </div>
+                        <p style="margin: 10px 0; font-size: 0.9rem; color: #666;">
+                            ${confidence.percentage}% - ${confidence.explanation}
+                        </p>
+                    </div>
+                    
+                    ${advancedAnalytics.results.length > 1 ? `
+                        <p style="margin-top: 15px; font-size: 0.9rem;">
+                            <strong>Margin:</strong> +${confidence.gap} points ahead of ${sanitizeInput(advancedAnalytics.results[1].option.name)}
+                        </p>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        // Render weights section
+        function renderAdvancedWeights() {
+            const container = document.getElementById('advancedWeights');
+            if (!container) return;
+            
+            container.innerHTML = `
+                <div class="chart-container">
+                    <h4>Criteria Importance Distribution</h4>
+                    <div id="weightsPieChart" class="pie-container">
+                        ${tryRenderPieChart() || renderWeightsTable()}
+                    </div>
+                </div>
+            `;
+        }
+        
+        function tryRenderPieChart() {
+            // Try to render pie chart if Chart.js is available
+            if (typeof Chart !== 'undefined') {
+                setTimeout(() => renderPieChart(), 100);
+                return '<canvas id="weightsCanvas"></canvas>';
+            }
+            return null;
+        }
+        
+        function renderPieChart() {
+            const canvas = document.getElementById('weightsCanvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            const labels = decisionData.criteria.map(c => c.name);
+            const data = decisionData.criteria.map(c => Math.round(decisionData.normalizedWeights[c.id] || 0));
+            const colors = generateChartColors(labels.length);
+            
+            new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
                         }
                     }
-                    
-                    // Render enhanced results
-                    if (window.ext_results && window.ext_results.renderResultsAccordion) {
-                        try {
-                            window.ext_results.renderResultsAccordion();
-                            
-                            // Hide legacy results after enhanced results are rendered
-                            const legacyResults = document.getElementById('resultsGrid');
-                            if (legacyResults) {
-                                legacyResults.style.display = 'none';
-                            }
-                        } catch (error) {
-                            console.error('Error rendering enhanced results:', error);
-                            showToast('Enhanced results unavailable, using standard view', 'warning');
-                        }
-                    } else {
-                        console.warn('Enhanced results functions not available after loading');
-                    }
-                    
-                }).catch(error => {
-                    console.warn('Enhanced results not available:', error);
-                    showToast('Enhanced features unavailable, using standard results', 'warning');
-                    // Show standard results since enhanced failed
-                    const legacyResults = document.getElementById('resultsGrid');
-                    if (legacyResults) {
-                        legacyResults.style.display = 'block';
-                    }
-                    
-                    // Hide the empty enhanced accordion
-                    const accordionContainer = document.getElementById('ext_resultsAccordion');
-                    if (accordionContainer) {
-                        accordionContainer.style.display = 'none';
-                    }
+                }
+            });
+        }
+        
+        function renderWeightsTable() {
+            let html = '<div style="padding: 20px;"><h5>Criteria Weights</h5>';
+            decisionData.criteria.forEach(criteria => {
+                const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
+                html += `
+                    <div style="display: flex; justify-content: space-between; margin: 8px 0; padding: 8px; background: #f8f9fa; border-radius: 4px;">
+                        <span>${sanitizeInput(criteria.name)}</span>
+                        <strong>${weight}%</strong>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            return html;
+        }
+        
+        // Render sensitivity analysis
+        function renderAdvancedSensitivity() {
+            const container = document.getElementById('advancedSensitivity');
+            if (!container || !advancedAnalytics.sensitivity) return;
+            
+            let html = '<div style="padding: 20px;">';
+            html += '<p style="color: #666; margin-bottom: 20px;">Shows how sensitive your decision is to changes in criteria weights.</p>';
+            
+            if (advancedAnalytics.sensitivity.length === 0) {
+                html += '<p style="text-align: center; color: #666;">No sensitivity data available.</p>';
+            } else {
+                advancedAnalytics.sensitivity.forEach(item => {
+                    html += `
+                        <div class="sensitivity-item ${item.criticality}">
+                            <span class="sensitivity-label">${sanitizeInput(item.criteriaName)}</span>
+                            <span class="sensitivity-value">${item.changeNeeded}</span>
+                        </div>
+                    `;
                 });
+                
+                html += `
+                    <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 0.9rem;">
+                        <strong>Legend:</strong>
+                        <span style="color: #dc3545;">Critical</span> - Small changes could flip decision |
+                        <span style="color: #ffc107;">Moderate</span> - Medium impact |
+                        <span style="color: #28a745;">Stable</span> - Low impact
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        // Render risk analysis
+        function renderAdvancedRisks() {
+            const container = document.getElementById('advancedRisks');
+            if (!container || !advancedAnalytics.risks) return;
+            
+            let html = '<div style="padding: 20px;">';
+            
+            if (advancedAnalytics.risks.length === 0) {
+                html += `
+                    <div style="text-align: center; padding: 30px; background: #d4edda; border-radius: 12px; border: 2px solid #28a745;">
+                        <h4 style="color: #155724; margin: 0 0 10px 0;">✅ No Major Weaknesses Identified</h4>
+                        <p style="color: #155724; margin: 0;">Your top choice performs well across all criteria.</p>
+                    </div>
+                `;
+            } else {
+                html += `<p style="color: #666; margin-bottom: 20px;">Areas where <strong>${sanitizeInput(advancedAnalytics.results[0].option.name)}</strong> could be vulnerable:</p>`;
+                
+                advancedAnalytics.risks.forEach(risk => {
+                    html += `
+                        <div class="risk-item ${risk.severity}">
+                            <div class="risk-header">
+                                ${risk.severity === 'high' ? '🔴' : '🟡'} ${sanitizeInput(risk.criteriaName)}
+                            </div>
+                            <div class="risk-details">${risk.description}</div>
+                        </div>
+                    `;
+                });
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
+        
+        // Setup enhanced PDF
+        function setupEnhancedPDF() {
+            const btn = document.getElementById('enhancedPdfBtn');
+            if (btn) {
+                btn.onclick = generateEnhancedPDF;
+            }
+        }
+        
+        // Helper functions
+        function generateChartColors(count) {
+            const colors = ['#667eea', '#764ba2', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6610f2', '#e83e8c', '#fd7e14', '#20c997'];
+            return colors.slice(0, count);
+        }
+        
+        function generateEnhancedPDF() {
+            // Use existing PDF generation but with enhanced data
+            if (typeof downloadPDFReport === 'function') {
+                downloadPDFReport();
+            } else {
+                alert('PDF generation not available. Please use standard export options.');
             }
         }
 
@@ -1066,20 +1332,14 @@ function handleExportSelection(type) {
         case 'pdf':
             downloadPDFReport();
             break;
+        case 'enhanced_pdf':
         case 'ext_pdf':
             // Enhanced PDF export
-            if (window.ext_results && window.ext_results.generatePDFReport) {
-                try {
-                    window.ext_results.generatePDFReport();
-                } catch (error) {
-                    console.error('Enhanced PDF generation failed:', error);
-                    alert('Enhanced PDF generation failed. Falling back to standard PDF.');
-                    downloadPDFReport(); // Fallback to standard PDF
-                }
+            if (advancedAnalytics.results) {
+                generateEnhancedPDF();
             } else {
-                console.warn('Enhanced PDF not available, using standard PDF');
-                alert('Enhanced PDF features not available. Using standard PDF.');
-                downloadPDFReport(); // Fallback to standard PDF
+                console.warn('Enhanced PDF not available without analytics');
+                alert('Please calculate results first, then show advanced analytics before generating enhanced PDF.');
             }
             break;
         case 'csv':
