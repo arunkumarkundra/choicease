@@ -18,6 +18,63 @@
             risks: null
         };
 
+
+        // Chart management state
+        let chartManager = {
+            isLoaded: false,
+            isLoading: false,
+            charts: {},
+            loadPromise: null
+        };
+
+
+        // Dynamic Chart.js loading
+        function loadChartJS() {
+            if (chartManager.isLoaded) {
+                return Promise.resolve();
+            }
+            
+            if (chartManager.isLoading) {
+                return chartManager.loadPromise;
+            }
+            
+            chartManager.isLoading = true;
+            
+            chartManager.loadPromise = new Promise((resolve, reject) => {
+                console.log('Loading Chart.js dynamically...');
+                
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js';
+                script.onload = () => {
+                    chartManager.isLoaded = true;
+                    chartManager.isLoading = false;
+                    console.log('Chart.js loaded successfully');
+                    resolve();
+                };
+                script.onerror = () => {
+                    chartManager.isLoading = false;
+                    console.warn('Failed to load Chart.js');
+                    reject(new Error('Chart.js failed to load'));
+                };
+                document.head.appendChild(script);
+            });
+            
+            return chartManager.loadPromise;
+        }
+        
+        // Chart cleanup function
+        function cleanupCharts() {
+            Object.values(chartManager.charts).forEach(chart => {
+                if (chart && typeof chart.destroy === 'function') {
+                    chart.destroy();
+                }
+            });
+            chartManager.charts = {};
+        }
+
+
+
+
         // Input sanitization
         function sanitizeInput(input) {
             return input.replace(/[<>&"']/g, char => ({
@@ -537,6 +594,8 @@ function setupRatingStep() {
             }
         }
         
+
+
         function toggleAdvancedAnalytics() {
             const toggleBtn = document.getElementById('toggleAdvancedBtn');
             const advancedSection = document.getElementById('advancedAnalytics');
@@ -544,16 +603,18 @@ function setupRatingStep() {
             if (!advancedAnalytics.isVisible) {
                 // Show advanced analytics
                 showAdvancedAnalytics();
-                advancedSection.classList.remove('hidden');
                 toggleBtn.textContent = '📊 Hide Advanced Analytics';
                 advancedAnalytics.isVisible = true;
             } else {
-                // Hide advanced analytics
+                // Hide advanced analytics and cleanup
+                cleanupCharts();
                 advancedSection.classList.add('hidden');
                 toggleBtn.textContent = '📊 Show Advanced Analytics';
                 advancedAnalytics.isVisible = false;
             }
         }
+
+
         
         function showAdvancedAnalytics() {
             if (!advancedAnalytics.results) {
@@ -561,14 +622,69 @@ function setupRatingStep() {
                 return;
             }
             
+            // Show loading state
+            const container = document.getElementById('advancedAnalytics');
+            if (container) {
+                container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading-spinner"></div><p style="margin-top: 15px;">Loading advanced analytics...</p></div>';
+                container.classList.remove('hidden');
+            }
+            
             // Compute advanced metrics
             advancedAnalytics.confidence = computeConfidenceAnalysis(advancedAnalytics.results);
             advancedAnalytics.sensitivity = computeSensitivityAnalysis();
             advancedAnalytics.risks = computeRiskAnalysis(advancedAnalytics.results);
             
+            // Load Chart.js and render
+            loadChartJS().then(() => {
+                renderAllAdvancedSections(true); // With charts
+            }).catch(error => {
+                console.warn('Charts unavailable, using fallbacks:', error);
+                renderAllAdvancedSections(false); // Without charts
+            });
+        }
+        
+        function renderAllAdvancedSections(withCharts = false) {
+            // Clear loading state
+            const container = document.getElementById('advancedAnalytics');
+            if (container) {
+                container.innerHTML = `
+                    <div class="section">
+                        <div class="section-title">📊 Executive Summary</div>
+                        <div id="advancedSummary"></div>
+                    </div>
+                    
+                    <div class="section">
+                        <div class="section-title">🥧 Criteria Weights</div>
+                        <div id="advancedWeights"></div>
+                    </div>
+                    
+                    <div class="section">
+                        <div class="section-title">⚖️ Sensitivity Analysis</div>
+                        <div id="advancedSensitivity"></div>
+                    </div>
+                    
+                    <div class="section">
+                        <div class="section-title">⚠️ Risk Analysis</div>
+                        <div id="advancedRisks"></div>
+                    </div>
+                    
+                    <div class="section">
+                        <div class="section-title">📄 Enhanced Export</div>
+                        <div id="advancedExport" style="text-align: center; padding: 20px;">
+                            <button class="btn btn-success" id="enhancedPdfBtn">
+                                📄 Generate Professional PDF Report
+                            </button>
+                            <p style="font-size: 0.9rem; color: #666; margin-top: 10px;">
+                                Comprehensive report with charts and analysis
+                            </p>
+                        </div>
+                    </div>
+                `;
+            }
+            
             // Render all sections
             renderAdvancedSummary();
-            renderAdvancedWeights();
+            renderAdvancedWeights(withCharts);
             renderAdvancedSensitivity();
             renderAdvancedRisks();
             setupEnhancedPDF();
@@ -712,7 +828,8 @@ function setupRatingStep() {
         }
         
         // Render weights section
-        function renderAdvancedWeights() {
+        // Improved weights rendering with chart support
+        function renderAdvancedWeights(withCharts = false) {
             const container = document.getElementById('advancedWeights');
             if (!container) return;
             
@@ -720,10 +837,17 @@ function setupRatingStep() {
                 <div class="chart-container">
                     <h4>Criteria Importance Distribution</h4>
                     <div id="weightsPieChart" class="pie-container">
-                        ${tryRenderPieChart() || renderWeightsTable()}
+                        ${withCharts ? '<canvas id="weightsCanvas"></canvas>' : ''}
+                        <div id="weightsTableFallback">${renderWeightsTable()}</div>
                     </div>
                 </div>
             `;
+            
+            if (withCharts) {
+                // Hide table, show chart
+                document.getElementById('weightsTableFallback').style.display = 'none';
+                setTimeout(() => renderPieChart(), 100);
+            }
         }
         
         function tryRenderPieChart() {
@@ -734,50 +858,119 @@ function setupRatingStep() {
             }
             return null;
         }
-        
+
+
         function renderPieChart() {
             const canvas = document.getElementById('weightsCanvas');
-            if (!canvas) return;
+            if (!canvas || typeof Chart === 'undefined') {
+                showChartFallback();
+                return;
+            }
             
-            const ctx = canvas.getContext('2d');
-            const labels = decisionData.criteria.map(c => c.name);
-            const data = decisionData.criteria.map(c => Math.round(decisionData.normalizedWeights[c.id] || 0));
-            const colors = generateChartColors(labels.length);
-            
-            new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: colors,
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
+            try {
+                // Cleanup existing chart
+                if (chartManager.charts.pie) {
+                    chartManager.charts.pie.destroy();
+                }
+                
+                const ctx = canvas.getContext('2d');
+                const labels = decisionData.criteria.map(c => c.name);
+                const data = decisionData.criteria.map(c => Math.round(decisionData.normalizedWeights[c.id] || 0));
+                const colors = generateChartColors(labels.length);
+                
+                chartManager.charts.pie = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: data,
+                            backgroundColor: colors,
+                            borderWidth: 2,
+                            borderColor: '#ffffff',
+                            hoverBorderWidth: 3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    usePointStyle: true,
+                                    font: {
+                                        size: 12
+                                    }
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.parsed || 0;
+                                        return `${label}: ${value}%`;
+                                    }
+                                }
+                            }
                         }
                     }
-                }
-            });
+                });
+                
+                console.log('Pie chart rendered successfully');
+                
+            } catch (error) {
+                console.error('Error creating pie chart:', error);
+                showChartFallback();
+            }
         }
-        
+
+
+        function showChartFallback() {
+            const canvas = document.getElementById('weightsCanvas');
+            const fallback = document.getElementById('weightsTableFallback');
+            
+            if (canvas) {
+                canvas.style.display = 'none';
+            }
+            if (fallback) {
+                fallback.style.display = 'block';
+                fallback.innerHTML = `
+                    <div class="chart-fallback">
+                        <div class="fallback-icon">📊</div>
+                        <div style="font-weight: 600; margin-bottom: 10px;">Interactive Chart Unavailable</div>
+                        <div style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">Showing data table instead</div>
+                        ${renderWeightsTable()}
+                    </div>
+                `;
+            }
+        }
+
+
+
         function renderWeightsTable() {
-            let html = '<div style="padding: 20px;"><h5>Criteria Weights</h5>';
-            decisionData.criteria.forEach(criteria => {
+            let html = '<div style="max-width: 400px; margin: 0 auto;">';
+            
+            decisionData.criteria.forEach((criteria, index) => {
                 const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
+                const color = generateChartColors(decisionData.criteria.length)[index];
+                
                 html += `
-                    <div style="display: flex; justify-content: space-between; margin: 8px 0; padding: 8px; background: #f8f9fa; border-radius: 4px;">
-                        <span>${sanitizeInput(criteria.name)}</span>
-                        <strong>${weight}%</strong>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin: 12px 0; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${color};">
+                        <div style="display: flex; align-items: center;">
+                            <div style="width: 12px; height: 12px; background: ${color}; border-radius: 50%; margin-right: 10px;"></div>
+                            <span style="font-weight: 500;">${sanitizeInput(criteria.name)}</span>
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                            <div style="width: 100px; height: 8px; background: #e9ecef; border-radius: 4px; margin-right: 10px; overflow: hidden;">
+                                <div style="width: ${weight}%; height: 100%; background: ${color}; border-radius: 4px;"></div>
+                            </div>
+                            <strong style="min-width: 40px; text-align: right;">${weight}%</strong>
+                        </div>
                     </div>
                 `;
             });
+            
             html += '</div>';
             return html;
         }
@@ -858,10 +1051,24 @@ function setupRatingStep() {
         }
         
         // Helper functions
+
         function generateChartColors(count) {
-            const colors = ['#667eea', '#764ba2', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6610f2', '#e83e8c', '#fd7e14', '#20c997'];
-            return colors.slice(0, count);
+            const colors = [
+                '#667eea', '#764ba2', '#28a745', '#ffc107', '#dc3545', 
+                '#17a2b8', '#6610f2', '#e83e8c', '#fd7e14', '#20c997',
+                '#6f42c1', '#fd7e14', '#20c997', '#6610f2', '#e83e8c'
+            ];
+            
+            // Ensure we have enough colors
+            const result = [];
+            for (let i = 0; i < count; i++) {
+                result.push(colors[i % colors.length]);
+            }
+            
+            return result;
         }
+
+
         
         function generateEnhancedPDF() {
             // Use existing PDF generation but with enhanced data
@@ -2635,7 +2842,11 @@ function updateUIWithImportedData() {
 }        
         
         function startOver() {
-            if (confirm('Are you sure you want to start a new decision? This will clear all current data.')) {
+           // Cleanup charts and advanced analytics
+           cleanupCharts();
+           advancedAnalytics.isVisible = false;
+                        
+           if (confirm('Are you sure you want to start a new decision? This will clear all current data.')) {
                 currentStep = 1;
                 decisionData = {
                     title: '',
