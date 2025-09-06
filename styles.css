@@ -1400,9 +1400,9 @@ body {
 /* Circular info button (positioned absolutely) */
 .info-button {
     position: absolute;
-    top: -10px;
-    right: -20px;
-    background: rgba(255, 255, 255, 0.9);
+    top: 10px;
+    right: 20px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 249, 255, 0.95));
     border: 2px solid #667eea;
     border-radius: 50%;
     width: 32px;
@@ -1414,15 +1414,20 @@ body {
     transition: all 0.3s ease;
     color: #667eea;
     backdrop-filter: blur(10px);
+    box-shadow: 0 3px 12px rgba(102, 126, 234, 0.2);
+    animation: gentle-pulse 3s infinite;
 }
 
 .info-button:hover {
-    background: #667eea;
+    background: linear-gradient(135deg, #667eea, #764ba2);
     color: white;
-    transform: scale(1.1);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
 }
-
+@keyframes gentle-pulse {
+    0%, 100% { box-shadow: 0 3px 12px rgba(102, 126, 234, 0.2); }
+    50% { box-shadow: 0 3px 15px rgba(102, 126, 234, 0.35); }
+}
 /* Text-style info button */
 .text-info-button {
     background: rgba(255, 255, 255, 0.9);
