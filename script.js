@@ -486,43 +486,27 @@ function setupRatingStep() {
                 
                 console.log('Loading enhanced results system...');
                 
-                // Load CSS first
-                const cssLink = document.createElement('link');
-                cssLink.rel = 'stylesheet';
-                cssLink.href = 'ext-results.css';
-                cssLink.onload = () => {
-                    console.log('Enhanced results CSS loaded');
-                    loadEnhancedJS();
+                // Load JavaScript only (CSS is now in styles.css)
+                const script = document.createElement('script');
+                script.src = 'ext-results.js';
+                script.onload = () => {
+                    console.log('Enhanced results module loaded successfully');
+                    
+                    // Wait a bit for module initialization
+                    setTimeout(() => {
+                        if (window.ext_results && window.ext_results.renderResultsAccordion) {
+                            resolve();
+                        } else {
+                            console.warn('Enhanced results module loaded but functions not available');
+                            reject(new Error('Enhanced results functions not available'));
+                        }
+                    }, 200);
                 };
-                cssLink.onerror = () => {
-                    console.warn('Failed to load enhanced results CSS');
-                    loadEnhancedJS(); // Continue anyway
+                script.onerror = () => {
+                    console.error('Failed to load enhanced results module');
+                    reject(new Error('Enhanced results failed to load'));
                 };
-                document.head.appendChild(cssLink);
-                
-                // Load JavaScript
-                function loadEnhancedJS() {
-                    const script = document.createElement('script');
-                    script.src = 'ext-results.js';
-                    script.onload = () => {
-                        console.log('Enhanced results module loaded successfully');
-                        
-                        // Wait a bit for module initialization
-                        setTimeout(() => {
-                            if (window.ext_results && window.ext_results.renderResultsAccordion) {
-                                resolve();
-                            } else {
-                                console.warn('Enhanced results module loaded but functions not available');
-                                reject(new Error('Enhanced results functions not available'));
-                            }
-                        }, 200);
-                    };
-                    script.onerror = () => {
-                        console.error('Failed to load enhanced results module');
-                        reject(new Error('Enhanced results failed to load'));
-                    };
-                    document.head.appendChild(script);
-                }
+                document.head.appendChild(script);
             });
         }
 
