@@ -829,6 +829,7 @@ function setupRatingStep() {
         
         // Render weights section
         // Improved weights rendering with chart support
+        // Update renderAdvancedWeights to use the new function
         function renderAdvancedWeights(withCharts = false) {
             const container = document.getElementById('advancedWeights');
             if (!container) return;
@@ -838,7 +839,7 @@ function setupRatingStep() {
                     <h4>Criteria Importance Distribution</h4>
                     <div id="weightsPieChart" class="pie-container">
                         ${withCharts ? '<canvas id="weightsCanvas"></canvas>' : ''}
-                        <div id="weightsTableFallback">${renderWeightsTable()}</div>
+                        <div id="weightsTableFallback">${renderWeightsTableForCharts()}</div>
                     </div>
                 </div>
             `;
@@ -849,6 +850,7 @@ function setupRatingStep() {
                 setTimeout(() => renderPieChart(), 100);
             }
         }
+
         
         function tryRenderPieChart() {
             // Try to render pie chart if Chart.js is available
@@ -926,6 +928,8 @@ function setupRatingStep() {
         }
 
 
+
+        // Update showChartFallback to use the new function
         function showChartFallback() {
             const canvas = document.getElementById('weightsCanvas');
             const fallback = document.getElementById('weightsTableFallback');
@@ -940,11 +944,13 @@ function setupRatingStep() {
                         <div class="fallback-icon">📊</div>
                         <div style="font-weight: 600; margin-bottom: 10px;">Interactive Chart Unavailable</div>
                         <div style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">Showing data table instead</div>
-                        ${renderWeightsTable()}
+                        ${renderWeightsTableForCharts()}
                     </div>
                 `;
             }
         }
+
+
 
 
 
@@ -974,7 +980,38 @@ function setupRatingStep() {
             html += '</div>';
             return html;
         }
-        
+
+
+        function renderWeightsTableForCharts() {
+            let html = '<div style="max-width: 400px; margin: 0 auto;">';
+            
+            decisionData.criteria.forEach((criteria, index) => {
+                const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
+                const color = generateChartColors(decisionData.criteria.length)[index];
+                
+                html += `
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin: 12px 0; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${color};">
+                        <div style="display: flex; align-items: center;">
+                            <div style="width: 12px; height: 12px; background: ${color}; border-radius: 50%; margin-right: 10px;"></div>
+                            <span style="font-weight: 500;">${sanitizeInput(criteria.name)}</span>
+                        </div>
+                        <div style="display: flex; align-items: center;">
+                            <div style="width: 100px; height: 8px; background: #e9ecef; border-radius: 4px; margin-right: 10px; overflow: hidden;">
+                                <div style="width: ${weight}%; height: 100%; background: ${color}; border-radius: 4px;"></div>
+                            </div>
+                            <strong style="min-width: 40px; text-align: right;">${weight}%</strong>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+
+
+
+
         // Render sensitivity analysis
         function renderAdvancedSensitivity() {
             const container = document.getElementById('advancedSensitivity');
@@ -1071,13 +1108,27 @@ function setupRatingStep() {
 
         
         function generateEnhancedPDF() {
-            // Use existing PDF generation but with enhanced data
-            if (typeof downloadPDFReport === 'function') {
-                downloadPDFReport();
+            // Check if we have advanced analytics data
+            if (advancedAnalytics.results && advancedAnalytics.confidence) {
+                // Could enhance the existing PDF with advanced data in the future
+                console.log('Generating enhanced PDF with advanced analytics data');
+                // For now, use existing PDF generation
+                if (typeof downloadPDFReport === 'function') {
+                    downloadPDFReport();
+                } else {
+                    alert('PDF generation not available.');
+                }
             } else {
-                alert('PDF generation not available. Please use standard export options.');
+                // Fallback to regular PDF
+                console.log('No advanced analytics data, generating standard PDF');
+                if (typeof downloadPDFReport === 'function') {
+                    downloadPDFReport();
+                } else {
+                    alert('PDF generation not available. Please calculate results first.');
+                }
             }
         }
+
 
 
 
@@ -1540,7 +1591,6 @@ function handleExportSelection(type) {
             downloadPDFReport();
             break;
         case 'enhanced_pdf':
-        case 'ext_pdf':
             // Enhanced PDF export
             if (advancedAnalytics.results) {
                 generateEnhancedPDF();
