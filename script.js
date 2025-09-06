@@ -2700,13 +2700,20 @@ function exportResults() {
                 doc.rect(15, yPos, pageWidth - 10, cardHeight, 'S');
                 
                 // Rank badge
-                const badgeColor = isWinner ? successColor : primaryColor;
+                let badgeColor;
+                if (isWinner) {
+                    badgeColor = successColor;
+                } else if (result.isTied) {
+                    badgeColor = [255, 193, 7]; // Yellow for ties
+                } else {
+                    badgeColor = primaryColor;
+                }
                 doc.setFillColor(...badgeColor);
                 doc.circle(30, yPos + 12, 8, 'F');
                 doc.setTextColor(255, 255, 255);
                 doc.setFontSize(12);
                 doc.setFont(undefined, 'bold');
-                doc.text(`${result.rank}`, 30, yPos + 15, { align: 'center' });
+                doc.text(`${result.rank}`, 30, yPos + 16, { align: 'center' });
                 
                 // Option name and details
                 doc.setTextColor(...textDark);
