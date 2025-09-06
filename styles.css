@@ -508,6 +508,7 @@ body {
     right: 0;
     height: 4px;
     background: linear-gradient(135deg, #667eea, #764ba2);
+    border-radius: 15px 15px 0 0;
 }
 
 /* Winner card special styling */
@@ -524,6 +525,17 @@ body {
     background: linear-gradient(135deg, #28a745, #20c997);
 }
 
+/* Regular rank badge styling */
+.result-card:not(.winner) .rank-badge {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+/* Default rank badge for non-winners */
+.result-card .rank-badge {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+}
+
+
 /* Ensure content doesn't overlap with badge */
 .result-card h3 {
     margin-top: 10px; /* Added top margin to clear the badge */
@@ -532,8 +544,8 @@ body {
 
 /* 3. TIE HANDLING STYLES */
 .result-card.tied {
-    border-color: #ffc107;
-    background: linear-gradient(135deg, #fff8e1, #ffecb3);
+    border-color: #dee2e6;
+    background: white;
 }
 
 .result-card.tied .rank-badge {
