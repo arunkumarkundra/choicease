@@ -669,6 +669,13 @@ function setupRatingStep() {
                     </div>
                     
                     <div class="section">
+                        <div class="section-title">🎛️ What-If Analysis</div>
+                        <div id="advancedWhatIf"></div>
+                    </div>
+
+
+                    
+                    <div class="section">
                         <div class="section-title">⚠️ Risk Analysis</div>
                         <div id="advancedRisks"></div>
                     </div>
@@ -681,6 +688,7 @@ function setupRatingStep() {
             renderAdvancedWeights(withCharts);
             renderPerformanceHeatmap();
             renderAdvancedSensitivity();
+            renderWhatIfAnalysis();
             renderAdvancedRisks();
             
         }
@@ -794,34 +802,195 @@ function setupRatingStep() {
             if (!container || !advancedAnalytics.confidence) return;
             
             const winner = advancedAnalytics.results[0];
+            const runnerUp = advancedAnalytics.results[1];
             const confidence = advancedAnalytics.confidence;
             
+            // Find top contributing criteria for winner
+            const winnerContributions = [];
+            decisionData.criteria.forEach(criteria => {
+                const ratingKey = `${winner.option.id}-${criteria.id}`;
+                const rating = decisionData.ratings[ratingKey] || 3;
+                const weight = decisionData.normalizedWeights[criteria.id] || 0;
+                const contribution = rating * (weight / 100);
+                winnerContributions.push({
+                    name: criteria.name,
+                    rating: rating,
+                    weight: Math.round(weight),
+                    contribution: contribution,
+                    impact: contribution / winner.totalScore * 100
+                });
+            });
+            winnerContributions.sort((a, b) => b.contribution - a.contribution);
+            const topContributors = winnerContributions.slice(0, 3);
+            
+            // Key differentiating factors vs runner-up
+            const differentiators = [];
+            if (runnerUp) {
+                decisionData.criteria.forEach(criteria => {
+                    const winnerRatingKey = `${winner.option.id}-${criteria.id}`;
+                    const runnerUpRatingKey = `${runnerUp.option.id}-${criteria.id}`;
+                    const winnerRating = decisionData.ratings[winnerRatingKey] || 3;
+                    const runnerUpRating = decisionData.ratings[runnerUpRatingKey] || 3;
+                    const ratingDiff = winnerRating - runnerUpRating;
+                    const weight = decisionData.normalizedWeights[criteria.id] || 0;
+                    
+                    if (Math.abs(ratingDiff) >= 1) {
+                        differentiators.push({
+                            name: criteria.name,
+                            advantage: ratingDiff > 0 ? 'winner' : 'runnerup',
+                            difference: Math.abs(ratingDiff),
+                            weight: Math.round(weight),
+                            impact: Math.abs(ratingDiff * (weight / 100))
+                        });
+                    }
+                });
+                differentiators.sort((a, b) => b.impact - a.impact);
+            }
+            
+            // Decision stability assessment
+            const lowPerformanceCount = winnerContributions.filter(c => c.rating <= 2).length;
+            const highPerformanceCount = winnerContributions.filter(c => c.rating >= 4).length;
+            let stabilityLevel = 'High';
+            let stabilityText = 'Strong performance across multiple criteria';
+            
+            if (confidence.percentage < 40) {
+                stabilityLevel = 'Low';
+                stabilityText = 'Close decision - small changes could affect outcome';
+            } else if (lowPerformanceCount > 0 || confidence.percentage < 70) {
+                stabilityLevel = 'Medium';
+                stabilityText = 'Generally solid choice with some areas of concern';
+            }
+            
             container.innerHTML = `
-                <div class="confidence-analysis">
-                    <h3>🏆 Recommended Choice: ${sanitizeInput(winner.option.name)}</h3>
-                    <p style="margin: 10px 0; color: #666;">
-                        Score: ${winner.totalScore.toFixed(2)}/5.0 (${Math.round((winner.totalScore/5)*100)}%)
-                    </p>
-                    
-                    <div class="confidence-meter">
-                        <h4>Decision Confidence: ${confidence.level.toUpperCase()}</h4>
-                        <div class="confidence-bar">
-                            <div class="confidence-fill ${confidence.level}" style="width: ${confidence.percentage}%"></div>
+                <div class="enhanced-executive-summary">
+                    <!-- Winner Announcement -->
+                    <div class="winner-announcement" style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 2px solid #28a745; border-radius: 15px; padding: 25px; margin-bottom: 25px; text-align: center;">
+                        <h3 style="color: #155724; margin: 0 0 10px 0; font-size: 1.4rem;">
+                            🏆 Recommended Choice: ${sanitizeInput(winner.option.name)}
+                        </h3>
+                        <div style="font-size: 1.1rem; color: #155724; margin-bottom: 15px;">
+                            <strong>Final Score:</strong> ${winner.totalScore.toFixed(2)}/5.0 
+                            <span style="background: #28a745; color: white; padding: 4px 8px; border-radius: 20px; font-size: 0.9rem; margin-left: 10px;">
+                                ${Math.round((winner.totalScore/5)*100)}%
+                            </span>
                         </div>
-                        <p style="margin: 10px 0; font-size: 0.9rem; color: #666;">
-                            ${confidence.percentage}% - ${confidence.explanation}
-                        </p>
+                        ${winner.option.description ? `
+                            <p style="color: #155724; font-style: italic; margin: 10px 0;">
+                                ${sanitizeInput(winner.option.description)}
+                            </p>
+                        ` : ''}
                     </div>
-                    
-                    ${advancedAnalytics.results.length > 1 ? `
-                        <p style="margin-top: 15px; font-size: 0.9rem;">
-                            <strong>Margin:</strong> +${confidence.gap} points ahead of ${sanitizeInput(advancedAnalytics.results[1].option.name)}
-                        </p>
+        
+                    <!-- Confidence Analysis -->
+                    <div class="confidence-analysis" style="background: linear-gradient(135deg, #f8f9ff, #ffffff); border: 2px solid #e6f2ff; border-radius: 15px; padding: 25px; margin-bottom: 25px;">
+                        <h4 style="color: #667eea; margin: 0 0 15px 0;">📊 Decision Confidence Analysis</h4>
+                        
+                        <div class="confidence-meter" style="margin: 15px 0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <span style="font-weight: 600;">Confidence Level: ${confidence.level.toUpperCase()}</span>
+                                <span style="font-weight: bold; color: #667eea;">${confidence.percentage}%</span>
+                            </div>
+                            <div class="confidence-bar" style="width: 100%; height: 12px; background: #e9ecef; border-radius: 6px; overflow: hidden;">
+                                <div class="confidence-fill ${confidence.level}" style="width: ${confidence.percentage}%; height: 100%; border-radius: 6px; transition: width 0.8s ease-out;"></div>
+                            </div>
+                            <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">
+                                ${confidence.explanation}
+                            </p>
+                        </div>
+        
+                        ${runnerUp ? `
+                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                                <strong>Margin Analysis:</strong> ${confidence.gap} points ahead of 
+                                <em>${sanitizeInput(runnerUp.option.name)}</em> (${runnerUp.totalScore.toFixed(2)}/5.0)
+                            </div>
+                        ` : ''}
+                    </div>
+        
+                    <!-- Top Contributing Criteria -->
+                    <div class="top-contributors" style="background: #f8f9fa; border-radius: 12px; padding: 20px; margin-bottom: 25px;">
+                        <h4 style="color: #333; margin: 0 0 15px 0;">⭐ Top Contributing Criteria</h4>
+                        <div style="display: grid; gap: 12px;">
+                            ${topContributors.map((contrib, index) => `
+                                <div style="display: flex; align-items: center; padding: 12px; background: white; border-radius: 8px; border-left: 4px solid ${index === 0 ? '#28a745' : index === 1 ? '#667eea' : '#ffc107'};">
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 600; color: #333;">${sanitizeInput(contrib.name)}</div>
+                                        <div style="font-size: 0.9rem; color: #666;">
+                                            Rating: ${contrib.rating}/5 • Weight: ${contrib.weight}% • Impact: ${contrib.impact.toFixed(1)}%
+                                        </div>
+                                    </div>
+                                    <div style="font-size: 1.1rem; font-weight: bold; color: ${index === 0 ? '#28a745' : '#667eea'};">
+                                        ${contrib.contribution.toFixed(2)}
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+        
+                    ${differentiators.length > 0 ? `
+                        <!-- Key Differentiating Factors -->
+                        <div class="differentiators" style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 12px; padding: 20px; margin-bottom: 25px;">
+                            <h4 style="color: #856404; margin: 0 0 15px 0;">⚔️ Key Differentiating Factors vs Runner-up</h4>
+                            <div style="display: grid; gap: 10px;">
+                                ${differentiators.slice(0, 3).map(diff => `
+                                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: white; border-radius: 6px;">
+                                        <div>
+                                            <span style="font-weight: 600;">${sanitizeInput(diff.name)}</span>
+                                            <span style="margin-left: 10px; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; background: ${diff.advantage === 'winner' ? '#d4edda' : '#f8d7da'}; color: ${diff.advantage === 'winner' ? '#155724' : '#721c24'};">
+                                                ${diff.advantage === 'winner' ? 'Advantage' : 'Disadvantage'}
+                                            </span>
+                                        </div>
+                                        <div style="text-align: right; font-size: 0.9rem; color: #666;">
+                                            ${diff.difference} point${diff.difference > 1 ? 's' : ''} difference
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
                     ` : ''}
+        
+                    <!-- Decision Stability -->
+                    <div class="stability-indicator" style="background: white; border: 2px solid #dee2e6; border-radius: 12px; padding: 20px;">
+                        <h4 style="color: #333; margin: 0 0 15px 0;">🎯 Decision Stability Assessment</h4>
+                        <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                            <span style="font-weight: 600; margin-right: 15px;">Stability Level:</span>
+                            <span style="padding: 6px 12px; border-radius: 20px; font-weight: 600; background: ${
+                                stabilityLevel === 'High' ? '#d4edda' : 
+                                stabilityLevel === 'Medium' ? '#fff3cd' : '#f8d7da'
+                            }; color: ${
+                                stabilityLevel === 'High' ? '#155724' : 
+                                stabilityLevel === 'Medium' ? '#856404' : '#721c24'
+                            };">
+                                ${stabilityLevel}
+                            </span>
+                        </div>
+                        <p style="color: #666; margin: 10px 0 15px 0;">${stabilityText}</p>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px;">
+                            <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;">${highPerformanceCount}</div>
+                                <div style="font-size: 0.9rem; color: #666;">Strong Areas (4-5)</div>
+                            </div>
+                            <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: ${lowPerformanceCount > 0 ? '#dc3545' : '#28a745'};">${lowPerformanceCount}</div>
+                                <div style="font-size: 0.9rem; color: #666;">Weak Areas (1-2)</div>
+                            </div>
+                            <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${decisionData.criteria.length}</div>
+                                <div style="font-size: 0.9rem; color: #666;">Total Criteria</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
         }
-        
+
+
+
+
+
+
+
+
         // Render weights section
         // Improved weights rendering with chart support
         // Update renderAdvancedWeights to use the new function
@@ -1093,35 +1262,334 @@ function setupRatingStep() {
             const container = document.getElementById('advancedSensitivity');
             if (!container || !advancedAnalytics.sensitivity) return;
             
-            let html = '<div style="padding: 20px;">';
-            html += '<p style="color: #666; margin-bottom: 20px;">Shows how sensitive your decision is to changes in criteria weights.</p>';
+            // Compute flip points for each criteria
+            const flipPoints = computeFlipPoints();
             
-            if (advancedAnalytics.sensitivity.length === 0) {
-                html += '<p style="text-align: center; color: #666;">No sensitivity data available.</p>';
-            } else {
-                advancedAnalytics.sensitivity.forEach(item => {
-                    html += `
-                        <div class="sensitivity-item ${item.criticality}">
-                            <span class="sensitivity-label">${sanitizeInput(item.criteriaName)}</span>
-                            <span class="sensitivity-value">${item.changeNeeded}</span>
+            container.innerHTML = `
+                <div style="padding: 20px;">
+                    <p style="color: #666; margin-bottom: 20px;">
+                        Analysis of how sensitive your decision is to changes in criteria weights. Lower flip points indicate more critical criteria.
+                    </p>
+                    
+                    <div class="sensitivity-analysis">
+                        <h4 style="color: #333; margin: 0 0 20px 0;">🎯 Flip Point Analysis</h4>
+                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">
+                            Minimum weight changes needed to change the winner:
+                        </p>
+                        
+                        <div class="flip-points" style="margin-bottom: 25px;">
+                            ${flipPoints.map(fp => `
+                                <div class="sensitivity-item ${fp.criticality}" style="display: flex; align-items: center; padding: 15px; margin: 10px 0; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${
+                                    fp.criticality === 'critical' ? '#dc3545' : 
+                                    fp.criticality === 'moderate' ? '#ffc107' : '#28a745'
+                                };">
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 600; color: #333;">${sanitizeInput(fp.criteriaName)}</div>
+                                        <div style="font-size: 0.9rem; color: #666; margin-top: 4px;">
+                                            Current: ${fp.currentWeight}% → Required: ${fp.flipPoint}%
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-weight: 600; color: ${
+                                            fp.criticality === 'critical' ? '#dc3545' : 
+                                            fp.criticality === 'moderate' ? '#f57c00' : '#28a745'
+                                        }; font-size: 1.1rem;">
+                                            ${fp.changeNeeded}
+                                        </div>
+                                        <div style="font-size: 0.8rem; color: #666;">
+                                            ${fp.criticality === 'critical' ? 'Critical' : 
+                                              fp.criticality === 'moderate' ? 'Moderate' : 'Stable'}
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
                         </div>
-                    `;
-                });
-                
-                html += `
-                    <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 0.9rem;">
-                        <strong>Legend:</strong>
-                        <span style="color: #dc3545;">Critical</span> - Small changes could flip decision |
-                        <span style="color: #ffc107;">Moderate</span> - Medium impact |
-                        <span style="color: #28a745;">Stable</span> - Low impact
+                        
+                        <div class="tornado-chart" style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e9ecef;">
+                            <h4 style="color: #333; margin: 0 0 15px 0;">🌪️ Sensitivity Tornado Chart</h4>
+                            ${renderTornadoChart(flipPoints)}
+                        </div>
+                        
+                        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 0.9rem;">
+                            <strong>Interpretation:</strong><br>
+                            <span style="color: #dc3545;">●</span> <strong>Critical (Red):</strong> Small weight changes could flip the decision<br>
+                            <span style="color: #ffc107;">●</span> <strong>Moderate (Yellow):</strong> Medium sensitivity to weight changes<br>
+                            <span style="color: #28a745;">●</span> <strong>Stable (Green):</strong> Decision is robust to weight changes
+                        </div>
                     </div>
-                `;
-            }
-            
-            html += '</div>';
-            container.innerHTML = html;
+                </div>
+            `;
         }
         
+        // ADD these supporting functions:
+        
+        function computeFlipPoints() {
+            const flipPoints = [];
+            
+            if (!advancedAnalytics.results || advancedAnalytics.results.length < 2) {
+                return flipPoints;
+            }
+            
+            const winner = advancedAnalytics.results[0];
+            const runnerUp = advancedAnalytics.results[1];
+            
+            decisionData.criteria.forEach(criteria => {
+                const currentWeight = decisionData.normalizedWeights[criteria.id] || 0;
+                const winnerRating = decisionData.ratings[`${winner.option.id}-${criteria.id}`] || 3;
+                const runnerUpRating = decisionData.ratings[`${runnerUp.option.id}-${criteria.id}`] || 3;
+                
+                // Calculate approximate flip point
+                const ratingDiff = winnerRating - runnerUpRating;
+                const currentScoreDiff = winner.totalScore - runnerUp.totalScore;
+                
+                let flipPoint, changeNeeded, criticality;
+                
+                if (Math.abs(ratingDiff) < 0.1) {
+                    // No significant difference
+                    flipPoint = currentWeight;
+                    changeNeeded = 'No impact';
+                    criticality = 'stable';
+                } else {
+                    // Simplified flip point calculation
+                    const weightChangeNeeded = (currentScoreDiff / Math.abs(ratingDiff)) * 100;
+                    
+                    if (ratingDiff > 0) {
+                        // Winner is better - would need to reduce this weight significantly
+                        flipPoint = Math.max(0, currentWeight - weightChangeNeeded);
+                        changeNeeded = `${Math.round(weightChangeNeeded)}% decrease`;
+                    } else {
+                        // Runner-up is better - would need to increase this weight
+                        flipPoint = Math.min(100, currentWeight + weightChangeNeeded);
+                        changeNeeded = `${Math.round(weightChangeNeeded)}% increase`;
+                    }
+                    
+                    // Determine criticality
+                    if (weightChangeNeeded < 15) {
+                        criticality = 'critical';
+                    } else if (weightChangeNeeded < 30) {
+                        criticality = 'moderate';
+                    } else {
+                        criticality = 'stable';
+                    }
+                }
+                
+                flipPoints.push({
+                    criteriaName: criteria.name,
+                    currentWeight: Math.round(currentWeight),
+                    flipPoint: Math.round(flipPoint),
+                    changeNeeded: changeNeeded,
+                    criticality: criticality,
+                    impactMagnitude: Math.abs(ratingDiff) * (currentWeight / 100)
+                });
+            });
+            
+            // Sort by impact magnitude (most sensitive first)
+            return flipPoints.sort((a, b) => {
+                const criticalityOrder = { critical: 0, moderate: 1, stable: 2 };
+                if (criticalityOrder[a.criticality] !== criticalityOrder[b.criticality]) {
+                    return criticalityOrder[a.criticality] - criticalityOrder[b.criticality];
+                }
+                return b.impactMagnitude - a.impactMagnitude;
+            });
+        }
+        
+        function renderTornadoChart(flipPoints) {
+            const maxImpact = Math.max(...flipPoints.map(fp => fp.impactMagnitude));
+            
+            return `
+                <div style="margin-top: 15px;">
+                    ${flipPoints.map(fp => {
+                        const barWidth = maxImpact > 0 ? (fp.impactMagnitude / maxImpact) * 100 : 0;
+                        return `
+                            <div style="margin-bottom: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <span style="font-size: 0.9rem; font-weight: 500;">${sanitizeInput(fp.criteriaName)}</span>
+                                    <span style="font-size: 0.8rem; color: #666;">${fp.changeNeeded}</span>
+                                </div>
+                                <div style="width: 100%; height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden;">
+                                    <div style="width: ${barWidth}%; height: 100%; background: ${
+                                        fp.criticality === 'critical' ? 'linear-gradient(135deg, #dc3545, #c82333)' : 
+                                        fp.criticality === 'moderate' ? 'linear-gradient(135deg, #ffc107, #fd7e14)' : 
+                                        'linear-gradient(135deg, #28a745, #20c997)'
+                                    }; border-radius: 10px; transition: width 0.8s ease;"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+
+
+
+
+
+
+
+        
+        function renderWhatIfAnalysis() {
+            const container = document.getElementById('advancedWhatIf');
+            if (!container) return;
+            
+            // Store original weights for reset functionality
+            if (!window.originalWeights) {
+                window.originalWeights = { ...decisionData.normalizedWeights };
+            }
+            
+            container.innerHTML = `
+                <div style="padding: 20px;">
+                    <p style="color: #666; margin-bottom: 20px;">
+                        Adjust criteria weights to see how they affect the ranking. Changes update in real-time!
+                    </p>
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                        <button id="resetWeightsBtn" class="btn btn-secondary" style="margin: 0;">
+                            🔄 Reset to Original Weights
+                        </button>
+                        <div id="whatIfAlert" style="padding: 8px 15px; border-radius: 20px; font-weight: 600; display: none;">
+                            <!-- Winner change alerts will appear here -->
+                        </div>
+                    </div>
+                    
+                    <div class="what-if-controls" style="margin-bottom: 25px;">
+                        ${decisionData.criteria.map(criteria => {
+                            const currentWeight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
+                            return `
+                                <div class="weight-control" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 12px; border: 1px solid #e9ecef;">
+                                    <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 10px;">
+                                        <label style="font-weight: 600; color: #333; flex: 1;">${sanitizeInput(criteria.name)}</label>
+                                        <span id="weight-display-${criteria.id}" style="font-weight: bold; color: #667eea; min-width: 50px; text-align: right;">${currentWeight}%</span>
+                                    </div>
+                                    <input type="range" 
+                                           id="weight-slider-${criteria.id}" 
+                                           min="0" 
+                                           max="100" 
+                                           value="${currentWeight}" 
+                                           class="what-if-slider"
+                                           style="width: 100%; height: 8px; border-radius: 4px; background: #e0e0e0; outline: none; -webkit-appearance: none; cursor: pointer;"
+                                           oninput="updateWhatIfWeight(${criteria.id}, this.value)">
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    
+                    <div id="whatIfResults" style="background: white; border-radius: 12px; padding: 20px; border: 2px solid #e9ecef;">
+                        <h4 style="margin: 0 0 15px 0; color: #333;">📊 Updated Rankings</h4>
+                        <div id="whatIfRankings">
+                            <!-- Rankings will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Initialize what-if results
+            updateWhatIfResults();
+            
+            // Add event listener for reset button
+            document.getElementById('resetWeightsBtn').addEventListener('click', resetToOriginalWeights);
+        }
+        
+        // ADD these supporting functions:
+        
+        function updateWhatIfWeight(criteriaId, newWeight) {
+            // Update the weight
+            decisionData.normalizedWeights[criteriaId] = parseFloat(newWeight);
+            
+            // Update display
+            document.getElementById(`weight-display-${criteriaId}`).textContent = `${Math.round(newWeight)}%`;
+            
+            // Recalculate and update results
+            updateWhatIfResults();
+        }
+        
+        function updateWhatIfResults() {
+            // Store current winner before changes
+            const previousWinner = advancedAnalytics.results[0];
+            
+            // Recalculate results with new weights
+            const newResults = [];
+            decisionData.options.forEach(option => {
+                let totalScore = 0;
+                decisionData.criteria.forEach(criteria => {
+                    const ratingKey = `${option.id}-${criteria.id}`;
+                    const rating = decisionData.ratings[ratingKey] || 3;
+                    const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
+                    totalScore += rating * weight;
+                });
+                newResults.push({
+                    option: option,
+                    totalScore: totalScore
+                });
+            });
+            newResults.sort((a, b) => b.totalScore - a.totalScore);
+            
+            // Check for winner change
+            const currentWinner = newResults[0];
+            const winnerChanged = previousWinner.option.id !== currentWinner.option.id;
+            
+            // Update alert
+            const alertDiv = document.getElementById('whatIfAlert');
+            if (winnerChanged) {
+                alertDiv.style.display = 'block';
+                alertDiv.style.background = '#fff3cd';
+                alertDiv.style.color = '#856404';
+                alertDiv.style.border = '1px solid #ffeaa7';
+                alertDiv.textContent = `🚨 Winner Changed! New winner: ${currentWinner.option.name}`;
+            } else {
+                alertDiv.style.display = 'none';
+            }
+            
+            // Update rankings display
+            const rankingsDiv = document.getElementById('whatIfRankings');
+            rankingsDiv.innerHTML = newResults.map((result, index) => `
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; margin-bottom: 8px; background: ${index === 0 ? 'rgba(40, 167, 69, 0.1)' : '#f8f9fa'}; border-radius: 8px; border: 1px solid ${index === 0 ? '#28a745' : '#e9ecef'};">
+                    <div style="display: flex; align-items: center;">
+                        <div style="width: 30px; height: 30px; border-radius: 50%; background: ${index === 0 ? '#28a745' : '#667eea'}; color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 15px;">
+                            ${index + 1}
+                        </div>
+                        <div>
+                            <div style="font-weight: 600; color: #333;">${sanitizeInput(result.option.name)}</div>
+                            <div style="font-size: 0.9rem; color: #666;">Score: ${result.totalScore.toFixed(2)}/5.0</div>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 1.1rem; font-weight: bold; color: ${index === 0 ? '#28a745' : '#667eea'};">
+                            ${Math.round((result.totalScore/5)*100)}%
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function resetToOriginalWeights() {
+            // Restore original weights
+            decisionData.normalizedWeights = { ...window.originalWeights };
+            
+            // Update all sliders
+            decisionData.criteria.forEach(criteria => {
+                const originalWeight = Math.round(window.originalWeights[criteria.id] || 0);
+                const slider = document.getElementById(`weight-slider-${criteria.id}`);
+                const display = document.getElementById(`weight-display-${criteria.id}`);
+                
+                if (slider) slider.value = originalWeight;
+                if (display) display.textContent = `${originalWeight}%`;
+            });
+            
+            // Update results
+            updateWhatIfResults();
+            
+            // Hide alert
+            document.getElementById('whatIfAlert').style.display = 'none';
+        }
+
+
+
+
+
+
+
+
         // Render risk analysis
         function renderAdvancedRisks() {
             const container = document.getElementById('advancedRisks');
@@ -1187,28 +1655,333 @@ function setupRatingStep() {
 
         
         function generateEnhancedPDF() {
-            // Check if we have advanced analytics data
             if (advancedAnalytics.results && advancedAnalytics.confidence) {
-                // Could enhance the existing PDF with advanced data in the future
-                console.log('Generating enhanced PDF with advanced analytics data');
-                // For now, use existing PDF generation
-                if (typeof downloadPDFReport === 'function') {
-                    downloadPDFReport();
-                } else {
-                    alert('PDF generation not available.');
-                }
+                generateEnhancedPDFReport();
             } else {
-                // Fallback to regular PDF
-                console.log('No advanced analytics data, generating standard PDF');
-                if (typeof downloadPDFReport === 'function') {
-                    downloadPDFReport();
-                } else {
-                    alert('PDF generation not available. Please calculate results first.');
-                }
+                alert('Please calculate results and show advanced analytics first.');
             }
         }
 
 
+        function generateEnhancedPDFReport() {
+            if (!advancedAnalytics.results || !advancedAnalytics.confidence) {
+                alert('Please calculate results and show advanced analytics first.');
+                return;
+            }
+        
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Enhanced color scheme
+            const primaryColor = [102, 126, 234];
+            const secondaryColor = [118, 75, 162];
+            const successColor = [40, 167, 69];
+            const warningColor = [255, 193, 7];
+            const dangerColor = [220, 53, 69];
+            const textDark = [51, 51, 51];
+            const textLight = [102, 102, 102];
+            const backgroundColor = [248, 249, 250];
+            
+            let yPos = 20;
+            const pageWidth = 190;
+            const lineHeight = 7;
+            
+            // Professional Header
+            doc.setFillColor(...primaryColor);
+            doc.rect(0, 0, 210, 50, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(28);
+            doc.setFont(undefined, 'bold');
+            doc.text('Advanced Decision Analysis', 105, 25, { align: 'center' });
+            
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'normal');
+            doc.text('Comprehensive Report with Analytics', 105, 35, { align: 'center' });
+            
+            doc.setFontSize(10);
+            doc.text('Generated by Choicease - Smart Choices, Made Easy', 105, 45, { align: 'center' });
+            
+            yPos = 65;
+            
+            // Executive Summary Section
+            doc.setTextColor(...textDark);
+            doc.setFillColor(212, 237, 218);
+            doc.rect(10, yPos, pageWidth, 45, 'F');
+            doc.setDrawColor(...successColor);
+            doc.setLineWidth(2);
+            doc.rect(10, yPos, pageWidth, 45, 'S');
+            
+            doc.setFontSize(16);
+            doc.setFont(undefined, 'bold');
+            doc.text('🏆 EXECUTIVE SUMMARY', 15, yPos + 10);
+            
+            const winner = advancedAnalytics.results[0];
+            const confidence = advancedAnalytics.confidence;
+            
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text(`Recommended Choice: ${winner.option.name}`, 15, yPos + 20);
+            
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Final Score: ${winner.totalScore.toFixed(2)}/5.0 (${Math.round((winner.totalScore/5)*100)}%)`, 15, yPos + 28);
+            doc.text(`Decision Confidence: ${confidence.level.toUpperCase()} (${confidence.percentage}%)`, 15, yPos + 35);
+            doc.text(`Analysis: ${confidence.explanation}`, 15, yPos + 42);
+            
+            yPos += 60;
+            
+            // Decision Details
+            doc.setFillColor(...backgroundColor);
+            doc.rect(10, yPos, pageWidth, 30, 'F');
+            doc.setDrawColor(200, 200, 200);
+            doc.rect(10, yPos, pageWidth, 30, 'S');
+            
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(...primaryColor);
+            doc.text('📋 DECISION DETAILS', 15, yPos + 10);
+            
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(...textDark);
+            doc.text(`Decision: ${decisionData.title}`, 15, yPos + 20);
+            
+            if (decisionData.description) {
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(...textLight);
+                const descLines = doc.splitTextToSize(`Context: ${decisionData.description}`, pageWidth - 10);
+                if (descLines.length > 1) {
+                    // Extend box if needed
+                    const extraHeight = (descLines.length - 1) * 4;
+                    doc.setFillColor(...backgroundColor);
+                    doc.rect(10, yPos, pageWidth, 30 + extraHeight, 'F');
+                    doc.setDrawColor(200, 200, 200);
+                    doc.rect(10, yPos, pageWidth, 30 + extraHeight, 'S');
+                    
+                    // Redraw title
+                    doc.setFontSize(14);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(...primaryColor);
+                    doc.text('📋 DECISION DETAILS', 15, yPos + 10);
+                    doc.setFontSize(11);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(...textDark);
+                    doc.text(`Decision: ${decisionData.title}`, 15, yPos + 20);
+                    
+                    doc.setFontSize(9);
+                    doc.setFont(undefined, 'normal');
+                    doc.setTextColor(...textLight);
+                    yPos += 5;
+                }
+                doc.text(descLines, 15, yPos + 20);
+                yPos += descLines.length * 4;
+            }
+            
+            yPos += 40;
+            
+            // Check if we need a new page
+            if (yPos > 220) {
+                doc.addPage();
+                yPos = 20;
+            }
+            
+            // Complete Rankings with Enhanced Details
+            doc.setTextColor(...primaryColor);
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('🏆 COMPLETE RANKINGS & ANALYSIS', 15, yPos);
+            yPos += 15;
+            
+            advancedAnalytics.results.forEach((result, index) => {
+                if (yPos > 240) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                
+                // Rank badge and option name
+                const badgeColor = index === 0 ? successColor : primaryColor;
+                doc.setFillColor(...badgeColor);
+                doc.circle(25, yPos + 5, 8, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text(`${index + 1}`, 25, yPos + 8, { align: 'center' });
+                
+                // Option details
+                doc.setTextColor(...textDark);
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text(result.option.name, 40, yPos + 5);
+                
+                if (index === 0) {
+                    doc.setTextColor(...successColor);
+                    doc.setFontSize(10);
+                    doc.text('WINNER', 150, yPos + 5);
+                }
+                
+                // Score visualization
+                doc.setTextColor(...textDark);
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'normal');
+                doc.text(`Score: ${result.totalScore.toFixed(2)}/5.0`, 40, yPos + 12);
+                
+                // Enhanced score bar
+                const barWidth = 80;
+                const scoreWidth = (result.totalScore / 5) * barWidth;
+                
+                doc.setFillColor(230, 230, 230);
+                doc.rect(40, yPos + 15, barWidth, 6, 'F');
+                
+                doc.setFillColor(...(index === 0 ? successColor : primaryColor));
+                doc.rect(40, yPos + 15, scoreWidth, 6, 'F');
+                
+                // Percentage
+                doc.setTextColor(...(index === 0 ? successColor : primaryColor));
+                doc.setFont(undefined, 'bold');
+                doc.text(`${Math.round((result.totalScore/5)*100)}%`, 125, yPos + 19);
+                
+                yPos += 30;
+            });
+            
+            yPos += 10;
+            
+            // Performance Matrix
+            if (yPos > 200) {
+                doc.addPage();
+                yPos = 20;
+            }
+            
+            doc.setTextColor(...primaryColor);
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('📊 PERFORMANCE MATRIX', 15, yPos);
+            yPos += 15;
+            
+            // Matrix header
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(...textDark);
+            doc.text('Option', 15, yPos);
+            
+            let xPos = 50;
+            decisionData.criteria.forEach(criteria => {
+                const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
+                const shortName = criteria.name.substring(0, 8) + (criteria.name.length > 8 ? '...' : '');
+                doc.text(`${shortName}`, xPos, yPos);
+                doc.setFontSize(7);
+                doc.setTextColor(...textLight);
+                doc.text(`(${weight}%)`, xPos, yPos + 4);
+                doc.setFontSize(8);
+                doc.setTextColor(...textDark);
+                xPos += 25;
+            });
+            
+            doc.text('Total', xPos, yPos);
+            yPos += 12;
+            
+            // Matrix rows
+            advancedAnalytics.results.forEach((result, optIndex) => {
+                if (yPos > 260) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                
+                doc.setFontSize(8);
+                doc.setFont(undefined, 'normal');
+                const shortOptionName = result.option.name.substring(0, 12) + (result.option.name.length > 12 ? '...' : '');
+                doc.text(shortOptionName, 15, yPos);
+                
+                xPos = 50;
+                decisionData.criteria.forEach(criteria => {
+                    const ratingKey = `${result.option.id}-${criteria.id}`;
+                    const rating = decisionData.ratings[ratingKey] || 3;
+                    
+                    // Color code based on rating
+                    if (rating >= 4) doc.setTextColor(...successColor);
+                    else if (rating >= 3) doc.setTextColor(...textDark);
+                    else doc.setTextColor(...dangerColor);
+                    
+                    doc.text(`${rating}`, xPos + 5, yPos, { align: 'center' });
+                    xPos += 25;
+                });
+                
+                // Total score
+                doc.setTextColor(optIndex === 0 ? successColor : primaryColor);
+                doc.setFont(undefined, 'bold');
+                doc.text(`${result.totalScore.toFixed(1)}`, xPos + 5, yPos, { align: 'center' });
+                doc.setFont(undefined, 'normal');
+                
+                yPos += 8;
+            });
+            
+            // Add new page for sensitivity analysis
+            doc.addPage();
+            yPos = 20;
+            
+            // Sensitivity Analysis
+            doc.setTextColor(...primaryColor);
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('⚖️ SENSITIVITY ANALYSIS', 15, yPos);
+            yPos += 15;
+            
+            const flipPoints = computeFlipPoints();
+            
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(...textDark);
+            doc.text('Criteria sensitivity to weight changes (lower values = more critical):', 15, yPos);
+            yPos += 15;
+            
+            flipPoints.forEach(fp => {
+                if (yPos > 250) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                
+                // Color code by criticality
+                const color = fp.criticality === 'critical' ? dangerColor : 
+                             fp.criticality === 'moderate' ? [255, 152, 0] : successColor;
+                
+                doc.setTextColor(...color);
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'bold');
+                doc.text(`● ${fp.criteriaName}`, 20, yPos);
+                
+                doc.setTextColor(...textDark);
+                doc.setFontSize(8);
+                doc.setFont(undefined, 'normal');
+                doc.text(`Change needed: ${fp.changeNeeded}`, 25, yPos + 5);
+                doc.text(`Current weight: ${fp.currentWeight}%`, 25, yPos + 10);
+                
+                yPos += 18;
+            });
+            
+            // Footer with enhanced branding
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                
+                // Enhanced footer
+                doc.setDrawColor(...primaryColor);
+                doc.setLineWidth(1);
+                doc.line(15, 285, 195, 285);
+                
+                doc.setTextColor(...textLight);
+                doc.setFontSize(8);
+                doc.setFont(undefined, 'normal');
+                doc.text('Advanced Decision Analysis Report', 105, 290, { align: 'center' });
+                doc.text(`Generated by Choicease - choicease.com | Page ${i} of ${pageCount}`, 105, 295, { align: 'center' });
+                doc.text(`Report Date: ${new Date().toLocaleString()}`, 105, 300, { align: 'center' });
+            }
+            
+            // Download with enhanced filename
+            const fileName = `choicease_advanced_${decisionData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
+            doc.save(fileName);
+        }
+        
 
 
 
