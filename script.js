@@ -795,7 +795,17 @@ function setupRatingStep() {
                             <div id="advancedExport"></div>
                         </div>
 
-
+                        <div class="section">
+                            <div class="section-title">📄 Enhanced Export</div>
+                            <div id="advancedExport" style="text-align: center; padding: 20px;">
+                                <button class="btn btn-success" id="enhancedPdfBtn">
+                                    📄 Download Advanced PDF Report
+                                </button>
+                                <p style="font-size: 0.9rem; color: #666; margin-top: 10px;">
+                                    Comprehensive report with charts and analysis
+                                </p>
+                            </div>
+                        </div>
                         
                     `;
                 }
@@ -845,6 +855,15 @@ function setupRatingStep() {
                 
             } catch (error) {
                 handleAdvancedAnalyticsError(error, 'renderAllAdvancedSections');
+            }
+            setupEnhancedPDF();
+        }
+
+
+        function setupEnhancedPDF() {
+            const btn = document.getElementById('enhancedPdfBtn');
+            if (btn) {
+                btn.onclick = generateEnhancedPDFWithErrorHandling;
             }
         }
 
