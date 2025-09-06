@@ -2705,7 +2705,7 @@ function exportResults() {
                 doc.setTextColor(255, 255, 255);
                 doc.setFontSize(12);
                 doc.setFont(undefined, 'bold');
-                doc.text(`${result.rank}`, 30, yPos + 16, { align: 'center' });
+                doc.text(`${result.rank}`, 30, yPos + 14, { align: 'center' });
                 
                 // Option name and details
                 doc.setTextColor(...textDark);
