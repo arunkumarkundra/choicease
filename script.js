@@ -2288,15 +2288,7 @@ function setupRatingStep() {
         
                 const h3 = document.createElement('h3');
                 h3.textContent = result.option.name;
-                
-                // Add tie indicator if applicable
-                if (result.isTied && result.tiedWith > 0) {
-                    const tieIndicator = document.createElement('span');
-                    tieIndicator.className = 'tie-indicator';
-                    tieIndicator.textContent = `Tied with ${result.tiedWith} other${result.tiedWith > 1 ? 's' : ''}`;
-                    h3.appendChild(tieIndicator);
-                }
-                
+                                
                 card.appendChild(h3);
         
                 if (result.option.description) {
