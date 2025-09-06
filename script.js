@@ -19,6 +19,8 @@
         };
 
 
+
+
         // Chart management state
         let chartManager = {
             isLoaded: false,
@@ -26,6 +28,91 @@
             charts: {},
             loadPromise: null
         };
+
+
+
+
+        // Debounced weight updates for what-if analysis
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+
+        // Memoized calculation results
+        const calculationCache = new Map();
+        
+        function getCachedResults(cacheKey) {
+            return calculationCache.get(cacheKey);
+        }
+        
+        function setCachedResults(cacheKey, results) {
+            // Limit cache size to prevent memory issues
+            if (calculationCache.size > 10) {
+                const firstKey = calculationCache.keys().next().value;
+                calculationCache.delete(firstKey);
+            }
+            calculationCache.set(cacheKey, results);
+        }
+        
+        function clearCalculationCache() {
+            calculationCache.clear();
+        }
+
+
+
+        
+        // Global error handler for advanced analytics
+        function handleAdvancedAnalyticsError(error, context) {
+            console.error(`Advanced Analytics Error in ${context}:`, error);
+            
+            // Show user-friendly error message
+            showToast(`Analytics Error: ${error.message || 'Something went wrong'}. Please try refreshing.`, 'error');
+            
+            // Fallback to basic mode
+            const container = document.getElementById('advancedAnalytics');
+            if (container) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 40px; background: #f8d7da; border: 2px solid #dc3545; border-radius: 12px; color: #721c24;">
+                        <h4>⚠️ Advanced Analytics Unavailable</h4>
+                        <p>There was an error loading advanced analytics. Your basic results are still available.</p>
+                        <button class="btn btn-secondary" onclick="toggleAdvancedAnalytics()">Try Again</button>
+                    </div>
+                `;
+            }
+        }
+
+
+
+        // Enhanced chart loading function:
+        
+        function loadChartJSWithRetry(maxRetries = 3) {
+            let retryCount = 0;
+            
+            function attemptLoad() {
+                return loadChartJS().catch(error => {
+                    retryCount++;
+                    if (retryCount < maxRetries) {
+                        console.warn(`Chart.js load failed, retry ${retryCount}/${maxRetries}`);
+                        return new Promise(resolve => {
+                            setTimeout(() => resolve(attemptLoad()), 1000 * retryCount);
+                        });
+                    }
+                    throw error;
+                });
+            }
+            
+            return attemptLoad();
+        }
+
+
 
 
         // Dynamic Chart.js loading
@@ -64,13 +151,27 @@
         
         // Chart cleanup function
         function cleanupCharts() {
-            Object.values(chartManager.charts).forEach(chart => {
-                if (chart && typeof chart.destroy === 'function') {
-                    chart.destroy();
+            // More aggressive cleanup with error handling
+            Object.entries(chartManager.charts).forEach(([key, chart]) => {
+                try {
+                    if (chart && typeof chart.destroy === 'function') {
+                        chart.destroy();
+                    }
+                } catch (error) {
+                    console.warn(`Error destroying chart ${key}:`, error);
                 }
             });
             chartManager.charts = {};
+            
+            // Clear calculation cache when cleaning up
+            clearCalculationCache();
+            
+            // Force garbage collection hint (if available)
+            if (window.gc) {
+                window.gc();
+            }
         }
+
 
 
 
@@ -616,83 +717,135 @@ function setupRatingStep() {
 
 
         
+
+        
         function showAdvancedAnalytics() {
-            if (!advancedAnalytics.results) {
-                console.error('No results available for advanced analytics');
-                return;
+            try {
+                if (!advancedAnalytics.results) {
+                    console.error('No results available for advanced analytics');
+                    return;
+                }
+                
+                // Show loading state
+                const container = document.getElementById('advancedAnalytics');
+                if (container) {
+                    container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading-spinner"></div><p style="margin-top: 15px;">Loading advanced analytics...</p></div>';
+                    container.classList.remove('hidden');
+                }
+                
+                // Compute advanced metrics
+                advancedAnalytics.confidence = computeConfidenceAnalysis(advancedAnalytics.results);
+                advancedAnalytics.sensitivity = computeSensitivityAnalysis();
+                advancedAnalytics.risks = computeRiskAnalysis(advancedAnalytics.results);
+                
+                // Load Chart.js and render
+                loadChartJSWithRetry().then(() => {
+                    renderAllAdvancedSections(true); // With charts
+                }).catch(error => {
+                    console.warn('Charts unavailable, using fallbacks:', error);
+                    renderAllAdvancedSections(false); // Without charts
+                });
+                
+            } catch (error) {
+                handleAdvancedAnalyticsError(error, 'showAdvancedAnalytics');
             }
-            
-            // Show loading state
-            const container = document.getElementById('advancedAnalytics');
-            if (container) {
-                container.innerHTML = '<div style="text-align: center; padding: 40px;"><div class="loading-spinner"></div><p style="margin-top: 15px;">Loading advanced analytics...</p></div>';
-                container.classList.remove('hidden');
-            }
-            
-            // Compute advanced metrics
-            advancedAnalytics.confidence = computeConfidenceAnalysis(advancedAnalytics.results);
-            advancedAnalytics.sensitivity = computeSensitivityAnalysis();
-            advancedAnalytics.risks = computeRiskAnalysis(advancedAnalytics.results);
-            
-            // Load Chart.js and render
-            loadChartJS().then(() => {
-                renderAllAdvancedSections(true); // With charts
-            }).catch(error => {
-                console.warn('Charts unavailable, using fallbacks:', error);
-                renderAllAdvancedSections(false); // Without charts
-            });
         }
-        
+
+
+
+
+        // renderAllAdvancedSections function includes error handling.
         function renderAllAdvancedSections(withCharts = false) {
-            // Clear loading state
-            const container = document.getElementById('advancedAnalytics');
-            if (container) {
-                container.innerHTML = `
-                    <div class="section">
-                        <div class="section-title">📊 Executive Summary</div>
-                        <div id="advancedSummary"></div>
-                    </div>
-                    
-                    <div class="section">
-                        <div class="section-title">🥧 Criteria Weights</div>
-                        <div id="advancedWeights"></div>
-                    </div>
-
-                   <div class="section">
-                        <div class="section-title">🔥 Performance Heatmap</div>
-                        <div id="advancedHeatmap"></div>
-                    </div>
-                    
-                    <div class="section">
-                        <div class="section-title">⚖️ Sensitivity Analysis</div>
-                        <div id="advancedSensitivity"></div>
-                    </div>
-                    
-                    <div class="section">
-                        <div class="section-title">🎛️ What-If Analysis</div>
-                        <div id="advancedWhatIf"></div>
-                    </div>
-
-
-                    
-                    <div class="section">
-                        <div class="section-title">⚠️ Risk Analysis</div>
-                        <div id="advancedRisks"></div>
-                    </div>
-                    
-                `;
-            }
-            
-            // Render all sections
-            renderAdvancedSummary();
-            renderAdvancedWeights(withCharts);
-            renderPerformanceHeatmap();
-            renderAdvancedSensitivity();
-            renderWhatIfAnalysis();
-            renderAdvancedRisks();
-            
-        }
+            try {
+                // Clear loading state
+                const container = document.getElementById('advancedAnalytics');
+                if (container) {
+                    container.innerHTML = `
+                        <div class="section">
+                            <div class="section-title">📊 Executive Summary</div>
+                            <div id="advancedSummary"></div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-title">🥧 Criteria Weights</div>
+                            <div id="advancedWeights"></div>
+                        </div>
         
+                       <div class="section">
+                            <div class="section-title">🔥 Performance Heatmap</div>
+                            <div id="advancedHeatmap"></div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-title">⚖️ Sensitivity Analysis</div>
+                            <div id="advancedSensitivity"></div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-title">🎛️ What-If Analysis</div>
+                            <div id="advancedWhatIf"></div>
+                        </div>
+                        
+                        <div class="section">
+                            <div class="section-title">⚠️ Risk Analysis</div>
+                            <div id="advancedRisks"></div>
+                        </div>
+                    `;
+                }
+                
+                // Render all sections with error handling
+                try {
+                    renderAdvancedSummary();
+                } catch (error) {
+                    console.error('Error rendering executive summary:', error);
+                    document.getElementById('advancedSummary').innerHTML = '<p style="color: #dc3545;">Error loading executive summary</p>';
+                }
+                
+                try {
+                    renderAdvancedWeights(withCharts);
+                } catch (error) {
+                    console.error('Error rendering weights:', error);
+                    document.getElementById('advancedWeights').innerHTML = '<p style="color: #dc3545;">Error loading criteria weights</p>';
+                }
+                
+                try {
+                    renderPerformanceHeatmap();
+                } catch (error) {
+                    console.error('Error rendering heatmap:', error);
+                    document.getElementById('advancedHeatmap').innerHTML = '<p style="color: #dc3545;">Error loading performance heatmap</p>';
+                }
+                
+                try {
+                    renderAdvancedSensitivity();
+                } catch (error) {
+                    console.error('Error rendering sensitivity:', error);
+                    document.getElementById('advancedSensitivity').innerHTML = '<p style="color: #dc3545;">Error loading sensitivity analysis</p>';
+                }
+                
+                try {
+                    renderWhatIfAnalysis();
+                } catch (error) {
+                    console.error('Error rendering what-if:', error);
+                    document.getElementById('advancedWhatIf').innerHTML = '<p style="color: #dc3545;">Error loading what-if analysis</p>';
+                }
+                
+                try {
+                    renderAdvancedRisks();
+                } catch (error) {
+                    console.error('Error rendering risks:', error);
+                    document.getElementById('advancedRisks').innerHTML = '<p style="color: #dc3545;">Error loading risk analysis</p>';
+                }
+                
+            } catch (error) {
+                handleAdvancedAnalyticsError(error, 'renderAllAdvancedSections');
+            }
+        }
+
+
+
+
+
+
         // Confidence analysis computation
         function computeConfidenceAnalysis(results) {
             if (results.length < 2) {
@@ -1491,19 +1644,40 @@ function setupRatingStep() {
         }
         
         // ADD these supporting functions:
+
+        // REPLACE the existing updateWhatIfWeight function with this optimized version:
         
-        function updateWhatIfWeight(criteriaId, newWeight) {
+        // Create debounced version for calculations
+        const debouncedUpdateWhatIf = debounce(function(criteriaId, newWeight) {
             // Update the weight
             decisionData.normalizedWeights[criteriaId] = parseFloat(newWeight);
             
-            // Update display
-            document.getElementById(`weight-display-${criteriaId}`).textContent = `${Math.round(newWeight)}%`;
-            
             // Recalculate and update results
             updateWhatIfResults();
-        }
+        }, 150); // 150ms delay
         
+        function updateWhatIfWeight(criteriaId, newWeight) {
+            // Immediate display update for responsiveness
+            document.getElementById(`weight-display-${criteriaId}`).textContent = `${Math.round(newWeight)}%`;
+            
+            // Debounced calculation update
+            debouncedUpdateWhatIf(criteriaId, newWeight);
+        }        
+
+
+
+
+
         function updateWhatIfResults() {
+            // Create cache key from current weights
+            const cacheKey = JSON.stringify(decisionData.normalizedWeights);
+            const cached = getCachedResults(cacheKey);
+            
+            if (cached) {
+                renderWhatIfResults(cached.newResults, cached.previousWinner);
+                return;
+            }
+            
             // Store current winner before changes
             const previousWinner = advancedAnalytics.results[0];
             
@@ -1524,6 +1698,17 @@ function setupRatingStep() {
             });
             newResults.sort((a, b) => b.totalScore - a.totalScore);
             
+            // Cache results
+            setCachedResults(cacheKey, { newResults, previousWinner });
+            
+            // Render results
+            renderWhatIfResults(newResults, previousWinner);
+        }
+
+
+
+        
+        function renderWhatIfResults(newResults, previousWinner) {
             // Check for winner change
             const currentWinner = newResults[0];
             const winnerChanged = previousWinner.option.id !== currentWinner.option.id;
@@ -1561,6 +1746,9 @@ function setupRatingStep() {
                 </div>
             `).join('');
         }
+
+
+
         
         function resetToOriginalWeights() {
             // Restore original weights
@@ -1661,6 +1849,49 @@ function setupRatingStep() {
                 alert('Please calculate results and show advanced analytics first.');
             }
         }
+
+
+
+        function generateEnhancedPDFWithErrorHandling() {
+            try {
+                if (!advancedAnalytics.results || !advancedAnalytics.confidence) {
+                    showToast('Please calculate results and show advanced analytics first.', 'warning');
+                    return;
+                }
+                
+                showToast('Generating enhanced PDF report...', 'info');
+                
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('Enhanced PDF generation timed out')), 45000);
+                });
+                
+                const pdfPromise = new Promise((resolve, reject) => {
+                    try {
+                        generateEnhancedPDFReport();
+                        setTimeout(resolve, 1500); // Give enhanced PDF more time
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+                
+                Promise.race([pdfPromise, timeoutPromise])
+                    .then(() => {
+                        showToast('Enhanced PDF generated successfully!', 'success');
+                    })
+                    .catch(error => {
+                        console.error('Enhanced PDF generation error:', error);
+                        showToast('Enhanced PDF generation failed. Please try again.', 'error');
+                    });
+                    
+            } catch (error) {
+                console.error('Enhanced PDF setup error:', error);
+                showToast('Failed to start enhanced PDF generation.', 'error');
+            }
+        }
+
+
+
+
 
 
         function generateEnhancedPDFReport() {
@@ -2560,6 +2791,49 @@ function downloadPDFReport() {
     doc.save(fileName);
 }
 
+
+
+        function downloadPDFReportWithErrorHandling() {
+            try {
+                // Show loading indicator
+                showToast('Generating PDF report...', 'info');
+                
+                // Create timeout promise
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('PDF generation timed out')), 30000);
+                });
+                
+                // Create PDF generation promise
+                const pdfPromise = new Promise((resolve, reject) => {
+                    try {
+                        downloadPDFReport();
+                        setTimeout(resolve, 1000); // Give it a moment to complete
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
+                
+                // Race between PDF generation and timeout
+                Promise.race([pdfPromise, timeoutPromise])
+                    .then(() => {
+                        showToast('PDF generated successfully!', 'success');
+                    })
+                    .catch(error => {
+                        console.error('PDF generation error:', error);
+                        showToast('PDF generation failed. Please try again.', 'error');
+                    });
+                    
+            } catch (error) {
+                console.error('PDF setup error:', error);
+                showToast('Failed to start PDF generation.', 'error');
+            }
+        }
+
+
+
+
+
+
 // Toggle export dropdown visibility
 function toggleExportDropdown() {
     const dropdown = document.getElementById('exportDropdown');
@@ -2581,12 +2855,12 @@ function handleExportSelection(type) {
             exportResults();
             break;
         case 'pdf':
-            downloadPDFReport();
+            downloadPDFReportWithErrorHandling();
             break;
         case 'enhanced_pdf':
             // Enhanced PDF export
             if (advancedAnalytics.results) {
-                generateEnhancedPDF();
+                generateEnhancedPDFWithErrorHandling();
             } else {
                 console.warn('Enhanced PDF not available without analytics');
                 alert('Please calculate results first, then show advanced analytics before generating enhanced PDF.');
@@ -2965,7 +3239,7 @@ function handleFileImport(event) {
             }
         } catch (error) {
             console.error('Import error:', error);
-            alert('Error reading file. Please ensure it\'s a valid JSON file.');
+            handleImportError(error, 'JSON file');
         }
     };
     reader.readAsText(file);
@@ -3473,8 +3747,8 @@ function handleQRImport(event) {
                 }
 
             } catch (error) {
-                console.error("QR import failed:", error);
-                alert('QR import failed: ' + error.message);
+                    console.error("QR import failed:", error);
+                    handleImportError(error, 'QR code');
             }
         };
 
@@ -3853,6 +4127,62 @@ function loadImportedData(data) {
     // Update UI
     updateUIWithImportedData();
 }
+
+
+        function handleImportError(error, type) {
+            console.error(`Import error (${type}):`, error);
+            
+            let message = 'Import failed. ';
+            if (error.message.includes('JSON') || error.message.includes('parse')) {
+                message += 'Please check that the file is a valid Choicease export.';
+            } else if (error.message.includes('QR') || error.message.includes('codes')) {
+                message += 'Please ensure the image contains valid Choicease QR codes.';
+            } else if (error.message.includes('Missing chunks')) {
+                message += 'Some QR codes are missing. Please use the complete QR code image.';
+            } else {
+                message += 'Please try a different file or contact support.';
+            }
+            
+            showToast(message, 'error');
+        }
+        
+        function validateImportedDataWithDetails(data) {
+            const errors = [];
+            
+            if (!data) {
+                errors.push('No data found in file');
+                return { valid: false, errors };
+            }
+            
+            if (!data.title && !data.decision) {
+                errors.push('Missing decision title');
+            }
+            
+            if (!Array.isArray(data.options)) {
+                errors.push('Invalid options data');
+            } else if (data.options.length === 0) {
+                errors.push('No options found');
+            }
+            
+            if (!Array.isArray(data.criteria)) {
+                errors.push('Invalid criteria data');
+            } else if (data.criteria.length === 0) {
+                errors.push('No criteria found');
+            }
+            
+            if (typeof data.weights !== 'object') {
+                errors.push('Invalid weights data');
+            }
+            
+            if (typeof data.ratings !== 'object') {
+                errors.push('Invalid ratings data');
+            }
+            
+            return {
+                valid: errors.length === 0,
+                errors: errors
+            };
+        }
 
 
         
