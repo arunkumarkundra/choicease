@@ -384,21 +384,71 @@
             <div class="section hidden" id="section6">
                 <div class="section-title">Your Results Are In! 🎉</div>
                 
+
                 <!-- ================================= -->
-                <!-- ENHANCED RESULTS ACCORDION        -->
+                <!-- RESULTS DISPLAY                   -->
                 <!-- ================================= -->
-                <!-- This will be populated by ext_renderResultsAccordion() -->
-                <div id="ext_resultsAccordion" class="ext-results-accordion" role="tablist" aria-label="Decision analysis results">
-                    <!-- Accordion sections will be dynamically inserted here -->
+                <div class="results-grid" id="resultsGrid">
+                    <!-- Results will be populated here by displayResults() -->
                 </div>
                 
                 <!-- ================================= -->
-                <!-- LEGACY RESULTS GRID               -->
+                <!-- ADVANCED ANALYTICS TOGGLE         -->
                 <!-- ================================= -->
-                <!-- Keep original results for backward compatibility (can be hidden via CSS) -->
-                <div class="results-grid legacy-results" id="resultsGrid">
-                    <!-- Original results will still be populated here by displayResults() -->
+                <div class="advanced-toggle-section" style="text-align: center; margin: 20px 0;">
+                    <button class="btn btn-secondary" id="toggleAdvancedBtn" style="margin: 10px;">
+                        📊 Show Advanced Analytics
+                    </button>
+                    <p style="font-size: 0.9rem; color: #666; margin: 5px 0;">
+                        Get deeper insights with charts, sensitivity analysis, and risk assessment
+                    </p>
                 </div>
+                
+                <!-- ================================= -->
+                <!-- ADVANCED ANALYTICS SECTIONS       -->
+                <!-- ================================= -->
+                <div class="advanced-analytics hidden" id="advancedAnalytics">
+                    <div class="section">
+                        <div class="section-title">📊 Executive Summary</div>
+                        <div id="advancedSummary">
+                            <!-- Advanced summary will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <div class="section-title">🥧 Criteria Weights</div>
+                        <div id="advancedWeights">
+                            <!-- Pie chart and weights will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <div class="section-title">⚖️ Sensitivity Analysis</div>
+                        <div id="advancedSensitivity">
+                            <!-- Sensitivity analysis will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <div class="section-title">⚠️ Risk Analysis</div>
+                        <div id="advancedRisks">
+                            <!-- Risk analysis will be populated here -->
+                        </div>
+                    </div>
+                    
+                    <div class="section">
+                        <div class="section-title">📄 Enhanced Export</div>
+                        <div id="advancedExport" style="text-align: center; padding: 20px;">
+                            <button class="btn btn-success" id="enhancedPdfBtn">
+                                📄 Generate Professional PDF Report
+                            </button>
+                            <p style="font-size: 0.9rem; color: #666; margin-top: 10px;">
+                                Comprehensive report with charts and analysis
+                            </p>
+                        </div>
+                    </div>
+                </div>                
+                
                 
                 <!-- Hidden canvas element used for generating shareable images -->
                 <div id="shareCanvas" style="position: absolute; left: -9999px; top: -9999px; width: 800px; background: white; padding: 40px; font-family: 'Segoe UI', sans-serif;">
@@ -422,7 +472,7 @@
                             <button class="export-option" data-type="qr">📷 QR Code</button>        <!-- Compressed data as QR image -->
                             <button class="export-option" data-type="json">📁 JSON File</button>    <!-- Raw data for re-import -->
                             <button class="export-option" data-type="pdf">📄 PDF Report</button>    <!-- Professional report -->
-                            <button class="export-option" data-type="ext_pdf">📄 Enhanced PDF</button> <!-- NEW: Enhanced professional PDF -->
+                            <button class="export-option" data-type="enhanced_pdf">📄 Professional PDF</button> <!-- NEW: Enhanced professional PDF -->
                             <button class="export-option" data-type="csv">📊 CSV Data</button>      <!-- Spreadsheet format -->
                         </div>
                     </div>
@@ -564,16 +614,6 @@
     <!-- ================================= -->
     <!-- Custom JavaScript containing all application logic -->
     <script src="script.js"></script>
-    
-    <!-- ================================= -->
-    <!-- ENHANCED RESULTS MODULE           -->
-    <!-- ================================= -->
-    <!-- Loading Overlay for Enhanced Results -->
-    <div id="ext_loadingOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; color: white;">
-        <div style="text-align: center;">
-            <div style="border: 4px solid #f3f3f3; border-top: 4px solid #667eea; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px;"></div>
-            <p>Loading...</p>
-        </div>
-    </div>
+ 
 </body>
 </html>
