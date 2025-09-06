@@ -691,7 +691,7 @@ function setupRatingStep() {
                 // Reset state
                 advancedAnalytics.isVisible = false;
                 advancedSection.classList.add('hidden');
-                toggleBtn.textContent = '📊 Show Advanced Analytics';
+                toggleBtn.textContent = '🤓 Show Advanced Analytics';
             }
         }
         
@@ -704,13 +704,13 @@ function setupRatingStep() {
             if (!advancedAnalytics.isVisible) {
                 // Show advanced analytics
                 showAdvancedAnalytics();
-                toggleBtn.textContent = '📊 Hide Advanced Analytics';
+                toggleBtn.textContent = '🤓 Hide Advanced Analytics';
                 advancedAnalytics.isVisible = true;
             } else {
                 // Hide advanced analytics and cleanup
                 cleanupCharts();
                 advancedSection.classList.add('hidden');
-                toggleBtn.textContent = '📊 Show Advanced Analytics';
+                toggleBtn.textContent = '🤓 Show Advanced Analytics';
                 advancedAnalytics.isVisible = false;
             }
         }
@@ -790,6 +790,13 @@ function setupRatingStep() {
                             <div class="section-title">⚠️ Risk Analysis</div>
                             <div id="advancedRisks"></div>
                         </div>
+                        <div class="section">
+                            <div class="section-title">📄 Advanced Report</div>
+                            <div id="advancedExport"></div>
+                        </div>
+
+
+                        
                     `;
                 }
                 
@@ -2961,15 +2968,6 @@ function handleExportSelection(type) {
             break;
         case 'pdf':
             downloadPDFReportWithErrorHandling();
-            break;
-        case 'enhanced_pdf':
-            // Enhanced PDF export
-            if (advancedAnalytics.results) {
-                generateEnhancedPDFWithErrorHandling();
-            } else {
-                console.warn('Enhanced PDF not available without analytics');
-                alert('Please calculate results first, then show advanced analytics before generating enhanced PDF.');
-            }
             break;
         case 'csv':
             exportToCSV();
