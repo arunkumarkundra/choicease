@@ -2172,7 +2172,75 @@ function exportResults() {
     URL.revokeObjectURL(url);
 }
 
-
+        
+        function generatePieChartForPDF() {
+            return new Promise((resolve) => {
+                // Create temporary canvas for pie chart
+                const canvas = document.createElement('canvas');
+                canvas.width = 300;
+                canvas.height = 300;
+                canvas.style.display = 'none';
+                document.body.appendChild(canvas);
+                
+                const ctx = canvas.getContext('2d');
+                
+                // Check if Chart.js is available
+                if (typeof Chart === 'undefined') {
+                    console.warn('Chart.js not available, skipping pie chart');
+                    document.body.removeChild(canvas);
+                    resolve(null);
+                    return;
+                }
+                
+                try {
+                    const labels = decisionData.criteria.map(c => c.name);
+                    const data = decisionData.criteria.map(c => Math.round(decisionData.normalizedWeights[c.id] || 0));
+                    const colors = generateChartColors(labels.length);
+                    
+                    const chart = new Chart(ctx, {
+                        type: 'pie',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: data,
+                                backgroundColor: colors,
+                                borderWidth: 2,
+                                borderColor: '#ffffff'
+                            }]
+                        },
+                        options: {
+                            responsive: false,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        padding: 10,
+                                        usePointStyle: true,
+                                        font: {
+                                            size: 10
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Wait for chart to render, then convert to image
+                    setTimeout(() => {
+                        const imageData = canvas.toDataURL('image/png');
+                        chart.destroy();
+                        document.body.removeChild(canvas);
+                        resolve(imageData);
+                    }, 500);
+                    
+                } catch (error) {
+                    console.error('Error generating pie chart:', error);
+                    document.body.removeChild(canvas);
+                    resolve(null);
+                }
+            });
+        }
         
 
         
@@ -2389,41 +2457,58 @@ function downloadPDFReport() {
     doc.setFont(undefined, 'bold');
     doc.text('Decision Criteria & Weights', 15, yPos);
     yPos += 15;
+    generatePieChartForPDF().then(pieChartImage => {
+            if (pieChartImage) {
+                // Add pie chart to PDF
+                doc.addImage(pieChartImage, 'PNG', 120, yPos, 60, 60);
+                
+                // Add title above chart
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'bold');
+                doc.setTextColor(...textDark);
+                doc.text('Criteria Weight Distribution', 150, yPos - 5, { align: 'center' });
+            }
+            
+            // Continue with existing criteria list (adjust positioning if chart is present)
+            const criteriaStartY = pieChartImage ? yPos : yPos;
+            let criteriaY = criteriaStartY;
+            
+            decisionData.criteria.forEach(criteria => {
+                const weight = calculateDisplayWeight(criteria.id);
+                
+                // Criteria name with weight bar
+                doc.setTextColor(...textDark);
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'bold');
+                doc.text(`${criteria.name}`, 15, criteriaY);
+                
+                // Weight bar (adjust width if pie chart is present)
+                const weightBarWidth = pieChartImage ? 80 : 60;
+                const weightWidth = (weight / 100) * weightBarWidth;
+                
+                doc.setFillColor(240, 240, 240);
+                doc.rect(15, criteriaY + 3, weightBarWidth, 6, 'F');
+                
+                doc.setFillColor(...secondaryColor);
+                doc.rect(15, criteriaY + 3, weightWidth, 6, 'F');
+                
+                doc.setFontSize(9);
+                doc.text(`${weight}%`, 100, criteriaY + 7);
+                
+                criteriaY += 12;
+                
+                if (criteria.description) {
+                    doc.setFontSize(8);
+                    doc.setFont(undefined, 'normal');
+                    doc.setTextColor(...textLight);
+                    const descLines = doc.splitTextToSize(criteria.description, 90);
+                    doc.text(descLines, 20, criteriaY);
+                    criteriaY += descLines.length * 3 + 3;
+                }
+                
+                criteriaY += 5;
+            });
     
-    decisionData.criteria.forEach(criteria => {
-        const weight = calculateDisplayWeight(criteria.id);
-        
-        // Criteria name with weight bar
-        doc.setTextColor(...textDark);
-        doc.setFontSize(11);
-        doc.setFont(undefined, 'bold');
-        doc.text(`${criteria.name}`, 15, yPos);
-        
-        // Weight bar
-        const weightBarWidth = 60;
-        const weightWidth = (weight / 100) * weightBarWidth;
-        
-        doc.setFillColor(240, 240, 240);
-        doc.rect(120, yPos - 4, weightBarWidth, 6, 'F');
-        
-        doc.setFillColor(...secondaryColor);
-        doc.rect(120, yPos - 4, weightWidth, 6, 'F');
-        
-        doc.setFontSize(9);
-        doc.text(`${weight}%`, 185, yPos);
-        
-        yPos += 8;
-        
-        if (criteria.description) {
-            doc.setFontSize(9);
-            doc.setFont(undefined, 'normal');
-            doc.setTextColor(...textLight);
-            const descLines = doc.splitTextToSize(criteria.description, pageWidth - 20);
-            doc.text(descLines, 20, yPos);
-            yPos += descLines.length * 4 + 3;
-        }
-        
-        yPos += 5;
     });
     
     // Methodology section
