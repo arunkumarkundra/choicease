@@ -2217,14 +2217,10 @@ function setupRatingStep() {
 
 
 
-
-
-
-
-
+        // FIXED RESULTS DISPLAY FUNCTION WITH TIE HANDLING
         function displayResults(results) {
             const container = document.getElementById('resultsGrid');
-    
+        
             // Add results header first
             const header = document.createElement('div');
             header.className = 'results-header';
@@ -2248,55 +2244,61 @@ function setupRatingStep() {
             // Clear container and add header first
             container.innerHTML = '';
             container.appendChild(header);
-
-            const maxScore = Math.max(...results.map(r => r.totalScore));
-            results.forEach((result, index) => {
+        
+            // FIXED: Tie handling logic
+            const resultsWithRanks = assignRanksWithTies(results);
+            const hasWinners = resultsWithRanks.filter(r => r.rank === 1).length;
+            const hasTies = resultsWithRanks.some(r => r.isTied);
+        
+            resultsWithRanks.forEach((result, index) => {
                 const card = document.createElement('div');
-                card.className = `result-card ${index === 0 ? 'winner' : ''}`;
                 
-                if (index === 0) {
+                // FIXED: Card classes based on rank and ties
+                let cardClasses = 'result-card';
+                if (result.rank === 1) {
+                    cardClasses += ' winner';
+                }
+                if (result.isTied) {
+                    cardClasses += ' tied';
+                }
+                card.className = cardClasses;
+        
+                // FIXED: Winner badge for all rank 1 options
+                if (result.rank === 1) {
                     const winnerBadge = document.createElement('div');
                     winnerBadge.style.textAlign = 'center';
                     winnerBadge.style.color = '#28a745';
                     winnerBadge.style.fontWeight = 'bold';
                     winnerBadge.style.marginBottom = '10px';
-                    winnerBadge.textContent = '🏆 WINNER';
+                    winnerBadge.style.fontSize = '1.1rem';
+                    
+                    if (hasWinners > 1) {
+                        winnerBadge.innerHTML = '🏆 CO-WINNER';
+                    } else {
+                        winnerBadge.innerHTML = '🏆 WINNER';
+                    }
                     card.appendChild(winnerBadge);
                 }
-
-
-                // Add rank badge for all cards
+        
+                // FIXED: Rank badge with proper positioning
                 const rankBadge = document.createElement('div');
-                rankBadge.style.cssText = `
-                    position: absolute;
-                    top: -10px;
-                    left: 15px;
-                    width: 40px;
-                    height: 40px;
-                    border-radius: 50%;
-                    background: ${index === 0 ? 'linear-gradient(135deg, #28a745, #20c997)' : 'linear-gradient(135deg, #667eea, #764ba2)'};
-                    color: white;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-weight: bold;
-                    font-size: 1.2rem;
-                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                    z-index: 10;
-                `;
-                rankBadge.textContent = index + 1;
+                rankBadge.className = 'rank-badge';
+                rankBadge.textContent = result.rank;
                 card.appendChild(rankBadge);
-                
-                // Also add position relative to the card for proper badge positioning:
-                card.style.position = 'relative';
-                card.style.marginTop = '15px'; // Add space for the badge
-
-                    
+        
                 const h3 = document.createElement('h3');
-                h3.style.marginBottom = '10px';
                 h3.textContent = result.option.name;
+                
+                // Add tie indicator if applicable
+                if (result.isTied && result.tiedWith > 0) {
+                    const tieIndicator = document.createElement('span');
+                    tieIndicator.className = 'tie-indicator';
+                    tieIndicator.textContent = `Tied with ${result.tiedWith} other${result.tiedWith > 1 ? 's' : ''}`;
+                    h3.appendChild(tieIndicator);
+                }
+                
                 card.appendChild(h3);
-
+        
                 if (result.option.description) {
                     const p = document.createElement('p');
                     p.style.color = '#666';
@@ -2304,7 +2306,7 @@ function setupRatingStep() {
                     p.textContent = result.option.description;
                     card.appendChild(p);
                 }
-
+        
                 const scoreBar = document.createElement('div');
                 scoreBar.className = 'score-bar';
                 const scoreFill = document.createElement('div');
@@ -2312,7 +2314,7 @@ function setupRatingStep() {
                 scoreFill.style.width = `${(result.totalScore / 5) * 100}%`;
                 scoreBar.appendChild(scoreFill);
                 card.appendChild(scoreBar);
-
+        
                 const scoreText = document.createElement('div');
                 scoreText.style.textAlign = 'center';
                 scoreText.style.fontWeight = 'bold';
@@ -2320,7 +2322,7 @@ function setupRatingStep() {
                 scoreText.style.marginBottom = '15px';
                 scoreText.textContent = `Score: ${result.totalScore.toFixed(2)}/5.0`;
                 card.appendChild(scoreText);
-
+        
                 const details = document.createElement('details');
                 details.style.marginTop = '15px';
                 const summary = document.createElement('summary');
@@ -2329,7 +2331,7 @@ function setupRatingStep() {
                 summary.style.color = '#555';
                 summary.textContent = 'View Breakdown';
                 details.appendChild(summary);
-
+        
                 const breakdown = document.createElement('div');
                 breakdown.style.marginTop = '10px';
                 breakdown.style.paddingTop = '10px';
@@ -2345,10 +2347,91 @@ function setupRatingStep() {
                 });
                 details.appendChild(breakdown);
                 card.appendChild(details);
-
+        
                 container.appendChild(card);
             });
         }
+        
+        // HELPER FUNCTION: Assign ranks with tie handling
+        function assignRanksWithTies(results) {
+            // Sort by score (highest first)
+            const sorted = [...results].sort((a, b) => b.totalScore - a.totalScore);
+            
+            const resultsWithRanks = [];
+            let currentRank = 1;
+            let previousScore = null;
+            let sameScoreCount = 0;
+            
+            // Group by score to identify ties
+            const scoreGroups = new Map();
+            sorted.forEach(result => {
+                const scoreKey = result.totalScore.toFixed(6); // Use high precision for comparison
+                if (!scoreGroups.has(scoreKey)) {
+                    scoreGroups.set(scoreKey, []);
+                }
+                scoreGroups.get(scoreKey).push(result);
+            });
+            
+            // Assign ranks
+            for (const [scoreKey, group] of scoreGroups) {
+                const isTied = group.length > 1;
+                const tiedWith = isTied ? group.length - 1 : 0;
+                
+                group.forEach(result => {
+                    resultsWithRanks.push({
+                        ...result,
+                        rank: currentRank,
+                        isTied: isTied,
+                        tiedWith: tiedWith
+                    });
+                });
+                
+                // Move rank by the number of items in this group
+                currentRank += group.length;
+            }
+            
+            return resultsWithRanks;
+        }
+        
+        // HELPER FUNCTION: Scroll to section with proper offset
+        function scrollToSection(sectionId) {
+            const section = document.getElementById(sectionId);
+            if (section) {
+                const yOffset = -20; // Offset to ensure title is visible
+                const y = section.getBoundingClientRect().top + window.pageYOffset + yOffset;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+            }
+        }
+        
+        // ENHANCED STEP NAVIGATION WITH SCROLL FIX
+        function showStep(step) {
+            for (let i = 1; i <= 6; i++) {
+                document.getElementById(`section${i}`).classList.add('hidden');
+            }
+            
+            const currentSection = document.getElementById(`section${step}`);
+            currentSection.classList.remove('hidden');
+            
+            // FIXED: Scroll to top of section with proper offset
+            setTimeout(() => {
+                scrollToSection(`section${step}`);
+            }, 100);
+            
+            if (step === 4) {
+                setupWeightingStep();
+            } else if (step === 5) {
+                setupRatingStep();
+            }
+        }
+
+
+
+
+
+
+
+
+
 
 function shareToReddit() {
     // Get the current values from the form
@@ -2476,322 +2559,347 @@ function exportResults() {
         
 
         
-function downloadPDFReport() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    // Define colors
-    const primaryColor = [102, 126, 234]; // #667eea
-    const secondaryColor = [118, 75, 162]; // #764ba2
-    const textDark = [51, 51, 51];
-    const textLight = [102, 102, 102];
-    const successColor = [40, 167, 69];
-    const backgroundColor = [248, 249, 250];
-    
-    let yPos = 20;
-    const pageWidth = 190;
-    const lineHeight = 7;
-    
-    // Professional Header with Background
-    doc.setFillColor(...primaryColor);
-    doc.rect(0, 0, 210, 40, 'F');
-    
-    // Header Text
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(24);
-    doc.setFont(undefined, 'bold');
-    doc.text('Choicease', 105, 20, { align: 'center' });
-    
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'normal');
-    doc.text('Smart Choices, Made Easy', 105, 28, { align: 'center' });
-    
-    doc.setFontSize(10);
-    doc.text('Decision Analysis Report', 105, 35, { align: 'center' });
-    
-    yPos = 55;
-    
-    // Decision Title Section
-    doc.setTextColor(...textDark);
-    doc.setFillColor(...backgroundColor);
-    doc.rect(10, yPos - 5, pageWidth, 25, 'F');
-    doc.setDrawColor(200, 200, 200);
-    doc.rect(10, yPos - 5, pageWidth, 25, 'S');
-    
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.text(`Decision: ${decisionData.title}`, 15, yPos + 5);
-    yPos += 15;
-
-
-        if (decisionData.description) {
-            doc.setFontSize(11);
+        // FIXED PDF GENERATION FUNCTION
+        function downloadPDFReport() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Define colors
+            const primaryColor = [102, 126, 234]; // #667eea
+            const secondaryColor = [118, 75, 162]; // #764ba2
+            const textDark = [51, 51, 51];
+            const textLight = [102, 102, 102];
+            const successColor = [40, 167, 69];
+            const backgroundColor = [248, 249, 250];
+            
+            let yPos = 20;
+            const pageWidth = 190;
+            const lineHeight = 7;
+            
+            // Professional Header with Background
+            doc.setFillColor(...primaryColor);
+            doc.rect(0, 0, 210, 40, 'F');
+            
+            // Header Text
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(24);
+            doc.setFont(undefined, 'bold');
+            doc.text('Choicease', 105, 20, { align: 'center' });
+            
+            doc.setFontSize(12);
             doc.setFont(undefined, 'normal');
-            doc.setTextColor(...textLight);
-            const contextLines = doc.splitTextToSize(`Context: ${decisionData.description}`, pageWidth - 20);
+            doc.text('Smart Choices, Made Easy', 105, 28, { align: 'center' });
             
-            // Calculate required height and adjust container if needed
-            const requiredHeight = contextLines.length * 5 + 10;
-            const currentBoxHeight = 25;
+            doc.setFontSize(10);
+            doc.text('Decision Analysis Report', 105, 35, { align: 'center' });
             
-            if (requiredHeight > currentBoxHeight) {
-                // Redraw the background box with proper height
-                doc.setFillColor(...backgroundColor);
-                doc.rect(10, yPos - 5, pageWidth, requiredHeight + 5, 'F');
-                doc.setDrawColor(200, 200, 200);
-                doc.rect(10, yPos - 5, pageWidth, requiredHeight + 5, 'S');
-                
-                // Redraw the title
-                doc.setTextColor(...textDark);
-                doc.setFontSize(16);
-                doc.setFont(undefined, 'bold');
-                doc.text(`Decision: ${decisionData.title}`, 15, yPos + 5);
-                yPos += 15;
-                
-                // Add description
+            yPos = 55;
+            
+            // FIXED: Decision Title Section (remove duplication)
+            doc.setTextColor(...textDark);
+            doc.setFillColor(...backgroundColor);
+            
+            // Calculate required height for decision section
+            let sectionHeight = 25;
+            if (decisionData.description) {
+                const contextLines = doc.splitTextToSize(`Context: ${decisionData.description}`, pageWidth - 20);
+                sectionHeight = 25 + (contextLines.length * 5) + 10;
+            }
+            
+            doc.rect(10, yPos - 5, pageWidth, sectionHeight, 'F');
+            doc.setDrawColor(200, 200, 200);
+            doc.rect(10, yPos - 5, pageWidth, sectionHeight, 'S');
+            
+            doc.setFontSize(16);
+            doc.setFont(undefined, 'bold');
+            doc.text(`Decision: ${decisionData.title}`, 15, yPos + 5);
+            yPos += 15;
+        
+            if (decisionData.description) {
                 doc.setFontSize(11);
                 doc.setFont(undefined, 'normal');
                 doc.setTextColor(...textLight);
+                const contextLines = doc.splitTextToSize(`Context: ${decisionData.description}`, pageWidth - 20);
+                doc.text(contextLines, 15, yPos);
+                yPos += contextLines.length * 5 + 5;
+            }        
+            
+            doc.setFontSize(9);
+            doc.setTextColor(...textLight);
+            doc.text(`Generated: ${new Date().toLocaleString()}`, 15, yPos + 5);
+            yPos += 25;
+            
+            // Calculate results with tie handling
+            const results = calculateResultsForPDF();
+            const resultsWithRanks = assignRanksWithTies(results);
+            
+            // Executive Summary Box
+            doc.setFillColor(245, 245, 245);
+            doc.rect(10, yPos, pageWidth, 35, 'F');
+            doc.setDrawColor(...primaryColor);
+            doc.setLineWidth(1);
+            doc.rect(10, yPos, pageWidth, 35, 'S');
+            
+            doc.setTextColor(...primaryColor);
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('Executive Summary', 15, yPos + 8);
+            
+            doc.setTextColor(...textDark);
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            
+            const winners = resultsWithRanks.filter(r => r.rank === 1);
+            if (winners.length > 1) {
+                doc.text(`Co-Winners: ${winners.map(w => w.name).join(', ')}`, 15, yPos + 16);
+                doc.text(`Tied Score: ${winners[0].totalScore.toFixed(2)}/5.0 (${Math.round((winners[0].totalScore/5)*100)}%)`, 15, yPos + 23);
+                doc.text(`${winners.length} options tied for first place`, 15, yPos + 30);
+            } else {
+                doc.text(`Recommended Choice: ${winners[0].name}`, 15, yPos + 16);
+                doc.text(`Score: ${winners[0].totalScore.toFixed(2)}/5.0 (${Math.round((winners[0].totalScore/5)*100)}%)`, 15, yPos + 23);
+                doc.text('Clear winner identified', 15, yPos + 30);
             }
             
-            doc.text(contextLines, 15, yPos);
-            yPos += contextLines.length * 5 + 5;
-        }        
-        
-        
-    
-    doc.setFontSize(9);
-    doc.setTextColor(...textLight);
-    doc.text(`Generated: ${new Date().toLocaleString()}`, 15, yPos + 5);
-    yPos += 25;
-    
-    // Calculate results
-    const results = [];
-    decisionData.options.forEach(option => {
-        let totalScore = 0;
-        const criteriaScores = {};
-        decisionData.criteria.forEach(criteria => {
-            const ratingKey = `${option.id}-${criteria.id}`;
-            const rating = decisionData.ratings[ratingKey] || 3;
-            const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
-            const score = rating * weight;
-            criteriaScores[criteria.name] = {
-                rating: rating,
-                weight: weight * 100,
-                score: score
-            };
-            totalScore += score;
-        });
-        results.push({
-            name: option.name,
-            description: option.description,
-            totalScore: totalScore,
-            criteriaScores: criteriaScores
-        });
-    });
-    results.sort((a, b) => b.totalScore - a.totalScore);
-    
-    // Executive Summary Box
-    doc.setFillColor(245, 245, 245);
-    doc.rect(10, yPos, pageWidth, 30, 'F');
-    doc.setDrawColor(...primaryColor);
-    doc.setLineWidth(1);
-    doc.rect(10, yPos, pageWidth, 30, 'S');
-    
-    doc.setTextColor(...primaryColor);
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('Executive Summary', 15, yPos + 8);
-    
-    doc.setTextColor(...textDark);
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Recommended Choice: ${results[0].name}`, 15, yPos + 16);
-    doc.text(`Score: ${results[0].totalScore.toFixed(2)}/5.0 (${Math.round((results[0].totalScore/5)*100)}%)`, 15, yPos + 23);
-    
-    yPos += 45;
-    
-    // Results Section with Visual Bars
-    doc.setTextColor(...primaryColor);
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('Ranking & Scores', 15, yPos);
-    yPos += 15;
-    
-    const maxScore = Math.max(...results.map(r => r.totalScore));
-    results.forEach((result, index) => {
-        if (yPos > 250) {
+            yPos += 50;
+            
+            // FIXED: Add page break before Rankings section
             doc.addPage();
             yPos = 20;
-        }
-        
-        // Option name and rank
-        doc.setTextColor(...textDark);
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'bold');
-        const rankText = `${index + 1}. ${result.name}`;
-        doc.text(rankText, 15, yPos);
-        
-        // Winner badge
-        if (index === 0) {
-            doc.setTextColor(...successColor);
+            
+            // FIXED: Professional Rankings Section
+            doc.setTextColor(...primaryColor);
+            doc.setFontSize(16);
+            doc.setFont(undefined, 'bold');
+            doc.text('Complete Rankings & Analysis', 15, yPos);
+            yPos += 20;
+            
+            // Add ranking methodology explanation
             doc.setFontSize(10);
-            doc.text('WINNER', 170, yPos);
-        }
-        
-        yPos += 8;
-        
-        // Score bar
-        const barWidth = 120;
-        const barHeight = 8;
-        const scoreWidth = (result.totalScore / 5) * barWidth; // Use 5.0 scale instead of relative
-        
-        // Background bar
-        doc.setFillColor(230, 230, 230);
-        doc.rect(15, yPos, barWidth, barHeight, 'F');
-        
-        // Score bar
-        if (index === 0) {
-            doc.setFillColor(...successColor);
-        } else {
-            doc.setFillColor(...primaryColor);
-        }
-        doc.rect(15, yPos, scoreWidth, barHeight, 'F');
-        
-        // Score text
-        doc.setTextColor(...textDark);
-        doc.setFontSize(10);
-        doc.setFont(undefined, 'bold');
-        doc.text(`${result.totalScore.toFixed(2)}/5.0`, 140, yPos + 6);
-        
-        yPos += 15;
-        
-        // Description if exists
-        if (result.description) {
-            doc.setFontSize(9);
             doc.setFont(undefined, 'normal');
             doc.setTextColor(...textLight);
-            const descLines = doc.splitTextToSize(result.description, pageWidth - 20);
-            doc.text(descLines, 20, yPos);
-            yPos += descLines.length * 4 + 5;
-        }
-        
-        yPos += 5;
-    });
-    
-    // New page for criteria details
-    doc.addPage();
-    yPos = 20;
-    
-    // Criteria Section
-    doc.setTextColor(...primaryColor);
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('Decision Criteria & Weights', 15, yPos);
-    yPos += 15;
-    generatePieChartForPDF().then(pieChartImage => {
-            if (pieChartImage) {
-                // Add pie chart to PDF
-                doc.addImage(pieChartImage, 'PNG', 120, yPos, 60, 60);
+            doc.text('Rankings based on weighted multi-criteria analysis. Tied scores receive the same rank.', 15, yPos);
+            yPos += 15;
+            
+            resultsWithRanks.forEach((result, index) => {
+                if (yPos > 240) {
+                    doc.addPage();
+                    yPos = 20;
+                }
                 
-                // Add title above chart
-                doc.setFontSize(10);
+                // Professional ranking card
+                const cardHeight = 35;
+                const isWinner = result.rank === 1;
+                const cardColor = isWinner ? [212, 237, 218] : [248, 249, 250];
+                const borderColor = isWinner ? successColor : [222, 226, 230];
+                
+                // Card background
+                doc.setFillColor(...cardColor);
+                doc.rect(15, yPos, pageWidth - 10, cardHeight, 'F');
+                doc.setDrawColor(...borderColor);
+                doc.setLineWidth(1);
+                doc.rect(15, yPos, pageWidth - 10, cardHeight, 'S');
+                
+                // Rank badge
+                const badgeColor = isWinner ? successColor : primaryColor;
+                doc.setFillColor(...badgeColor);
+                doc.circle(30, yPos + 12, 8, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(12);
                 doc.setFont(undefined, 'bold');
+                doc.text(`${result.rank}`, 30, yPos + 15, { align: 'center' });
+                
+                // Option name and details
                 doc.setTextColor(...textDark);
-                doc.text('Criteria Weight Distribution', 150, yPos - 5, { align: 'center' });
-            }
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                let optionText = result.name;
+                if (isWinner && resultsWithRanks.filter(r => r.rank === 1).length > 1) {
+                    optionText += ' (Co-Winner)';
+                } else if (isWinner) {
+                    optionText += ' (Winner)';
+                }
+                if (result.isTied && result.rank > 1) {
+                    optionText += ` (Tied)`;
+                }
+                doc.text(optionText, 45, yPos + 10);
+                
+                // Score and percentage
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'normal');
+                doc.text(`Score: ${result.totalScore.toFixed(2)}/5.0`, 45, yPos + 18);
+                
+                // Enhanced score bar
+                const barWidth = 80;
+                const barY = yPos + 22;
+                const scoreWidth = (result.totalScore / 5) * barWidth;
+                
+                // Background bar
+                doc.setFillColor(230, 230, 230);
+                doc.rect(45, barY, barWidth, 8, 'F');
+                
+                // Score bar
+                doc.setFillColor(...(isWinner ? successColor : primaryColor));
+                doc.rect(45, barY, scoreWidth, 8, 'F');
+                
+                // Percentage
+                doc.setTextColor(...(isWinner ? successColor : primaryColor));
+                doc.setFont(undefined, 'bold');
+                doc.text(`${Math.round((result.totalScore/5)*100)}%`, 135, yPos + 28);
+                
+                yPos += cardHeight + 10;
+            });
             
-            // Continue with existing criteria list (adjust positioning if chart is present)
-            const criteriaStartY = pieChartImage ? yPos : yPos;
-            let criteriaY = criteriaStartY;
+            // FIXED: Add page break before criteria section
+            doc.addPage();
+            yPos = 20;
             
-            decisionData.criteria.forEach(criteria => {
+            // FIXED: Decision Criteria & Weights section with content
+            doc.setTextColor(...primaryColor);
+            doc.setFontSize(16);
+            doc.setFont(undefined, 'bold');
+            doc.text('Decision Criteria & Weights', 15, yPos);
+            yPos += 20;
+            
+            // Add criteria explanation
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(...textLight);
+            doc.text('Criteria importance weights normalized to 100%. Higher weights indicate greater importance.', 15, yPos);
+            yPos += 15;
+            
+            // Create criteria table
+            decisionData.criteria.forEach((criteria, index) => {
+                if (yPos > 250) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+                
                 const weight = calculateDisplayWeight(criteria.id);
                 
-                // Criteria name with weight bar
-                doc.setTextColor(...textDark);
-                doc.setFontSize(11);
-                doc.setFont(undefined, 'bold');
-                doc.text(`${criteria.name}`, 15, criteriaY);
+                // Criteria card
+                doc.setFillColor(248, 249, 250);
+                doc.rect(15, yPos, pageWidth - 10, 25, 'F');
+                doc.setDrawColor(222, 226, 230);
+                doc.rect(15, yPos, pageWidth - 10, 25, 'S');
                 
-                // Weight bar (adjust width if pie chart is present)
-                const weightBarWidth = pieChartImage ? 80 : 60;
+                // Criteria name
+                doc.setTextColor(...textDark);
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text(criteria.name, 20, yPos + 8);
+                
+                // Weight bar
+                const weightBarWidth = 60;
                 const weightWidth = (weight / 100) * weightBarWidth;
                 
                 doc.setFillColor(240, 240, 240);
-                doc.rect(15, criteriaY + 3, weightBarWidth, 6, 'F');
+                doc.rect(20, yPos + 12, weightBarWidth, 6, 'F');
                 
                 doc.setFillColor(...secondaryColor);
-                doc.rect(15, criteriaY + 3, weightWidth, 6, 'F');
+                doc.rect(20, yPos + 12, weightWidth, 6, 'F');
                 
-                doc.setFontSize(9);
-                doc.text(`${weight}%`, 100, criteriaY + 7);
+                // Weight percentage
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'bold');
+                doc.setTextColor(...primaryColor);
+                doc.text(`${weight}%`, 90, yPos + 16);
                 
-                criteriaY += 12;
-                
+                // Description if available
                 if (criteria.description) {
                     doc.setFontSize(8);
                     doc.setFont(undefined, 'normal');
                     doc.setTextColor(...textLight);
-                    const descLines = doc.splitTextToSize(criteria.description, 90);
-                    doc.text(descLines, 20, criteriaY);
-                    criteriaY += descLines.length * 3 + 3;
+                    const descText = criteria.description.length > 60 ? 
+                                     criteria.description.substring(0, 60) + '...' : 
+                                     criteria.description;
+                    doc.text(descText, 110, yPos + 12);
                 }
                 
-                criteriaY += 5;
+                yPos += 30;
             });
-    
-    });
-    
-    // Methodology section
-    yPos += 10;
-    doc.setFillColor(250, 250, 250);
-    doc.rect(10, yPos, pageWidth, 35, 'F');
-    doc.setDrawColor(200, 200, 200);
-    doc.rect(10, yPos, pageWidth, 35, 'S');
-    
-    doc.setTextColor(...primaryColor);
-    doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
-    doc.text('Methodology', 15, yPos + 8);
-    
-    doc.setTextColor(...textDark);
-    doc.setFontSize(9);
-    doc.setFont(undefined, 'normal');
-    const methodology = [
-        'This analysis uses a weighted scoring model where:',
-        '• Each option is rated 1-5 on each criteria',
-        '• Criteria importance weights are normalized to 100%',
-        '• Final scores = Σ(rating × weight) for each option',
-        '• Higher scores indicate better alignment with your priorities'
-    ];
-    
-    methodology.forEach((line, i) => {
-        doc.text(line, 15, yPos + 15 + (i * 4));
-    });
-    
-    // Professional footer on all pages
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
+            
+            // Add methodology section at the end
+            if (yPos > 200) {
+                doc.addPage();
+                yPos = 20;
+            }
+            
+            yPos += 10;
+            doc.setFillColor(250, 250, 250);
+            doc.rect(10, yPos, pageWidth, 40, 'F');
+            doc.setDrawColor(200, 200, 200);
+            doc.rect(10, yPos, pageWidth, 40, 'S');
+            
+            doc.setTextColor(...primaryColor);
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text('Methodology', 15, yPos + 8);
+            
+            doc.setTextColor(...textDark);
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            const methodology = [
+                'This analysis uses a weighted scoring model where:',
+                '• Each option is rated 1-5 on each criteria',
+                '• Criteria importance weights are normalized to 100%',
+                '• Final scores = Σ(rating × weight) for each option',
+                '• Options with identical scores receive the same rank',
+                '• Higher scores indicate better alignment with your priorities'
+            ];
+            
+            methodology.forEach((line, i) => {
+                doc.text(line, 15, yPos + 15 + (i * 4));
+            });
+            
+            // Professional footer on all pages
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                
+                // Footer line
+                doc.setDrawColor(...primaryColor);
+                doc.setLineWidth(0.5);
+                doc.line(20, 280, 190, 280);
+                
+                doc.setTextColor(...textLight);
+                doc.setFontSize(8);
+                doc.setFont(undefined, 'normal');
+                doc.text('Powered by Choicease - Smart Choices, Made Easy', 105, 285, { align: 'center' });
+                doc.text(`choicease.com | Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
+            }
+            
+            // Download
+            const fileName = `choicease_${decisionData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
+            doc.save(fileName);
+        }
         
-        // Footer line
-        doc.setDrawColor(...primaryColor);
-        doc.setLineWidth(0.5);
-        doc.line(20, 280, 190, 280);
-        
-        doc.setTextColor(...textLight);
-        doc.setFontSize(8);
-        doc.setFont(undefined, 'normal');
-        doc.text('Powered by Choicease - Smart Choices, Made Easy', 105, 285, { align: 'center' });
-        doc.text(`choicease.com | Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
-    }
-    
-    // Download
-    const fileName = `choicease_${decisionData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
-    doc.save(fileName);
-}
-
+        // Helper function to calculate results for PDF
+        function calculateResultsForPDF() {
+            const results = [];
+            decisionData.options.forEach(option => {
+                let totalScore = 0;
+                const criteriaScores = {};
+                decisionData.criteria.forEach(criteria => {
+                    const ratingKey = `${option.id}-${criteria.id}`;
+                    const rating = decisionData.ratings[ratingKey] || 3;
+                    const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
+                    const score = rating * weight;
+                    criteriaScores[criteria.name] = {
+                        rating: rating,
+                        weight: weight * 100,
+                        score: score
+                    };
+                    totalScore += score;
+                });
+                results.push({
+                    name: option.name,
+                    description: option.description,
+                    totalScore: totalScore,
+                    criteriaScores: criteriaScores
+                });
+            });
+            return results;
+        }
 
 
         function downloadPDFReportWithErrorHandling() {
