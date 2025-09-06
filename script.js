@@ -791,11 +791,6 @@ function setupRatingStep() {
                             <div id="advancedRisks"></div>
                         </div>
                         <div class="section">
-                            <div class="section-title">📄 Advanced Report</div>
-                            <div id="advancedExport"></div>
-                        </div>
-
-                        <div class="section">
                             <div class="section-title">📄 Enhanced Export</div>
                             <div id="advancedExport" style="text-align: center; padding: 20px;">
                                 <button class="btn btn-success" id="enhancedPdfBtn">
