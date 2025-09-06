@@ -1337,6 +1337,10 @@ body {
     overflow-y: auto;
     box-shadow: 0 20px 40px rgba(0,0,0,0.2);
     animation: slideInDown 0.4s ease;
+    padding-right: 5px; /* Small buffer from edge */
+    border: none; /* Remove any default border */
+    outline: none; /* Remove focus outline */
+}
 }
 
 /* Modal header with gradient background */
@@ -1353,6 +1357,8 @@ body {
     padding: 30px;
     line-height: 1.7;
     color: #333;
+    padding-right: 25px; /* More right padding to avoid scrollbar overlap */
+   
 }
 
 .modal-body > div {
@@ -1392,6 +1398,34 @@ body {
     background: rgba(255, 255, 255, 0.2);
     transform: scale(1.1);
 }
+
+/* Elegant custom scrollbar for modal */
+.modal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+    background: transparent;
+    margin: 20px 0; /* Creates space from modal edges */
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.3));
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.6), rgba(118, 75, 162, 0.6));
+    width: 8px; /* Slightly wider on hover */
+}
+
+/* Firefox scrollbar styling */
+.modal-content {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(102, 126, 234, 0.3) transparent;
+}
+
 
 /* ==========================================================================
    13. INFO BUTTONS & HELP ELEMENTS
