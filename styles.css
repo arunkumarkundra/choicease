@@ -524,6 +524,225 @@ body {
     animation: shine 2s infinite;
 }
 
+
+/* ==========================================================================
+   ADVANCED ANALYTICS STYLES
+   ========================================================================== */
+
+/* Advanced toggle section */
+.advanced-toggle-section {
+    margin: 30px 0;
+    padding: 20px;
+    background: linear-gradient(135deg, #f8f9ff, #ffffff);
+    border-radius: 15px;
+    border: 2px solid #e6f2ff;
+    text-align: center;
+}
+
+/* Advanced analytics container */
+.advanced-analytics {
+    margin-top: 20px;
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.advanced-analytics.hidden {
+    display: none;
+}
+
+/* Executive summary specific styles */
+.confidence-analysis {
+    background: linear-gradient(135deg, #f8f9ff, #ffffff);
+    border: 2px solid #e6f2ff;
+    border-radius: 15px;
+    padding: 25px;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.confidence-meter {
+    margin: 15px 0;
+}
+
+.confidence-bar {
+    width: 100%;
+    height: 12px;
+    background: #e9ecef;
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 10px 0;
+}
+
+.confidence-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.8s ease-out;
+}
+
+.confidence-fill.high {
+    background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.confidence-fill.medium {
+    background: linear-gradient(135deg, #ffc107, #fd7e14);
+}
+
+.confidence-fill.low {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+}
+
+/* Chart containers */
+.chart-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid #e9ecef;
+}
+
+.chart-container h4 {
+    margin: 0 0 15px 0;
+    color: #333;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.pie-container {
+    max-width: 400px;
+    margin: 0 auto;
+    height: 300px;
+}
+
+/* Sensitivity analysis */
+.sensitivity-item {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    margin: 10px 0;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+}
+
+.sensitivity-item.critical {
+    border-left-color: #dc3545;
+    background: rgba(220, 53, 69, 0.05);
+}
+
+.sensitivity-item.moderate {
+    border-left-color: #ffc107;
+    background: rgba(255, 193, 7, 0.05);
+}
+
+.sensitivity-label {
+    flex: 1;
+    font-weight: 600;
+    color: #333;
+}
+
+.sensitivity-value {
+    font-weight: 600;
+    color: #667eea;
+    margin-left: 15px;
+}
+
+/* Risk analysis */
+.risk-item {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 15px;
+    margin: 10px 0;
+    border-left: 4px solid #ffc107;
+}
+
+.risk-item.high {
+    background: #f8d7da;
+    border-color: #f5c6cb;
+    border-left-color: #dc3545;
+}
+
+.risk-header {
+    font-weight: 600;
+    color: #856404;
+    margin-bottom: 8px;
+}
+
+.risk-item.high .risk-header {
+    color: #721c24;
+}
+
+.risk-details {
+    font-size: 0.9rem;
+    color: #856404;
+}
+
+.risk-item.high .risk-details {
+    color: #721c24;
+}
+
+/* Chart fallback */
+.chart-fallback {
+    text-align: center;
+    padding: 40px 20px;
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 12px;
+    color: #6c757d;
+}
+
+.fallback-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    opacity: 0.7;
+}
+
+/* Loading states */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .advanced-toggle-section {
+        padding: 15px;
+        margin: 20px 0;
+    }
+    
+    .confidence-analysis {
+        padding: 20px 15px;
+    }
+    
+    .chart-container {
+        padding: 15px;
+    }
+    
+    .pie-container {
+        height: 250px;
+    }
+    
+    .sensitivity-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .sensitivity-value {
+        margin-left: 0;
+    }
+}
+
+
+
+
+
+
 /* ==========================================================================
    10. DROPDOWNS & MENUS
    ========================================================================== */
@@ -551,6 +770,17 @@ body {
 .export-option:hover {
     background-color: #f8f9fa;
 }
+
+
+.export-option[data-type="enhanced_pdf"] {
+    font-weight: 600;
+    color: #667eea;
+}
+
+.export-option[data-type="enhanced_pdf"]:hover {
+    background-color: rgba(102, 126, 234, 0.1);
+}
+
 
 /* ==========================================================================
    11. ALERTS & NOTIFICATIONS
