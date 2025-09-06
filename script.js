@@ -657,6 +657,11 @@ function setupRatingStep() {
                         <div class="section-title">🥧 Criteria Weights</div>
                         <div id="advancedWeights"></div>
                     </div>
+
+                   <div class="section">
+                        <div class="section-title">🔥 Performance Heatmap</div>
+                        <div id="advancedHeatmap"></div>
+                    </div>
                     
                     <div class="section">
                         <div class="section-title">⚖️ Sensitivity Analysis</div>
@@ -668,26 +673,16 @@ function setupRatingStep() {
                         <div id="advancedRisks"></div>
                     </div>
                     
-                    <div class="section">
-                        <div class="section-title">📄 Enhanced Export</div>
-                        <div id="advancedExport" style="text-align: center; padding: 20px;">
-                            <button class="btn btn-success" id="enhancedPdfBtn">
-                                📄 Generate Professional PDF Report
-                            </button>
-                            <p style="font-size: 0.9rem; color: #666; margin-top: 10px;">
-                                Comprehensive report with charts and analysis
-                            </p>
-                        </div>
-                    </div>
                 `;
             }
             
             // Render all sections
             renderAdvancedSummary();
             renderAdvancedWeights(withCharts);
+            renderPerformanceHeatmap();
             renderAdvancedSensitivity();
             renderAdvancedRisks();
-            setupEnhancedPDF();
+            
         }
         
         // Confidence analysis computation
@@ -1009,6 +1004,87 @@ function setupRatingStep() {
             return html;
         }
 
+        
+        
+        function renderPerformanceHeatmap() {
+            const container = document.getElementById('advancedHeatmap');
+            if (!container || !advancedAnalytics.results) return;
+            
+            const options = decisionData.options;
+            const criteria = decisionData.criteria;
+            
+            let html = `
+                <div style="padding: 20px;">
+                    <p style="color: #666; margin-bottom: 20px;">Performance matrix showing how each option rates on each criteria. Darker colors indicate better performance.</p>
+                    <div class="heatmap-container" style="overflow-x: auto;">
+                        <table class="heatmap-table" style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                            <thead>
+                                <tr>
+                                    <th style="padding: 12px; background: #f8f9fa; border: 1px solid #dee2e6; font-weight: 600;">Option</th>
+            `;
+            
+            // Add criteria headers
+            criteria.forEach(crit => {
+                const weight = Math.round(decisionData.normalizedWeights[crit.id] || 0);
+                html += `<th style="padding: 12px; background: #f8f9fa; border: 1px solid #dee2e6; font-weight: 600; text-align: center; min-width: 120px;">
+                            ${crit.name}<br><small style="color: #666;">(${weight}%)</small>
+                         </th>`;
+            });
+            
+            html += `
+                                <th style="padding: 12px; background: #f8f9fa; border: 1px solid #dee2e6; font-weight: 600; text-align: center;">Total Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            // Add option rows
+            advancedAnalytics.results.forEach((result, optIndex) => {
+                html += `<tr>
+                            <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600; background: #f8f9fa;">
+                                ${result.option.name}
+                            </td>`;
+                
+                criteria.forEach(crit => {
+                    const ratingKey = `${result.option.id}-${crit.id}`;
+                    const rating = decisionData.ratings[ratingKey] || 3;
+                    const weight = (decisionData.normalizedWeights[crit.id] || 0) / 100;
+                    const weightedScore = rating * weight;
+                    
+                    // Color intensity based on rating (1-5 scale)
+                    const intensity = (rating - 1) / 4; // 0 to 1
+                    const backgroundColor = `rgba(102, 126, 234, ${0.1 + intensity * 0.6})`;
+                    
+                    html += `<td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: ${backgroundColor}; position: relative;" 
+                                  title="Rating: ${rating}/5, Weight: ${Math.round(weight * 100)}%, Weighted Score: ${weightedScore.toFixed(2)}">
+                                <div style="font-weight: 600; font-size: 1.1rem;">${rating}</div>
+                                <div style="font-size: 0.8rem; color: #666;">${weightedScore.toFixed(2)}</div>
+                             </td>`;
+                });
+                
+                // Total score column
+                const scoreColor = optIndex === 0 ? '#28a745' : '#667eea';
+                html += `<td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: rgba(40, 167, 69, ${optIndex === 0 ? '0.2' : '0.1'}); font-weight: bold; color: ${scoreColor};">
+                            ${result.totalScore.toFixed(2)}
+                         </td>`;
+                
+                html += '</tr>';
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                    <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 0.9rem;">
+                        <strong>Legend:</strong> Raw ratings (1-5) with weighted scores below. Darker shading = higher ratings.
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+
+
+
 
 
 
@@ -1078,7 +1154,10 @@ function setupRatingStep() {
             html += '</div>';
             container.innerHTML = html;
         }
-        
+
+
+
+
         // Setup enhanced PDF
         function setupEnhancedPDF() {
             const btn = document.getElementById('enhancedPdfBtn');
@@ -1141,29 +1220,29 @@ function setupRatingStep() {
         function displayResults(results) {
             const container = document.getElementById('resultsGrid');
     
-    // Add results header first
-    const header = document.createElement('div');
-    header.className = 'results-header';
-
-    const titleElement = document.createElement('h2');
-    titleElement.textContent = `Decision: ${decisionData.title}`;
-    header.appendChild(titleElement);
-
-    if (decisionData.description) {
-        const contextElement = document.createElement('div');
-        contextElement.className = 'context';
-        contextElement.textContent = `Context: ${decisionData.description}`;
-        header.appendChild(contextElement);
-    }
-
-    const timestampElement = document.createElement('div');
-    timestampElement.className = 'timestamp';
-    timestampElement.textContent = `Generated on: ${new Date().toLocaleString()}`;
-    header.appendChild(timestampElement);
-
-    // Clear container and add header first
-    container.innerHTML = '';
-    container.appendChild(header);
+            // Add results header first
+            const header = document.createElement('div');
+            header.className = 'results-header';
+        
+            const titleElement = document.createElement('h2');
+            titleElement.textContent = `Decision: ${decisionData.title}`;
+            header.appendChild(titleElement);
+        
+            if (decisionData.description) {
+                const contextElement = document.createElement('div');
+                contextElement.className = 'context';
+                contextElement.textContent = `Context: ${decisionData.description}`;
+                header.appendChild(contextElement);
+            }
+        
+            const timestampElement = document.createElement('div');
+            timestampElement.className = 'timestamp';
+            timestampElement.textContent = `Generated on: ${new Date().toLocaleString()}`;
+            header.appendChild(timestampElement);
+        
+            // Clear container and add header first
+            container.innerHTML = '';
+            container.appendChild(header);
 
             const maxScore = Math.max(...results.map(r => r.totalScore));
             results.forEach((result, index) => {
@@ -1180,6 +1259,34 @@ function setupRatingStep() {
                     card.appendChild(winnerBadge);
                 }
 
+
+                // Add rank badge for all cards
+                const rankBadge = document.createElement('div');
+                rankBadge.style.cssText = `
+                    position: absolute;
+                    top: -10px;
+                    left: 15px;
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 50%;
+                    background: ${index === 0 ? 'linear-gradient(135deg, #28a745, #20c997)' : 'linear-gradient(135deg, #667eea, #764ba2)'};
+                    color: white;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-weight: bold;
+                    font-size: 1.2rem;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+                    z-index: 10;
+                `;
+                rankBadge.textContent = index + 1;
+                card.appendChild(rankBadge);
+                
+                // Also add position relative to the card for proper badge positioning:
+                card.style.position = 'relative';
+                card.style.marginTop = '15px'; // Add space for the badge
+
+                    
                 const h3 = document.createElement('h3');
                 h3.style.marginBottom = '10px';
                 h3.textContent = result.option.name;
@@ -1342,15 +1449,43 @@ function downloadPDFReport() {
     doc.setFont(undefined, 'bold');
     doc.text(`Decision: ${decisionData.title}`, 15, yPos + 5);
     yPos += 15;
-    
-    if (decisionData.description) {
-        doc.setFontSize(11);
-        doc.setFont(undefined, 'normal');
-        doc.setTextColor(...textLight);
-        const contextLines = doc.splitTextToSize(`Context: ${decisionData.description}`, pageWidth - 10);
-        doc.text(contextLines, 15, yPos);
-        yPos += contextLines.length * 5 + 5;
-    }
+
+
+        if (decisionData.description) {
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(...textLight);
+            const contextLines = doc.splitTextToSize(`Context: ${decisionData.description}`, pageWidth - 20);
+            
+            // Calculate required height and adjust container if needed
+            const requiredHeight = contextLines.length * 5 + 10;
+            const currentBoxHeight = 25;
+            
+            if (requiredHeight > currentBoxHeight) {
+                // Redraw the background box with proper height
+                doc.setFillColor(...backgroundColor);
+                doc.rect(10, yPos - 5, pageWidth, requiredHeight + 5, 'F');
+                doc.setDrawColor(200, 200, 200);
+                doc.rect(10, yPos - 5, pageWidth, requiredHeight + 5, 'S');
+                
+                // Redraw the title
+                doc.setTextColor(...textDark);
+                doc.setFontSize(16);
+                doc.setFont(undefined, 'bold');
+                doc.text(`Decision: ${decisionData.title}`, 15, yPos + 5);
+                yPos += 15;
+                
+                // Add description
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'normal');
+                doc.setTextColor(...textLight);
+            }
+            
+            doc.text(contextLines, 15, yPos);
+            yPos += contextLines.length * 5 + 5;
+        }        
+        
+        
     
     doc.setFontSize(9);
     doc.setTextColor(...textLight);
@@ -1436,7 +1571,7 @@ function downloadPDFReport() {
         // Score bar
         const barWidth = 120;
         const barHeight = 8;
-        const scoreWidth = (result.totalScore / maxScore) * barWidth;
+        const scoreWidth = (result.totalScore / 5) * barWidth; // Use 5.0 scale instead of relative
         
         // Background bar
         doc.setFillColor(230, 230, 230);
