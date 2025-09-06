@@ -99,27 +99,6 @@
     
     <!-- HTML to canvas conversion (for result sharing images) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    
-    <!-- ================================= -->
-    <!-- ENHANCED RESULTS LIBRARIES        -->
-    <!-- ================================= -->
-    <!-- Chart.js for enhanced visualizations -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
-    
-    <!-- Chart.js datalabels plugin for pie chart labels -->
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
-    
-    <!-- Initialize Chart.js alias to prevent conflicts -->
-    <script>
-    window.addEventListener('DOMContentLoaded', function() {
-        if (typeof Chart !== 'undefined') {
-            window.ExtChart = Chart;
-            console.log('Chart.js loaded and aliased to ExtChart');
-        } else {
-            console.warn('Chart.js failed to load - enhanced results may not work properly');
-        }
-    });
-    </script>
 </head>
 <body>
     <!-- ================================= -->
