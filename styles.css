@@ -503,12 +503,12 @@ body {
 .result-card::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: 2px;
+    left: 2px;
+    right: 2px;
     height: 4px;
     background: linear-gradient(135deg, #667eea, #764ba2);
-    border-radius: 15px 15px 0 0;
+    border-radius: 13px 13px 0 0;
 }
 
 /* Winner card special styling */
