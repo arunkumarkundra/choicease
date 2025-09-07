@@ -1,4 +1,6 @@
-CONTRIBUTING.md
+# `CONTRIBUTING.md`
+
+```
 # Contributing to Choicease
 
 Thank you for your interest in contributing to **Choicease** — we really appreciate it! 🚀  
@@ -27,10 +29,11 @@ By contributing, you license your contributions under the project's license (GNU
 
 ### DCO sign-off (recommended)
 Add this line to the end of each commit message:
+```
 
+Signed-off-by: Your Name [your-email@example.com](mailto:your-email@example.com)
 
-Signed-off-by: Your Name your-email@example.com
-
+```
 This indicates you agree the contribution is yours to submit and can be licensed under GPL v3.
 
 ---
@@ -60,12 +63,12 @@ Choicease is a static front-end project (HTML/CSS/JS). There is no backend.
 
 ### Local preview
 1. Clone your fork:
+```
 
-
-git clone https://github.com/
-<your-username>/choicease.git
+git clone [https://github.com/](https://github.com/)<your-username>/choicease.git
 cd choicease
 
+````
 2. Open `index.html` in your browser, or serve locally:
 - Quick: `open index.html` or double-click the file.
 - Local server (recommended for CORS/static behaviors):
@@ -121,10 +124,11 @@ cd choicease
 - Include a brief body for non-trivial changes.
 
 Always add the DCO sign-off:
+````
 
+Signed-off-by: Jane Developer [jane@example.com](mailto:jane@example.com)
 
-Signed-off-by: Jane Developer jane@example.com
-
+```
 
 ---
 
@@ -166,79 +170,82 @@ When you open a PR:
 ## Templates (copy into `.github` if you want)
 
 ### ISSUE_TEMPLATE/bug_report.md
+```
+
+---
 
 name: Bug report
 about: Report a bug in Choicease
-title: '[BUG] '
+title: '\[BUG] '
 labels: bug
+-----------
 
-Describe the bug
+**Describe the bug**
 A clear and concise description of what the bug is.
 
-To Reproduce
+**To Reproduce**
 Steps to reproduce the behavior:
 
-Go to '...'
+1. Go to '...'
+2. Click on '...'
+3. See error
 
-Click on '...'
-
-See error
-
-Expected behavior
+**Expected behavior**
 A clear and concise description of what you expected to happen.
 
-Screenshots / Console
+**Screenshots / Console**
 If applicable, add screenshots and console logs.
 
-Environment (please complete the following):
+**Environment (please complete the following):**
 
-OS: [e.g., macOS, Windows]
+* OS: \[e.g., macOS, Windows]
+* Browser: \[e.g., Chrome 120]
+* Version: \[if applicable]
 
-Browser: [e.g., Chrome 120]
-
-Version: [if applicable]
-
+```
 
 ### ISSUE_TEMPLATE/feature_request.md
+```
+
+---
 
 name: Feature request
 about: Suggest an idea for this project
-title: '[FEATURE] '
+title: '\[FEATURE] '
 labels: enhancement
+-------------------
 
-Is your feature request related to a problem? Please describe.
+**Is your feature request related to a problem? Please describe.**
 
-Describe the solution you'd like
+**Describe the solution you'd like**
 
-Additional context / sketches / screenshots
+**Additional context / sketches / screenshots**
 
+```
 
 ### PULL_REQUEST_TEMPLATE.md
+```
 
-Description
+## Description
 
 Please include a summary of the change and which issue is fixed. Also include relevant motivation and context.
 
 Fixes # (issue)
 
-Type of change
+## Type of change
 
- Bug fix
+* [ ] Bug fix
+* [ ] New feature
+* [ ] Documentation update
+* [ ] Other (please describe)
 
- New feature
+## Checklist
 
- Documentation update
+* [ ] My code follows the project style
+* [ ] I have added necessary documentation
+* [ ] DCO sign-off present on commits
 
- Other (please describe)
-
-Checklist
-
- My code follows the project style
-
- I have added necessary documentation
-
- DCO sign-off present on commits
-
+```
 
 ---
 
@@ -246,3 +253,5 @@ Checklist
 If you need help setting up a development environment or want example branches to start with, ping the maintainers via email (contact@choicease.com) or open an issue.
 
 Thanks again — we look forward to your contributions! 🎉
+```
+
