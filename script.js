@@ -2505,28 +2505,6 @@ function generateReportHTML() {
                     </div>
                 </div>
             </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
             <!-- Performance Matrix -->
             <div style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">📊 Performance Matrix</h3>
@@ -2552,6 +2530,29 @@ function generateReportHTML() {
                     </div>
                 </div>
             </div>
+
+
+            <!-- Criteria Weights Distribution -->
+            <div style="background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🥧 Criteria Weights Distribution</h3>
+                <p style="color: #666; margin-bottom: 20px;">How much each criteria influenced the final decision:</p>
+                <div style="max-width: 500px; margin: 0 auto;">
+                    ${criteriaHtml}
+                </div>
+            </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
 
             <!-- Sensitivity Analysis -->
             <div style="margin-bottom: 30px;">
