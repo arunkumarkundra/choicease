@@ -1937,7 +1937,7 @@ function generateCanvasBasedPDF() {
         return;
     }
     
-    showToast('Generating enhanced PDF report...', 'info');
+    showToast('Generating advanced PDF report...', 'info');
     
     const { jsPDF } = window.jspdf;
     
@@ -2000,7 +2000,7 @@ function generateCanvasBasedPDF() {
             // Cleanup
             document.body.removeChild(tempContainer);
             
-            showToast('Enhanced PDF generated successfully!', 'success');
+            showToast('Advanced PDF Report generated successfully!', 'success');
             console.log('Enhanced PDF generation completed successfully');
         }).catch(error => {
             // Cleanup on error
