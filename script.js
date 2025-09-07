@@ -1348,7 +1348,6 @@ function setupRatingStep() {
         }
 
         
-        
         function renderPerformanceHeatmap() {
             const container = document.getElementById('advancedHeatmap');
             if (!container || !advancedAnalytics.results) return;
@@ -1358,7 +1357,7 @@ function setupRatingStep() {
             
             let html = `
                 <div style="padding: 20px;">
-                    <p style="color: #666; margin-bottom: 20px;">Performance matrix showing how each option rates on each criteria. Darker colors indicate better performance.</p>
+                    <p style="color: #666; margin-bottom: 20px;">Performance matrix showing how each option rates on each criteria. Colors range from red (poor) to green (excellent).</p>
                     <div class="heatmap-container" style="overflow-x: auto;">
                         <table class="heatmap-table" style="width: 100%; border-collapse: collapse; margin: 20px 0;">
                             <thead>
@@ -1394,20 +1393,19 @@ function setupRatingStep() {
                     const weight = (decisionData.normalizedWeights[crit.id] || 0) / 100;
                     const weightedScore = rating * weight;
                     
-                    // Color intensity based on rating (1-5 scale)
-                    const intensity = (rating - 1) / 4; // 0 to 1
-                    const backgroundColor = `rgba(102, 126, 234, ${0.1 + intensity * 0.6})`;
+                    // Accessible heatmap color scheme
+                    const { backgroundColor, textColor } = getHeatmapColors(rating);
                     
-                    html += `<td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: ${backgroundColor}; position: relative;" 
+                    html += `<td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: ${backgroundColor}; color: ${textColor}; position: relative;" 
                                   title="Rating: ${rating}/5, Weight: ${Math.round(weight * 100)}%, Weighted Score: ${weightedScore.toFixed(2)}">
                                 <div style="font-weight: 600; font-size: 1.1rem;">${rating}</div>
-                                <div style="font-size: 0.8rem; color: #666;">${weightedScore.toFixed(2)}</div>
+                                <div style="font-size: 0.8rem; opacity: 0.8;">${weightedScore.toFixed(2)}</div>
                              </td>`;
                 });
                 
-                // Total score column
-                const scoreColor = optIndex === 0 ? '#28a745' : '#667eea';
-                html += `<td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: rgba(40, 167, 69, ${optIndex === 0 ? '0.2' : '0.1'}); font-weight: bold; color: ${scoreColor};">
+                // Total score column with gradient
+                const { backgroundColor: totalBg, textColor: totalText } = getTotalScoreColors(result.totalScore, optIndex === 0);
+                html += `<td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: ${totalBg}; color: ${totalText}; font-weight: bold;">
                             ${result.totalScore.toFixed(2)}
                          </td>`;
                 
@@ -1418,14 +1416,66 @@ function setupRatingStep() {
                         </tbody>
                     </table>
                     <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 0.9rem;">
-                        <strong>Legend:</strong> Raw ratings (1-5) with weighted scores below. Darker shading = higher ratings.
+                        <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                            <div><strong>Color Legend:</strong></div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 20px; height: 20px; background: #ffebee; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                <span>1 (Poor)</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 20px; height: 20px; background: #fff3e0; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                <span>2 (Fair)</span>
+                            </div>
+                            <div style="display: flex; align-items; center; gap: 8px;">
+                                <div style="width: 20px; height: 20px; background: #fffde7; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                <span>3 (Good)</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 20px; height: 20px; background: #e8f5e8; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                <span>4 (Very Good)</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 20px; height: 20px; background: #c8e6c9; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                <span>5 (Excellent)</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             `;
             
             container.innerHTML = html;
         }
-
+        
+        // Helper function for accessible heatmap colors
+        function getHeatmapColors(rating) {
+            const colorSchemes = {
+                1: { backgroundColor: '#ffebee', textColor: '#c62828' }, // Light red background, dark red text
+                2: { backgroundColor: '#fff3e0', textColor: '#e65100' }, // Light orange background, dark orange text
+                3: { backgroundColor: '#fffde7', textColor: '#f57f17' }, // Light yellow background, dark yellow text
+                4: { backgroundColor: '#e8f5e8', textColor: '#2e7d32' }, // Light green background, dark green text
+                5: { backgroundColor: '#c8e6c9', textColor: '#1b5e20' }  // Medium green background, dark green text
+            };
+            
+            return colorSchemes[rating] || colorSchemes[3];
+        }
+        
+        // Helper function for total score colors
+        function getTotalScoreColors(score, isWinner) {
+            if (isWinner) {
+                return { backgroundColor: '#c8e6c9', textColor: '#1b5e20' };
+            }
+            
+            // Color based on score range
+            if (score >= 4.0) {
+                return { backgroundColor: '#e8f5e8', textColor: '#2e7d32' };
+            } else if (score >= 3.0) {
+                return { backgroundColor: '#fffde7', textColor: '#f57f17' };
+            } else if (score >= 2.0) {
+                return { backgroundColor: '#fff3e0', textColor: '#e65100' };
+            } else {
+                return { backgroundColor: '#ffebee', textColor: '#c62828' };
+            }
+        }
 
 
 
