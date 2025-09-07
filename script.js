@@ -1894,13 +1894,6 @@ function setupRatingStep() {
 
 
 
-        // Setup enhanced PDF
-        function setupEnhancedPDF() {
-            const btn = document.getElementById('enhancedPdfBtn');
-            if (btn) {
-                btn.onclick = generateEnhancedPDF;
-            }
-        }
         
         // Helper functions
 
