@@ -765,7 +765,11 @@ function setupRatingStep() {
                             <div class="section-title">📊 Executive Summary</div>
                             <div id="advancedSummary"></div>
                         </div>
-                        
+                        <div class="section">
+                            <div class="section-title">🏆 Winner Analysis</div>
+                            <div id="advancedWinnerAnalysis"></div>
+                        </div>
+                      
                         <div class="section">
                             <div class="section-title">🥧 Criteria Weights</div>
                             <div id="advancedWeights"></div>
@@ -812,7 +816,15 @@ function setupRatingStep() {
                     console.error('Error rendering executive summary:', error);
                     document.getElementById('advancedSummary').innerHTML = '<p style="color: #dc3545;">Error loading executive summary</p>';
                 }
-                
+
+                try {
+                    renderWinnerAnalysis();
+                } catch (error) {
+                    console.error('Error rendering winner analysis:', error);
+                    document.getElementById('advancedWinnerAnalysis').innerHTML = '<p style="color: #dc3545;">Error loading winner analysis</p>';
+                }
+
+                    
                 try {
                     renderAdvancedWeights(withCharts);
                 } catch (error) {
@@ -1161,6 +1173,71 @@ function setupRatingStep() {
             `;
         }
 
+
+
+
+
+        //Render Winner Analysis
+        function renderWinnerAnalysis() {
+            const container = document.getElementById('advancedWinnerAnalysis');
+            if (!container || !advancedAnalytics.results) return;
+            
+            const winner = advancedAnalytics.results[0];
+            const runnerUp = advancedAnalytics.results.length > 1 ? advancedAnalytics.results[1] : null;
+            
+            // Find top 3 contributing criteria for winner
+            const winnerContributions = [];
+            decisionData.criteria.forEach(criteria => {
+                const ratingKey = `${winner.option.id}-${criteria.id}`;
+                const rating = decisionData.ratings[ratingKey] || 3;
+                const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
+                const contribution = rating * (weight / 100);
+                winnerContributions.push({
+                    name: criteria.name,
+                    rating,
+                    weight,
+                    contribution
+                });
+            });
+            winnerContributions.sort((a, b) => b.contribution - a.contribution);
+            const topContributors = winnerContributions.slice(0, 3);
+            
+            let html = `
+                <div style="padding: 20px;">
+                    <div style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 2px solid #28a745; border-radius: 15px; padding: 25px; margin-bottom: 25px;">
+                        <h3 style="color: #155724; margin: 0 0 20px 0;">🏆 Why ${sanitizeInput(winner.option.name)} Won:</h3>
+                        ${topContributors.map(contrib => `
+                            <div style="display: flex; align-items: center; margin-bottom: 12px; padding: 12px; background: rgba(255,255,255,0.7); border-radius: 8px; border-left: 4px solid #28a745;">
+                                <div style="margin-right: 15px; color: #28a745; font-size: 18px;">▶</div>
+                                <div>
+                                    <strong>${sanitizeInput(contrib.name)}:</strong> 
+                                    Scored ${contrib.rating}/5 with ${contrib.weight}% importance weight
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+            `;
+            
+            if (runnerUp) {
+                const gap = winner.totalScore - runnerUp.totalScore;
+                html += `
+                    <div style="background: #e7f3ff; border: 2px solid #b3d7ff; border-radius: 15px; padding: 25px;">
+                        <h4 style="color: #0056b3; margin: 0 0 15px 0;">🔍 Close alternative to consider:</h4>
+                        <div style="font-size: 18px; font-weight: 600; color: #333; margin-bottom: 8px;">
+                            ${sanitizeInput(runnerUp.option.name)} (${runnerUp.totalScore.toFixed(2)}/5.0, Δ ${gap.toFixed(2)})
+                        </div>
+                        <div style="color: #0056b3; font-style: italic;">
+                            ${gap < 0.2 ? 'Very close race - consider both options!' : 
+                              gap < 0.5 ? 'Close second choice worth considering' : 
+                              'Clear winner, but this is a solid alternative'}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
 
 
 
@@ -2131,30 +2208,52 @@ function generateReportHTML() {
     `;
 
     // Complete rankings
-    const resultsHtml = advancedAnalytics.results.map((result, index) => `
-        <div style="display: flex; align-items: center; margin-bottom: 20px; padding: 20px; background: ${index === 0 ? 'linear-gradient(135deg, #d4edda, #c3e6cb)' : '#f8f9fa'}; border-radius: 12px; border: 2px solid ${index === 0 ? '#28a745' : '#e9ecef'};">
-            <div style="width: 40px; height: 40px; background: ${index === 0 ? '#28a745' : '#667eea'}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 20px; font-size: 18px;">
-                ${index + 1}
-            </div>
-            <div style="flex: 1;">
-                <div style="font-weight: bold; font-size: 18px; color: #333; margin-bottom: 8px;">
-                    ${safeText(result.option.name)} ${index === 0 ? '🏆' : ''}
-                </div>
-                <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                    <div style="width: 200px; height: 16px; background: #e9ecef; border-radius: 8px; margin-right: 15px; overflow: hidden;">
-                        <div style="width: ${(safeNum(result.totalScore) / 5) * 100}%; height: 100%; background: ${index === 0 ? '#28a745' : '#667eea'}; border-radius: 8px;"></div>
+        // Calculate results with tie handling
+        const resultsWithRanks = assignRanksWithTies(advancedAnalytics.results);
+        
+        const resultsHtml = resultsWithRanks.map((result, index) => {
+            const percentage = Math.round((result.totalScore/5)*100);
+            let badgeColor = '#667eea';
+            let badgeText = result.rank;
+            
+            if (result.rank === 1) {
+                badgeColor = '#28a745';
+                if (resultsWithRanks.filter(r => r.rank === 1).length > 1) {
+                    badgeText = `${result.rank}*`; // Indicate tie
+                }
+            } else if (result.isTied) {
+                badgeColor = '#ffc107';
+                badgeText = `${result.rank}*`; // Indicate tie
+            }
+            
+            return `
+                <div style="display: flex; align-items: center; margin-bottom: 20px; padding: 20px; background: ${result.rank === 1 ? 'linear-gradient(135deg, #d4edda, #c3e6cb)' : '#f8f9fa'}; border-radius: 12px; border: 2px solid ${result.rank === 1 ? '#28a745' : '#e9ecef'};">
+                    <div style="width: 40px; height: 40px; background: ${badgeColor}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 20px; font-size: 18px;">
+                        ${badgeText}
                     </div>
-                    <span style="font-weight: bold; color: #667eea; font-size: 16px;">${fmt(result.totalScore)}/5.0</span>
+                    <div style="flex: 1;">
+                        <div style="font-weight: bold; font-size: 18px; color: #333; margin-bottom: 8px;">
+                            ${safeText(result.option ? result.option.name : result.name)} ${result.rank === 1 ? '🏆' : ''}
+                            ${result.isTied ? '<span style="background: #fff3cd; color: #856404; padding: 2px 6px; border-radius: 8px; font-size: 12px; margin-left: 8px;">TIE</span>' : ''}
+                        </div>
+                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                            <div style="width: 200px; height: 16px; background: #e9ecef; border-radius: 8px; margin-right: 15px; overflow: hidden;">
+                                <div style="width: ${percentage}%; height: 100%; background: ${badgeColor}; border-radius: 8px;"></div>
+                            </div>
+                            <span style="font-weight: bold; color: #667eea; font-size: 16px;">${fmt(result.totalScore)}/5.0 (${percentage}%)</span>
+                        </div>
+                        ${result.option && result.option.description ? `
+                            <p style="color: #666; margin: 0; font-size: 14px; font-style: italic;">
+                                ${safeText(result.option.description)}
+                            </p>
+                        ` : ''}
+                    </div>
                 </div>
-                ${result.option.description ? `
-                    <p style="color: #666; margin: 0; font-size: 14px; font-style: italic;">
-                        ${safeText(result.option.description)}
-                    </p>
-                ` : ''}
-            </div>
-        </div>
-    `).join('');
+            `;
+        }).join('');
 
+
+        
     // Top contributing criteria computation
     const winnerContributions = [];
     if (decisionData.criteria && Array.isArray(decisionData.criteria)) {
@@ -2798,7 +2897,8 @@ function generateReportHTML() {
                 scoreText.style.fontWeight = 'bold';
                 scoreText.style.color = '#667eea';
                 scoreText.style.marginBottom = '15px';
-                scoreText.textContent = `Score: ${result.totalScore.toFixed(2)}/5.0`;
+                const percentage = Math.round((result.totalScore/5)*100);
+                scoreText.innerHTML = `Score: ${result.totalScore.toFixed(2)}/5.0 <span style="background: #667eea; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.9rem; margin-left: 8px;">${percentage}%</span>`;    
                 card.appendChild(scoreText);
         
                 const details = document.createElement('details');
