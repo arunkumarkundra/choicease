@@ -2482,6 +2482,31 @@ function generateReportHTML() {
 
 
 
+            <!-- Performance Matrix -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">📊 Performance Matrix</h3>
+                <p style="color: #666; margin-bottom: 15px;">Detailed breakdown of how each option performed on each criteria:</p>
+                <div style="overflow-x: auto;">
+                    ${performanceMatrixHtml}
+                </div>
+                <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 12px;">
+                    <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                        <div><strong>Color Legend:</strong></div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 16px; height: 16px; background: #ffebee; border: 1px solid #ccc;"></div>
+                            <span>1-2 (Poor-Fair)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 16px; height: 16px; background: #fffde7; border: 1px solid #ccc;"></div>
+                            <span>3 (Good)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 16px; height: 16px; background: #e8f5e8; border: 1px solid #ccc;"></div>
+                            <span>4-5 (Very Good-Excellent)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Sensitivity Analysis -->
             <div style="margin-bottom: 30px;">
