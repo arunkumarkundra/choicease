@@ -1958,7 +1958,7 @@ function generateCanvasBasedPDF() {
 
     try {
         // Generate comprehensive report content
-        const reportContent = ();
+        const reportContent = generateReportHTML();
         tempContainer.innerHTML = reportContent;
 
         // Convert to PDF using html2canvas
@@ -2023,403 +2023,32 @@ function generateCanvasBasedPDF() {
 
 
 
-
-
 function generateReportHTML() {
-    // Helper functions (must appear at top)
-    
-    // 1) safeText: use sanitizeInput if available; otherwise fallback
-    const safeText = typeof sanitizeInput === 'function'
-        ? sanitizeInput
-        : (str = '') => String(str)
-            .replaceAll('&', '&amp;')
-            .replaceAll('<', '&lt;')
-            .replaceAll('>', '&gt;')
-            .replaceAll('"', '&quot;')
-            .replaceAll("'", '&#39;');
-
-    // 2) safeNum: coerce to finite number or return fallback
-    const safeNum = (v, fallback = 0) => {
-        const n = Number(v);
-        return Number.isFinite(n) ? n : fallback;
-    };
-
-    // 3) fmt: format numeric values safely; returns 'N/A' when not finite
-    const fmt = (v, decimals = 2) => {
-        const n = safeNum(v, NaN);
-        return Number.isFinite(n) ? n.toFixed(decimals) : 'N/A';
-    };
-
-    // Input normalization (must be implemented early)
-    
-    // Validate existence of required objects
-    if (!advancedAnalytics || !Array.isArray(advancedAnalytics.results) ||
-        advancedAnalytics.results.length === 0) {
-        return `<div style="padding:20px;">No analytics results available to generate the report.</div>`;
-    }
-    if (!decisionData || !Array.isArray(decisionData.criteria)) {
-        return `<div style="padding:20px;">Missing decision data / criteria.</div>`;
-    }
-
-    // Normalize important values
     const winner = advancedAnalytics.results[0];
-    const runnerUp = advancedAnalytics.results.length > 1 ? advancedAnalytics.results[1] : null;
-    const confidenceRaw = advancedAnalytics.confidence || {};
-    const confidence = {
-        percentage: safeNum(confidenceRaw.percentage, 0),
-        level: (confidenceRaw.level || '').toString().toLowerCase(),
-        explanation: confidenceRaw.explanation ? String(confidenceRaw.explanation) : '',
-        gap: safeNum(confidenceRaw.gap, 0)
-    };
-    const flipPoints = (typeof computeFlipPoints === 'function' ? computeFlipPoints() : []) || [];
-    const risks = Array.isArray(advancedAnalytics.risks) ? advancedAnalytics.risks : [];
-    const winnerTotalScore = safeNum(winner && winner.totalScore, 0);
-
-    // Build every dynamic HTML block in precomputed constants
-
-    // Winner description section
-    const winnerDescriptionHtml = winner && winner.option ? `
-        <div style="margin-bottom: 20px;">
-            <h3 style="color: #155724; margin: 0 0 10px 0; font-size: 20px;">
-                Recommended Choice: ${safeText(winner.option.name)}
-            </h3>
-            <div style="font-size: 16px; color: #155724; margin-bottom: 15px;">
-                <strong>Final Score:</strong> ${fmt(winnerTotalScore)}/5.0 
-                <span style="background: #28a745; color: white; padding: 4px 12px; border-radius: 20px; font-size: 14px; margin-left: 10px;">
-                    ${Math.round((winnerTotalScore/5)*100)}%
-                </span>
-            </div>
-            ${winner.option.description ? `
-                <p style="color: #155724; font-style: italic; margin: 10px 0;">
-                    ${safeText(winner.option.description)}
-                </p>
-            ` : ''}
-        </div>
-    ` : '';
-
-    // Confidence analysis block
-    const confidenceGradient = confidence.level === 'high' ? 'linear-gradient(135deg, #28a745, #20c997)' :
-                              confidence.level === 'medium' ? 'linear-gradient(135deg, #ffc107, #fd7e14)' :
-                              'linear-gradient(135deg, #dc3545, #c82333)';
+    const runnerUp = advancedAnalytics.results[1];
+    const confidence = advancedAnalytics.confidence;
     
-    const confidenceBlockHtml = `
-        <div style="background: rgba(255,255,255,0.8); padding: 20px; border-radius: 10px; margin-top: 20px;">
-            <h4 style="color: #667eea; margin: 0 0 15px 0;">📊 Decision Confidence Analysis</h4>
-            <div style="margin: 15px 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-weight: 600;">Confidence Level: ${confidence.level.toUpperCase()}</span>
-                    <span style="font-weight: bold; color: #667eea;">${confidence.percentage}%</span>
-                </div>
-                <div style="width: 100%; height: 12px; background: #e9ecef; border-radius: 6px; overflow: hidden;">
-                    <div style="width: ${confidence.percentage}%; height: 100%; background: ${confidenceGradient}; border-radius: 6px;"></div>
-                </div>
-                <p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">
-                    ${safeText(confidence.explanation)}
-                </p>
-            </div>
-            ${runnerUp ? `
-                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px;">
-                    <strong>Margin Analysis:</strong> ${fmt(confidence.gap)} points ahead of 
-                    <em>${safeText(runnerUp.option.name)}</em> (${fmt(safeNum(runnerUp.totalScore))}/5.0)
-                </div>
-            ` : ''}
-        </div>
-    `;
-
-    // Complete rankings
-    const resultsHtml = advancedAnalytics.results.map((result, index) => `
-        <div style="display: flex; align-items: center; margin-bottom: 20px; padding: 20px; background: ${index === 0 ? 'linear-gradient(135deg, #d4edda, #c3e6cb)' : '#f8f9fa'}; border-radius: 12px; border: 2px solid ${index === 0 ? '#28a745' : '#e9ecef'};">
-            <div style="width: 40px; height: 40px; background: ${index === 0 ? '#28a745' : '#667eea'}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 20px; font-size: 18px;">
-                ${index + 1}
-            </div>
-            <div style="flex: 1;">
-                <div style="font-weight: bold; font-size: 18px; color: #333; margin-bottom: 8px;">
-                    ${safeText(result.option.name)} ${index === 0 ? '🏆' : ''}
-                </div>
-                <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                    <div style="width: 200px; height: 16px; background: #e9ecef; border-radius: 8px; margin-right: 15px; overflow: hidden;">
-                        <div style="width: ${(safeNum(result.totalScore) / 5) * 100}%; height: 100%; background: ${index === 0 ? '#28a745' : '#667eea'}; border-radius: 8px;"></div>
-                    </div>
-                    <span style="font-weight: bold; color: #667eea; font-size: 16px;">${fmt(result.totalScore)}/5.0</span>
-                </div>
-                ${result.option.description ? `
-                    <p style="color: #666; margin: 0; font-size: 14px; font-style: italic;">
-                        ${safeText(result.option.description)}
-                    </p>
-                ` : ''}
-            </div>
-        </div>
-    `).join('');
-
-    // Top contributing criteria computation
+    // Calculate enhanced metrics
+    const flipPoints = computeFlipPoints();
+    
+    // Find top contributing criteria for winner
     const winnerContributions = [];
-    if (decisionData.criteria && Array.isArray(decisionData.criteria)) {
-        decisionData.criteria.forEach(criteria => {
-            const ratingKey = `${winner.option.id}-${criteria.id}`;
-            const rating = safeNum(decisionData.ratings && decisionData.ratings[ratingKey], 3);
-            const weight = safeNum(decisionData.normalizedWeights && decisionData.normalizedWeights[criteria.id], 0);
-            const contribution = rating * (weight / 100);
-            const impact = winnerTotalScore !== 0 ? (contribution / winnerTotalScore) * 100 : 0;
-            winnerContributions.push({
-                name: criteria.name,
-                rating,
-                weight: Math.round(weight),
-                contribution,
-                impact
-            });
+    decisionData.criteria.forEach(criteria => {
+        const ratingKey = `${winner.option.id}-${criteria.id}`;
+        const rating = decisionData.ratings[ratingKey] || 3;
+        const weight = decisionData.normalizedWeights[criteria.id] || 0;
+        const contribution = rating * (weight / 100);
+        winnerContributions.push({
+            name: criteria.name,
+            rating: rating,
+            weight: Math.round(weight),
+            contribution: contribution,
+            impact: contribution / winner.totalScore * 100
         });
-    }
+    });
     winnerContributions.sort((a, b) => b.contribution - a.contribution);
     const topContributors = winnerContributions.slice(0, 3);
 
-    const topContributorsHtml = topContributors.map((contrib, index) => `
-        <div style="display: flex; align-items: center; padding: 15px; margin-bottom: 12px; background: white; border-radius: 8px; border-left: 4px solid ${index === 0 ? '#28a745' : index === 1 ? '#667eea' : '#ffc107'};">
-            <div style="flex: 1;">
-                <div style="font-weight: 600; color: #333; margin-bottom: 4px;">${safeText(contrib.name)}</div>
-                <div style="font-size: 14px; color: #666;">
-                    Rating: ${safeNum(contrib.rating)}/5 • Weight: ${safeNum(contrib.weight)}% • Impact: ${fmt(contrib.impact, 1)}%
-                </div>
-            </div>
-            <div style="font-size: 18px; font-weight: bold; color: ${index === 0 ? '#28a745' : '#667eea'};">
-                ${fmt(contrib.contribution)}
-            </div>
-        </div>
-    `).join('');
-
-    // Differentiating factors vs runner-up
-    const differentiators = [];
-    if (runnerUp && decisionData.criteria && Array.isArray(decisionData.criteria)) {
-        decisionData.criteria.forEach(criteria => {
-            const winnerRatingKey = `${winner.option.id}-${criteria.id}`;
-            const runnerUpRatingKey = `${runnerUp.option.id}-${criteria.id}`;
-            const winnerRating = safeNum(decisionData.ratings && decisionData.ratings[winnerRatingKey], 3);
-            const runnerUpRating = safeNum(decisionData.ratings && decisionData.ratings[runnerUpRatingKey], 3);
-            const ratingDiff = winnerRating - runnerUpRating;
-            const weight = safeNum(decisionData.normalizedWeights && decisionData.normalizedWeights[criteria.id], 0);
-            
-            if (Math.abs(ratingDiff) >= 1) {
-                differentiators.push({
-                    name: criteria.name,
-                    advantage: ratingDiff > 0 ? 'winner' : 'runnerup',
-                    difference: Math.abs(ratingDiff),
-                    weight: Math.round(weight),
-                    impact: Math.abs(ratingDiff * (weight / 100))
-                });
-            }
-        });
-        differentiators.sort((a, b) => b.impact - a.impact);
-    }
-
-    const differentiatorsHtml = differentiators.length > 0 ? `
-        <div style="background: #fff3cd; border: 2px solid #ffeaa7; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
-            <h3 style="color: #856404; margin: 0 0 20px 0; font-size: 20px;">⚔️ Key Differentiating Factors vs Runner-up</h3>
-            <p style="color: #856404; margin-bottom: 15px; font-style: italic;">
-                Areas where <strong>${safeText(winner.option.name)}</strong> differs significantly from <strong>${safeText(runnerUp.option.name)}</strong>:
-            </p>
-            ${differentiators.slice(0, 5).map(diff => `
-                <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px; margin-bottom: 10px; background: white; border-radius: 8px; border-left: 4px solid ${diff.advantage === 'winner' ? '#28a745' : '#dc3545'};">
-                    <div style="flex: 1;">
-                        <div style="font-weight: 600; color: #333; margin-bottom: 4px;">${safeText(diff.name)}</div>
-                        <div style="font-size: 14px; color: #666;">
-                            Weight: ${safeNum(diff.weight)}% • Impact: ${fmt(diff.impact)}
-                        </div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; background: ${diff.advantage === 'winner' ? '#d4edda' : '#f8d7da'}; color: ${diff.advantage === 'winner' ? '#155724' : '#721c24'}; margin-bottom: 4px;">
-                            ${diff.advantage === 'winner' ? 'Advantage' : 'Disadvantage'}
-                        </div>
-                        <div style="font-size: 14px; color: #666;">
-                            ${safeNum(diff.difference)} point${safeNum(diff.difference) > 1 ? 's' : ''} diff
-                        </div>
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-    ` : '';
-
-    // Decision stability assessment
-    const lowPerformanceCount = winnerContributions.filter(c => c.rating <= 2).length;
-    const highPerformanceCount = winnerContributions.filter(c => c.rating >= 4).length;
-    let stabilityLevel = 'High';
-    let stabilityText = 'Strong performance across multiple criteria';
-    
-    if (confidence.percentage < 40) {
-        stabilityLevel = 'Low';
-        stabilityText = 'Close decision - small changes could affect outcome';
-    } else if (lowPerformanceCount > 0 || confidence.percentage < 70) {
-        stabilityLevel = 'Medium';
-        stabilityText = 'Generally solid choice with some areas of concern';
-    }
-
-    // Criteria weights distribution
-    const criteriaHtml = decisionData.criteria.map((criteria, index) => {
-        const weight = Math.round(safeNum(decisionData.normalizedWeights && decisionData.normalizedWeights[criteria.id], 0));
-        const colors = ['#667eea', '#764ba2', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6610f2', '#e83e8c'];
-        const color = colors[index % colors.length];
-        
-        return `
-            <div style="display: flex; align-items: center; justify-content: space-between; margin: 15px 0; padding: 15px; background: white; border-radius: 8px; border-left: 4px solid ${color};">
-                <div style="display: flex; align-items: center; flex: 1;">
-                    <div style="width: 12px; height: 12px; background: ${color}; border-radius: 50%; margin-right: 12px;"></div>
-                    <div>
-                        <div style="font-weight: 600; color: #333; margin-bottom: 2px;">${safeText(criteria.name)}</div>
-                        ${criteria.description ? `<div style="font-size: 12px; color: #666;">${safeText(criteria.description.substring(0, 60))}${criteria.description.length > 60 ? '...' : ''}</div>` : ''}
-                    </div>
-                </div>
-                <div style="display: flex; align-items: center;">
-                    <div style="width: 120px; height: 10px; background: #e9ecef; border-radius: 5px; margin-right: 12px; overflow: hidden;">
-                        <div style="width: ${weight}%; height: 100%; background: ${color}; border-radius: 5px;"></div>
-                    </div>
-                    <strong style="min-width: 45px; text-align: right; color: ${color}; font-size: 16px;">${weight}%</strong>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    // Performance matrix table
-    const performanceMatrixHtml = `
-        <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12px;">
-            <thead>
-                <tr style="background: #f8f9fa;">
-                    <th style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600; text-align: left;">Option</th>
-                    ${decisionData.criteria.map(crit => {
-                        const weight = Math.round(safeNum(decisionData.normalizedWeights && decisionData.normalizedWeights[crit.id], 0));
-                        return `<th style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600; text-align: center; min-width: 80px;">
-                            ${safeText(crit.name)}<br><small style="color: #666;">(${weight}%)</small>
-                        </th>`;
-                    }).join('')}
-                    <th style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600; text-align: center;">Total Score</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${advancedAnalytics.results.map((result, optIndex) => `
-                    <tr>
-                        <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600; background: #f8f9fa;">
-                            ${safeText(result.option.name)}
-                        </td>
-                        ${decisionData.criteria.map(crit => {
-                            const ratingKey = `${result.option.id}-${crit.id}`;
-                            const rating = safeNum(decisionData.ratings && decisionData.ratings[ratingKey], 3);
-                            const weight = safeNum(decisionData.normalizedWeights && decisionData.normalizedWeights[crit.id], 0) / 100;
-                            const weightedScore = rating * weight;
-                            const bgColor = rating >= 4 ? '#e8f5e8' : rating >= 3 ? '#fffde7' : rating >= 2 ? '#fff3e0' : '#ffebee';
-                            const textColor = rating >= 4 ? '#2e7d32' : rating >= 3 ? '#f57f17' : rating >= 2 ? '#e65100' : '#c62828';
-                            
-                            return `<td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: ${bgColor}; color: ${textColor};">
-                                <div style="font-weight: 600; font-size: 14px;">${rating}</div>
-                                <div style="font-size: 10px; opacity: 0.8;">${fmt(weightedScore)}</div>
-                            </td>`;
-                        }).join('')}
-                        <td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: ${optIndex === 0 ? '#c8e6c9' : '#f8f9fa'}; color: ${optIndex === 0 ? '#1b5e20' : '#333'}; font-weight: bold;">
-                            ${fmt(result.totalScore)}
-                        </td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        </table>
-    `;
-
-    // Sensitivity analysis (flip points) with safe Math.max
-    const maxImpact = flipPoints.length ? Math.max(...flipPoints.map(f => safeNum(f.impactMagnitude, 1))) : 0;
-    const flipPointsHtml = `
-        <div class="sensitivity-analysis">
-            <h4 style="color: #333; margin: 0 0 15px 0; font-size: 16px;">🎯 Flip Point Analysis</h4>
-            <p style="color: #666; font-size: 13px; margin-bottom: 15px;">
-                Minimum weight changes needed to change the winner:
-            </p>
-            
-            ${flipPoints.slice(0, 6).map(fp => `
-                <div style="display: flex; align-items: center; padding: 12px; margin: 8px 0; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${
-                    fp.criticality === 'critical' ? '#dc3545' : 
-                    fp.criticality === 'moderate' ? '#ffc107' : '#28a745'
-                };">
-                    <div style="flex: 1;">
-                        <div style="font-weight: 600; color: #333; font-size: 14px;">${safeText(fp.criteriaName)}</div>
-                        <div style="font-size: 12px; color: #666; margin-top: 2px;">
-                            Current: ${safeNum(fp.currentWeight)}% → Required: ${safeNum(fp.flipPoint)}%
-                        </div>
-                    </div>
-                    <div style="text-align: right;">
-                        <div style="font-weight: 600; color: ${
-                            fp.criticality === 'critical' ? '#dc3545' : 
-                            fp.criticality === 'moderate' ? '#f57c00' : '#28a745'
-                        }; font-size: 14px;">
-                            ${safeText(fp.changeNeeded)}
-                        </div>
-                        <div style="font-size: 11px; color: #666;">
-                            ${fp.criticality === 'critical' ? 'Critical' : 
-                              fp.criticality === 'moderate' ? 'Moderate' : 'Stable'}
-                        </div>
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-
-        <div style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e9ecef; margin-top: 20px;">
-            <h4 style="color: #333; margin: 0 0 15px 0; font-size: 16px;">🌪️ Sensitivity Tornado Chart</h4>
-            <div style="margin-top: 15px;">
-                ${flipPoints.slice(0, 6).map(fp => {
-                    const barWidth = maxImpact > 0 ? ((safeNum(fp.impactMagnitude, 0) / maxImpact) * 100) : 0;
-                    return `
-                        <div style="margin-bottom: 12px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                <span style="font-size: 13px; font-weight: 500;">${safeText(fp.criteriaName)}</span>
-                                <span style="font-size: 12px; color: #666;">${safeText(fp.changeNeeded)}</span>
-                            </div>
-                            <div style="width: 100%; height: 16px; background: #e9ecef; border-radius: 8px; overflow: hidden;">
-                                <div style="width: ${Math.max(barWidth, 5)}%; height: 100%; background: ${
-                                    fp.criticality === 'critical' ? 'linear-gradient(135deg, #dc3545, #c82333)' : 
-                                    fp.criticality === 'moderate' ? 'linear-gradient(135deg, #ffc107, #fd7e14)' : 
-                                    'linear-gradient(135deg, #28a745, #20c997)'
-                                }; border-radius: 8px; transition: width 0.8s ease;"></div>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-            
-            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 12px;">
-                <strong>Interpretation:</strong><br>
-                <span style="color: #dc3545;">●</span> <strong>Critical (Red):</strong> Small weight changes could flip the decision<br>
-                <span style="color: #ffc107;">●</span> <strong>Moderate (Yellow):</strong> Medium sensitivity to weight changes<br>
-                <span style="color: #28a745;">●</span> <strong>Stable (Green):</strong> Decision is robust to weight changes
-            </div>
-        </div>
-    `;
-
-    // Risk analysis with mitigation recommendations
-    const risksHtml = risks.length === 0 ? `
-        <div style="text-align: center; padding: 25px; background: #d4edda; border-radius: 12px; border: 2px solid #28a745;">
-            <h4 style="color: #155724; margin: 0 0 10px 0; font-size: 18px;">✅ No Major Weaknesses Identified</h4>
-            <p style="color: #155724; margin: 0; font-size: 14px;">Your top choice performs well across all criteria.</p>
-        </div>
-    ` : `
-        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-            Areas where <strong>${safeText(winner.option.name)}</strong> could be vulnerable:
-        </p>
-        ${risks.map(risk => `
-            <div style="background: ${risk.severity === 'high' ? '#f8d7da' : '#fff3cd'}; border: 1px solid ${risk.severity === 'high' ? '#f5c6cb' : '#ffeaa7'}; border-radius: 8px; padding: 15px; margin: 10px 0; border-left: 4px solid ${risk.severity === 'high' ? '#dc3545' : '#ffc107'};">
-                <div style="font-weight: 600; color: ${risk.severity === 'high' ? '#721c24' : '#856404'}; margin-bottom: 8px; font-size: 14px;">
-                    ${risk.severity === 'high' ? '🔴' : '🟡'} ${safeText(risk.criteriaName)}
-                </div>
-                <div style="font-size: 13px; color: ${risk.severity === 'high' ? '#721c24' : '#856404'};">
-                    ${safeText(risk.description)}
-                </div>
-            </div>
-        `).join('')}
-        
-        <div style="margin-top: 20px; padding: 15px; background: #e7f3ff; border: 1px solid #b3d7ff; border-radius: 8px;">
-            <h4 style="color: #0056b3; margin: 0 0 10px 0; font-size: 14px;">💡 Risk Mitigation Recommendations</h4>
-            <ul style="margin: 0; padding-left: 20px; color: #0056b3; font-size: 13px; line-height: 1.5;">
-                <li>Consider if low-scoring criteria can be improved post-decision</li>
-                <li>Evaluate if alternative options perform better in critical weak areas</li>
-                <li>Assess whether poor performance in these areas is acceptable given your priorities</li>
-                ${risks.length > 2 ? '<li>Consider if you have too many criteria with conflicting requirements</li>' : ''}
-            </ul>
-        </div>
-    `;
-
-    // Final return (single template literal)
     return `
         <div style="max-width: 100%; margin: 0 auto;">
             <!-- Header -->
@@ -2432,18 +2061,59 @@ function generateReportHTML() {
             <!-- Executive Summary -->
             <div style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 3px solid #28a745; border-radius: 15px; padding: 30px; margin-bottom: 30px;">
                 <h2 style="color: #155724; margin: 0 0 15px 0; font-size: 24px;">🏆 Executive Summary</h2>
-                ${winnerDescriptionHtml}
-                ${confidenceBlockHtml}
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #155724; margin: 0 0 10px 0; font-size: 20px;">
+                        Recommended Choice: ${sanitizeInput(winner.option.name)}
+                    </h3>
+                    <div style="font-size: 16px; color: #155724; margin-bottom: 15px;">
+                        <strong>Final Score:</strong> ${winner.totalScore.toFixed(2)}/5.0 
+                        <span style="background: #28a745; color: white; padding: 4px 12px; border-radius: 20px; font-size: 14px; margin-left: 10px;">
+                            ${Math.round((winner.totalScore/5)*100)}%
+                        </span>
+                    </div>
+                    ${winner.option.description ? `
+                        <p style="color: #155724; font-style: italic; margin: 10px 0;">
+                            ${sanitizeInput(winner.option.description)}
+                        </p>
+                    ` : ''}
+                </div>
+                
+                <!-- Confidence Analysis -->
+                <div style="background: rgba(255,255,255,0.8); padding: 20px; border-radius: 10px; margin-top: 20px;">
+                    <h4 style="color: #667eea; margin: 0 0 15px 0;">📊 Decision Confidence Analysis</h4>
+                    <div style="margin: 15px 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: 600;">Confidence Level: ${confidence.level.toUpperCase()}</span>
+                            <span style="font-weight: bold; color: #667eea;">${confidence.percentage}%</span>
+                        </div>
+                        <div style="width: 100%; height: 12px; background: #e9ecef; border-radius: 6px; overflow: hidden;">
+                            <div style="width: ${confidence.percentage}%; height: 100%; background: ${
+                                confidence.level === 'high' ? 'linear-gradient(135deg, #28a745, #20c997)' :
+                                confidence.level === 'medium' ? 'linear-gradient(135deg, #ffc107, #fd7e14)' :
+                                'linear-gradient(135deg, #dc3545, #c82333)'
+                            }; border-radius: 6px;"></div>
+                        </div>
+                        <p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">
+                            ${confidence.explanation}
+                        </p>
+                    </div>
+                    ${runnerUp ? `
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                            <strong>Margin Analysis:</strong> ${confidence.gap} points ahead of 
+                            <em>${sanitizeInput(runnerUp.option.name)}</em> (${runnerUp.totalScore.toFixed(2)}/5.0)
+                        </div>
+                    ` : ''}
+                </div>
             </div>
 
             <!-- Decision Details -->
             <div style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 15px 0; font-size: 20px;">📋 Decision Details</h3>
                 <div style="margin-bottom: 15px;">
-                    <h4 style="color: #333; margin: 0 0 8px 0; font-size: 18px;">${safeText(decisionData.title)}</h4>
+                    <h4 style="color: #333; margin: 0 0 8px 0; font-size: 18px;">${sanitizeInput(decisionData.title)}</h4>
                     ${decisionData.description ? `
                         <p style="color: #666; margin: 0 0 15px 0; font-style: italic;">
-                            ${safeText(decisionData.description)}
+                            ${sanitizeInput(decisionData.description)}
                         </p>
                     ` : ''}
                     <p style="color: #888; font-size: 14px; margin: 0;">
@@ -2455,86 +2125,92 @@ function generateReportHTML() {
             <!-- Complete Rankings -->
             <div style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🏆 Complete Rankings & Analysis</h3>
-                ${resultsHtml}
+                ${advancedAnalytics.results.map((result, index) => `
+                    <div style="display: flex; align-items: center; margin-bottom: 20px; padding: 20px; background: ${index === 0 ? 'linear-gradient(135deg, #d4edda, #c3e6cb)' : '#f8f9fa'}; border-radius: 12px; border: 2px solid ${index === 0 ? '#28a745' : '#e9ecef'};">
+                        <div style="width: 40px; height: 40px; background: ${index === 0 ? '#28a745' : '#667eea'}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 20px; font-size: 18px;">
+                            ${index + 1}
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: bold; font-size: 18px; color: #333; margin-bottom: 8px;">
+                                ${sanitizeInput(result.option.name)} ${index === 0 ? '🏆' : ''}
+                            </div>
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <div style="width: 200px; height: 16px; background: #e9ecef; border-radius: 8px; margin-right: 15px; overflow: hidden;">
+                                    <div style="width: ${(result.totalScore / 5) * 100}%; height: 100%; background: ${index === 0 ? '#28a745' : '#667eea'}; border-radius: 8px;"></div>
+                                </div>
+                                <span style="font-weight: bold; color: #667eea; font-size: 16px;">${result.totalScore.toFixed(2)}/5.0</span>
+                            </div>
+                            ${result.option.description ? `
+                                <p style="color: #666; margin: 0; font-size: 14px; font-style: italic;">
+                                    ${sanitizeInput(result.option.description)}
+                                </p>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('')}
             </div>
 
             <!-- Top Contributing Criteria -->
             <div style="background: #f8f9fa; border-radius: 12px; padding: 25px; margin-bottom: 30px;">
                 <h3 style="color: #333; margin: 0 0 20px 0; font-size: 20px;">⭐ Top Contributing Criteria</h3>
-                ${topContributorsHtml}
-            </div>
-
-            ${differentiatorsHtml}
-
-            <!-- Decision Stability Assessment -->
-            <div style="background: white; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
-                <h3 style="color: #333; margin: 0 0 20px 0; font-size: 20px;">🎯 Decision Stability Assessment</h3>
-                <div style="display: flex; align-items: center; margin-bottom: 15px;">
-                    <span style="font-weight: 600; margin-right: 15px; font-size: 16px;">Stability Level:</span>
-                    <span style="padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; background: ${
-                        stabilityLevel === 'High' ? '#d4edda' : 
-                        stabilityLevel === 'Medium' ? '#fff3cd' : '#f8d7da'
-                    }; color: ${
-                        stabilityLevel === 'High' ? '#155724' : 
-                        stabilityLevel === 'Medium' ? '#856404' : '#721c24'
-                    };">
-                        ${stabilityLevel}
-                    </span>
-                </div>
-                <p style="color: #666; margin: 10px 0 20px 0; font-size: 15px;">${safeText(stabilityText)}</p>
-                
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px;">
-                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 24px; font-weight: bold; color: #28a745; margin-bottom: 5px;">${highPerformanceCount}</div>
-                        <div style="font-size: 14px; color: #666;">Strong Areas (4-5)</div>
+                ${topContributors.map((contrib, index) => `
+                    <div style="display: flex; align-items: center; padding: 15px; margin-bottom: 12px; background: white; border-radius: 8px; border-left: 4px solid ${index === 0 ? '#28a745' : index === 1 ? '#667eea' : '#ffc107'};">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #333; margin-bottom: 4px;">${sanitizeInput(contrib.name)}</div>
+                            <div style="font-size: 14px; color: #666;">
+                                Rating: ${contrib.rating}/5 • Weight: ${contrib.weight}% • Impact: ${contrib.impact.toFixed(1)}%
+                            </div>
+                        </div>
+                        <div style="font-size: 18px; font-weight: bold; color: ${index === 0 ? '#28a745' : '#667eea'};">
+                            ${contrib.contribution.toFixed(2)}
+                        </div>
                     </div>
-                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 24px; font-weight: bold; color: ${lowPerformanceCount > 0 ? '#dc3545' : '#28a745'}; margin-bottom: 5px;">${lowPerformanceCount}</div>
-                        <div style="font-size: 14px; color: #666;">Weak Areas (1-2)</div>
-                    </div>
-                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 24px; font-weight: bold; color: #667eea; margin-bottom: 5px;">${decisionData.criteria.length}</div>
-                        <div style="font-size: 14px; color: #666;">Total Criteria</div>
-                    </div>
-                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                        <div style="font-size: 24px; font-weight: bold; color: #667eea; margin-bottom: 5px;">${confidence.percentage}%</div>
-                        <div style="font-size: 14px; color: #666;">Confidence Level</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Criteria Weights Distribution -->
-            <div style="background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
-                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🥧 Criteria Weights Distribution</h3>
-                <p style="color: #666; margin-bottom: 20px;">How much each criteria influenced the final decision:</p>
-                <div style="max-width: 500px; margin: 0 auto;">
-                    ${criteriaHtml}
-                </div>
+                `).join('')}
             </div>
 
             <!-- Performance Matrix -->
             <div style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">📊 Performance Matrix</h3>
-                <p style="color: #666; margin-bottom: 15px;">Detailed breakdown of how each option performed on each criteria:</p>
                 <div style="overflow-x: auto;">
-                    ${performanceMatrixHtml}
-                </div>
-                <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 12px;">
-                    <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
-                        <div><strong>Color Legend:</strong></div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="width: 16px; height: 16px; background: #ffebee; border: 1px solid #ccc;"></div>
-                            <span>1-2 (Poor-Fair)</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="width: 16px; height: 16px; background: #fffde7; border: 1px solid #ccc;"></div>
-                            <span>3 (Good)</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div style="width: 16px; height: 16px; background: #e8f5e8; border: 1px solid #ccc;"></div>
-                            <span>4-5 (Very Good-Excellent)</span>
-                        </div>
-                    </div>
+                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #f8f9fa;">
+                                <th style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600; text-align: left;">Option</th>
+                                ${decisionData.criteria.map(crit => {
+                                    const weight = Math.round(decisionData.normalizedWeights[crit.id] || 0);
+                                    return `<th style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600; text-align: center; min-width: 80px;">
+                                        ${crit.name}<br><small style="color: #666;">(${weight}%)</small>
+                                    </th>`;
+                                }).join('')}
+                                <th style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600; text-align: center;">Total Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${advancedAnalytics.results.map((result, optIndex) => `
+                                <tr>
+                                    <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600; background: #f8f9fa;">
+                                        ${sanitizeInput(result.option.name)}
+                                    </td>
+                                    ${decisionData.criteria.map(crit => {
+                                        const ratingKey = `${result.option.id}-${crit.id}`;
+                                        const rating = decisionData.ratings[ratingKey] || 3;
+                                        const weight = (decisionData.normalizedWeights[crit.id] || 0) / 100;
+                                        const weightedScore = rating * weight;
+                                        const bgColor = rating >= 4 ? '#e8f5e8' : rating >= 3 ? '#fffde7' : rating >= 2 ? '#fff3e0' : '#ffebee';
+                                        const textColor = rating >= 4 ? '#2e7d32' : rating >= 3 ? '#f57f17' : rating >= 2 ? '#e65100' : '#c62828';
+                                        
+                                        return `<td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: ${bgColor}; color: ${textColor};">
+                                            <div style="font-weight: 600; font-size: 14px;">${rating}</div>
+                                            <div style="font-size: 10px; opacity: 0.8;">${weightedScore.toFixed(2)}</div>
+                                        </td>`;
+                                    }).join('')}
+                                    <td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: ${optIndex === 0 ? '#c8e6c9' : '#f8f9fa'}; color: ${optIndex === 0 ? '#1b5e20' : '#333'}; font-weight: bold;">
+                                        ${result.totalScore.toFixed(2)}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -2542,128 +2218,64 @@ function generateReportHTML() {
             <div style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">⚖️ Sensitivity Analysis</h3>
                 <p style="color: #666; margin-bottom: 20px;">
-                    How sensitive your decision is to changes in criteria weights. Lower flip points indicate more critical criteria.
+                    Analysis of how sensitive your decision is to changes in criteria weights. Lower flip points indicate more critical criteria.
                 </p>
-                ${flipPointsHtml}
-            </div>
-
-            <!-- Risk Analysis -->
-            <div style="margin-bottom: 30px;">
-                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">⚠️ Risk Analysis</h3>
-                <div style="padding: 20px;">
-                    ${risksHtml}
-                </div>
+                ${flipPoints.map(fp => `
+                    <div style="display: flex; align-items: center; padding: 15px; margin: 10px 0; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${
+                        fp.criticality === 'critical' ? '#dc3545' : 
+                        fp.criticality === 'moderate' ? '#ffc107' : '#28a745'
+                    };">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #333;">${sanitizeInput(fp.criteriaName)}</div>
+                            <div style="font-size: 14px; color: #666; margin-top: 4px;">
+                                Current: ${fp.currentWeight}% → Required: ${fp.flipPoint}%
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600; color: ${
+                                fp.criticality === 'critical' ? '#dc3545' : 
+                                fp.criticality === 'moderate' ? '#f57c00' : '#28a745'
+                            }; font-size: 16px;">
+                                ${fp.changeNeeded}
+                            </div>
+                            <div style="font-size: 12px; color: #666;">
+                                ${fp.criticality === 'critical' ? 'Critical' : 
+                                  fp.criticality === 'moderate' ? 'Moderate' : 'Stable'}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
             </div>
 
             <!-- Methodology -->
-            <div style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 20px;">
-                <h3 style="color: #667eea; margin: 0 0 15px 0; font-size: 20px;">📚 Methodology & Technical Details</h3>
-                
-                <div style="margin-bottom: 20px;">
-                    <h4 style="color: #333; margin: 0 0 10px 0; font-size: 16px;">Analysis Method: Weighted Multi-Criteria Decision Analysis</h4>
-                    <ul style="margin: 0; padding-left: 20px; line-height: 1.8; color: #333; font-size: 14px;">
-                        <li>Each option is rated 1-5 on each criteria (1=Poor, 5=Excellent)</li>
-                        <li>Criteria importance weights are normalized to 100% total</li>
-                        <li>Final scores = Σ(rating × normalized_weight) for each option</li>
-                        <li>Options with identical scores receive the same rank</li>
-                        <li>Higher scores indicate better alignment with your priorities</li>
-                        <li>Sensitivity analysis shows how weight changes affect rankings</li>
-                        <li>Risk analysis identifies potential weaknesses in the top choice</li>
-                    </ul>
-                </div>
-
-                <div style="margin-bottom: 20px;">
-                    <h4 style="color: #333; margin: 0 0 10px 0; font-size: 16px;">Decision Summary Statistics</h4>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
-                        <div style="background: white; padding: 12px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 18px; font-weight: bold; color: #667eea;">${decisionData.options.length}</div>
-                            <div style="font-size: 12px; color: #666;">Options Evaluated</div>
-                        </div>
-                        <div style="background: white; padding: 12px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 18px; font-weight: bold; color: #667eea;">${decisionData.criteria.length}</div>
-                            <div style="font-size: 12px; color: #666;">Criteria Analyzed</div>
-                        </div>
-                        <div style="background: white; padding: 12px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 18px; font-weight: bold; color: #667eea;">${Object.keys(decisionData.ratings).length}</div>
-                            <div style="font-size: 12px; color: #666;">Total Ratings</div>
-                        </div>
-                        <div style="background: white; padding: 12px; border-radius: 8px; text-align: center;">
-                            <div style="font-size: 18px; font-weight: bold; color: #667eea;">${confidence.percentage}%</div>
-                            <div style="font-size: 12px; color: #666;">Decision Confidence</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <h4 style="color: #333; margin: 0 0 10px 0; font-size: 16px;">Quality Assurance Checks</h4>
-                    <div style="background: white; padding: 15px; border-radius: 8px;">
-                        <ul style="margin: 0; padding-left: 20px; line-height: 1.6; color: #333; font-size: 13px;">
-                            <li>✓ All criteria weights sum to 100%</li>
-                            <li>✓ All options rated on all criteria</li>
-                            <li>✓ Rating scale consistently applied (1-5)</li>
-                            <li>✓ Sensitivity analysis performed for robustness</li>
-                            <li>✓ Risk assessment completed for top choice</li>
-                            ${differentiators.length > 0 ? '<li>✓ Key differentiating factors identified</li>' : ''}
-                            <li>✓ Decision stability assessed</li>
-                        </ul>
-                    </div>
-                </div>
+            <div style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px;">
+                <h3 style="color: #667eea; margin: 0 0 15px 0; font-size: 20px;">📚 Methodology</h3>
+                <p style="margin-bottom: 15px;"><strong>Analysis Method:</strong> Weighted Multi-Criteria Decision Analysis</p>
+                <ul style="margin: 0; padding-left: 20px; line-height: 1.8;">
+                    <li>Each option is rated 1-5 on each criteria</li>
+                    <li>Criteria importance weights are normalized to 100%</li>
+                    <li>Final scores = Σ(rating × weight) for each option</li>
+                    <li>Options with identical scores receive the same rank</li>
+                    <li>Higher scores indicate better alignment with your priorities</li>
+                    <li>Sensitivity analysis shows how weight changes affect rankings</li>
+                </ul>
             </div>
 
             <!-- Footer -->
-            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #dee2e6; color: #666; font-size: 14px;">
-                <p style="margin: 0 0 5px 0; font-weight: 600;">Powered by Choicease - Smart Choices, Made Easy</p>
-                <p style="margin: 0 0 5px 0;">Visit: <strong>choicease.com</strong></p>
-                <p style="margin: 0; font-size: 12px; color: #888;">This report was generated using advanced decision analytics to help you make informed choices.</p>
+            <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #dee2e6; color: #666; font-size: 14px;">
+                <p style="margin: 0;">Powered by Choicease - Smart Choices, Made Easy</p>
+                <p style="margin: 5px 0 0 0;">Visit: choicease.com</p>
             </div>
         </div>
     `;
 }
 
-/* SMOKE TESTS */
 
-// Test 1: Missing analytics results
-// const html1 = generateReportHTML.call({
-//     advancedAnalytics: null,
-//     decisionData: { criteria: [] }
-// });
-// console.assert(typeof html1 === 'string' && html1.includes('No analytics results available'), 'Test 1 failed');
 
-// Test 2: Confidence capitalization and defaulting
-// const html2 = generateReportHTML.call({
-//     advancedAnalytics: {
-//         results: [{ option: { id: '1', name: 'TestOption' }, totalScore: 4.2 }],
-//         confidence: { level: 'High', percentage: 85, explanation: 'Test' }
-//     },
-//     decisionData: {
-//         title: 'Test Decision',
-//         criteria: [{ id: '1', name: 'TestCriteria' }],
-//         normalizedWeights: { '1': 100 },
-//         ratings: { '1-1': 4 },
-//         options: [{ id: '1', name: 'TestOption' }]
-//     }
-// });
-// console.assert(typeof html2 === 'string' && html2.includes('HIGH') && html2.includes('85%'), 'Test 2 failed');
 
-// Test 3: Empty flipPoints & risks
-// const html3 = generateReportHTML.call({
-//     advancedAnalytics: {
-//         results: [{ option: { id: '1', name: 'TestOption' }, totalScore: 4.2 }],
-//         confidence: { level: 'medium', percentage: 60, explanation: 'Test' },
-//         risks: []
-//     },
-//     decisionData: {
-//         title: 'Test Decision',
-//         criteria: [{ id: '1', name: 'TestCriteria' }],
-//         normalizedWeights: { '1': 100 },
-//         ratings: { '1-1': 4 },
-//         options: [{ id: '1', name: 'TestOption' }]
-//     },
-//     computeFlipPoints: () => []
-// });
-// console.assert(typeof html3 === 'string' && html3.includes('No Major Weaknesses Identified'), 'Test 3 failed');
 
-// All tests pass when the required global variables (advancedAnalytics, decisionData, computeFlipPoints) are properly set.
+
+
 
 
 
