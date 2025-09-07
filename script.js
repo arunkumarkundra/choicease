@@ -1347,7 +1347,10 @@ function setupRatingStep() {
             return html;
         }
 
-        
+
+
+
+
         function renderPerformanceHeatmap() {
             const container = document.getElementById('advancedHeatmap');
             if (!container || !advancedAnalytics.results) return;
@@ -1419,23 +1422,23 @@ function setupRatingStep() {
                         <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
                             <div><strong>Color Legend:</strong></div>
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <div style="width: 20px; height: 20px; background: #ffebee; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                <div style="width: 20px; height: 20px; background: #ffcdd2; border: 1px solid #ccc; border-radius: 3px;"></div>
                                 <span>1 (Poor)</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <div style="width: 20px; height: 20px; background: #fff3e0; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                <div style="width: 20px; height: 20px; background: #ffcc80; border: 1px solid #ccc; border-radius: 3px;"></div>
                                 <span>2 (Fair)</span>
                             </div>
-                            <div style="display: flex; align-items; center; gap: 8px;">
-                                <div style="width: 20px; height: 20px; background: #fffde7; border: 1px solid #ccc; border-radius: 3px;"></div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <div style="width: 20px; height: 20px; background: #fff176; border: 1px solid #ccc; border-radius: 3px;"></div>
                                 <span>3 (Good)</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <div style="width: 20px; height: 20px; background: #e8f5e8; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                <div style="width: 20px; height: 20px; background: #a5d6a7; border: 1px solid #ccc; border-radius: 3px;"></div>
                                 <span>4 (Very Good)</span>
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px;">
-                                <div style="width: 20px; height: 20px; background: #c8e6c9; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                <div style="width: 20px; height: 20px; background: #66bb6a; border: 1px solid #ccc; border-radius: 3px;"></div>
                                 <span>5 (Excellent)</span>
                             </div>
                         </div>
@@ -1476,6 +1479,9 @@ function setupRatingStep() {
                 return { backgroundColor: '#ffebee', textColor: '#c62828' };
             }
         }
+
+
+
 
 
 
