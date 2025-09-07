@@ -1973,6 +1973,10 @@ function setupRatingStep() {
 
 
 
+
+
+
+
         function generateEnhancedPDFReport() {
             console.log('Starting enhanced PDF generation...');
             console.log('Advanced analytics state:', {
@@ -2243,7 +2247,7 @@ function setupRatingStep() {
                 yPos = 20;
                 
                 // Sensitivity Analysis
-                doc.setTextColor(...primaryColor);
+                doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
                 doc.setFontSize(14);
                 doc.setFont(undefined, 'bold');
                 doc.text('⚖️ SENSITIVITY ANALYSIS', 15, yPos);
@@ -2253,7 +2257,7 @@ function setupRatingStep() {
                 
                 doc.setFontSize(10);
                 doc.setFont(undefined, 'normal');
-                doc.setTextColor(...textDark);
+                doc.setTextColor(textDark[0], textDark[1], textDark[2]);
                 doc.text('Criteria sensitivity to weight changes (lower values = more critical):', 15, yPos);
                 yPos += 15;
                 
@@ -2310,6 +2314,13 @@ function setupRatingStep() {
                 throw new Error(`PDF generation failed: ${pdfError.message}`);
             }
         }
+
+
+
+
+
+
+
 
 
 
