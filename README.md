@@ -1,6 +1,6 @@
 # Choicease – Smart Choices, Made Easy 🎯
 
-Choicease is a **free, open-source decision-making tool** that helps you compare options, weigh criteria, and make smarter, more confident choices — all directly in your browser.  
+Choicease is an **open-source decision-making tool** that helps you compare options, weigh criteria, and make smarter, more confident choices — all directly in your browser.  
 
 ✨ **Features:**
 - Step-by-step guided decision process (define → options → criteria → weight → rate → results).
