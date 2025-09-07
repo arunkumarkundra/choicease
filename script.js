@@ -1977,7 +1977,9 @@ function setupRatingStep() {
 
 
 
-        function generateEnhancedPDFReport() {
+
+
+function generateEnhancedPDFReport() {
             console.log('Starting enhanced PDF generation...');
             console.log('Advanced analytics state:', {
                 hasResults: !!advancedAnalytics.results,
@@ -2314,8 +2316,6 @@ function setupRatingStep() {
                 throw new Error(`PDF generation failed: ${pdfError.message}`);
             }
         }
-
-
 
 
 
