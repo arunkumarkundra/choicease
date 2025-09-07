@@ -1,6 +1,3 @@
-# `CONTRIBUTING.md`
-
-```
 # Contributing to Choicease
 
 Thank you for your interest in contributing to **Choicease** — we really appreciate it! 🚀  
