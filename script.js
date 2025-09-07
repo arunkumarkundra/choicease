@@ -1995,7 +1995,6 @@ function setupRatingStep() {
 
 
 
-
 function generateCanvasBasedPDF() {
     console.log('generateCanvasBasedPDF called - using html2canvas approach');
     
@@ -2038,55 +2037,100 @@ function generateCanvasBasedPDF() {
         const reportContent = generateReportHTML();
         tempContainer.innerHTML = reportContent;
 
-        // Convert to PDF using html2canvas
-        html2canvas(tempContainer, {
-            backgroundColor: '#ffffff',
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            width: 800,
-            height: tempContainer.scrollHeight,
-            windowWidth: 800,
-            windowHeight: tempContainer.scrollHeight
-        }).then(canvas => {
-            // Create PDF
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgWidth = 210; // A4 width in mm
-            const pageHeight = 295; // A4 height in mm
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            let heightLeft = imgHeight;
-            let position = 0;
+        // NOW INJECT THE PIE CHART
+        generatePieChartForPDF().then(pieChartImage => {
+            if (pieChartImage) {
+                // Find the pie chart placeholder
+                const placeholder = tempContainer.querySelector('#pdfPieChartContainer');
+                if (placeholder) {
+                    placeholder.innerHTML = `
+                        <img src="${pieChartImage}" 
+                             style="max-width: 350px; height: auto; border: 1px solid #dee2e6; border-radius: 8px; margin: 15px auto; display: block;" 
+                             alt="Criteria Importance Pie Chart">
+                        <p style="font-size: 12px; color: #666; margin-top: 10px; text-align: center;">
+                            Visual breakdown of criteria importance weights
+                        </p>
+                    `;
+                    console.log('Pie chart injected successfully into PDF');
+                } else {
+                    console.warn('Pie chart placeholder not found in report HTML');
+                }
+            } else {
+                console.warn('No pie chart image generated');
+                // Remove placeholder if no chart
+                const placeholder = tempContainer.querySelector('#pdfPieChartContainer');
+                if (placeholder) {
+                    placeholder.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">Chart not available</p>';
+                }
+            }
 
-            // Add first page
-            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
+            // NOW CONVERT TO PDF (after pie chart injection)
+            convertToPDF();
+            
+        }).catch(error => {
+            console.error('Pie chart generation failed:', error);
+            // Remove placeholder and continue without chart
+            const placeholder = tempContainer.querySelector('#pdfPieChartContainer');
+            if (placeholder) {
+                placeholder.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">Chart generation failed</p>';
+            }
+            
+            // Still convert to PDF without chart
+            convertToPDF();
+        });
 
-            // Add additional pages if needed
-            while (heightLeft >= 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
+        // Function to handle the actual PDF conversion
+        function convertToPDF() {
+            // Convert to PDF using html2canvas
+            html2canvas(tempContainer, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                width: 800,
+                height: tempContainer.scrollHeight,
+                windowWidth: 800,
+                windowHeight: tempContainer.scrollHeight
+            }).then(canvas => {
+                // Create PDF
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210; // A4 width in mm
+                const pageHeight = 295; // A4 height in mm
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                // Add first page
                 pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
                 heightLeft -= pageHeight;
-            }
 
-            // Download the PDF
-            const cleanTitle = String(decisionData.title || 'decision').replace(/[^a-z0-9]/gi, '_');
-            const fileName = `choicease_advanced_${cleanTitle}_${Date.now()}.pdf`;
-            pdf.save(fileName);
+                // Add additional pages if needed
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
 
-            // Cleanup
-            document.body.removeChild(tempContainer);
-            
-            showToast('Advanced PDF Report generated successfully!', 'success');
-            console.log('Enhanced PDF generation completed successfully');
-        }).catch(error => {
-            // Cleanup on error
-            if (tempContainer.parentNode) {
+                // Download the PDF
+                const cleanTitle = String(decisionData.title || 'decision').replace(/[^a-z0-9]/gi, '_');
+                const fileName = `choicease_advanced_${cleanTitle}_${Date.now()}.pdf`;
+                pdf.save(fileName);
+
+                // Cleanup
                 document.body.removeChild(tempContainer);
-            }
-            console.error('Canvas conversion failed:', error);
-            showToast('PDF generation failed. Please try again.', 'error');
-        });
+                
+                showToast('Advanced PDF Report generated successfully!', 'success');
+                console.log('Enhanced PDF generation completed successfully');
+            }).catch(error => {
+                // Cleanup on error
+                if (tempContainer.parentNode) {
+                    document.body.removeChild(tempContainer);
+                }
+                console.error('Canvas conversion failed:', error);
+                showToast('PDF generation failed. Please try again.', 'error');
+            });
+        }
         
     } catch (error) {
         // Cleanup on error
@@ -2097,6 +2141,11 @@ function generateCanvasBasedPDF() {
         showToast('PDF generation failed. Please try again.', 'error');
     }
 }
+
+
+
+
+
 
 
 
@@ -2673,13 +2722,13 @@ function generateReportHTML() {
             </div>
 
 
-                <!-- Criteria Weights Distribution Pie Chart-->
+                <!-- Criteria Weights Distribution -->
                 <div style="background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
                     <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🥧 Criteria Weights Distribution</h3>
                     
                     <!-- Pie Chart Placeholder -->
                     <div id="pdfPieChartContainer" style="text-align: center; margin-bottom: 20px;">
-                        <!-- Pie chart will be inserted here programmatically -->
+                        <!-- Pie chart will be injected here programmatically -->
                     </div>
                     
                     <p style="color: #666; margin-bottom: 20px;">How much each criteria influenced the final decision:</p>
@@ -2687,6 +2736,8 @@ function generateReportHTML() {
                         ${criteriaHtml}
                     </div>
                 </div>
+ 
+            
             <!-- Criteria Weights Distribution -->
             <div style="background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🥧 Criteria Weights Distribution</h3>
