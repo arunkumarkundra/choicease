@@ -24,6 +24,9 @@ By contributing, you license your contributions under the project's license (GNU
 - Any contribution you submit will be made available under GPL v3 (or a compatible license).
 - To make contribution tracking simple and legally clear, we ask contributors to sign-off commits with the Developer Certificate of Origin (DCO) style line described below.
 
+### Contributions and Premium Features
+Contributions to the project are licensed under GPL v3. If you contribute features related to white-labelling or other premium functionality, that code will be available under GPL v3 and may be used by anyone under the terms of that license. The Choicease brand remains protected; use of the Choicease name/logo requires separate permission.
+
 ### DCO sign-off (recommended)
 Add this line to the end of each commit message:
 ```
