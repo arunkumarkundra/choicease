@@ -858,7 +858,10 @@ function setupRatingStep() {
         function setupEnhancedPDF() {
             const btn = document.getElementById('enhancedPdfBtn');
             if (btn) {
-                btn.onclick = generateEnhancedPDFWithErrorHandling;
+                btn.onclick = function() {
+                    console.log('Enhanced PDF button clicked - using canvas approach');
+                    generateCanvasBasedPDF();
+                };
             }
         }
 
@@ -1971,351 +1974,370 @@ function setupRatingStep() {
 
 
 
+function generateCanvasBasedPDF() {
+    console.log('generateCanvasBasedPDF called - using html2canvas approach');
+    
+    if (!advancedAnalytics.results || !advancedAnalytics.confidence) {
+        showToast('Please calculate results and show advanced analytics first.', 'warning');
+        return;
+    }
 
+    // Check if required libraries are available
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+        showToast('PDF library not loaded. Please refresh the page.', 'error');
+        return;
+    }
+    if (!window.html2canvas) {
+        showToast('Canvas library not loaded. Please refresh the page.', 'error');
+        return;
+    }
+    
+    showToast('Generating enhanced PDF report...', 'info');
+    
+    const { jsPDF } = window.jspdf;
+    
+    // Create a temporary container for generating PDF content
+    const tempContainer = document.createElement('div');
+    tempContainer.style.cssText = `
+        position: absolute;
+        left: -9999px;
+        top: -9999px;
+        width: 800px;
+        background: white;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: #333;
+        line-height: 1.6;
+        padding: 40px;
+    `;
+    document.body.appendChild(tempContainer);
 
+    try {
+        // Generate comprehensive report content
+        const reportContent = generateReportHTML();
+        tempContainer.innerHTML = reportContent;
 
+        // Convert to PDF using html2canvas
+        html2canvas(tempContainer, {
+            backgroundColor: '#ffffff',
+            scale: 2,
+            useCORS: true,
+            allowTaint: true,
+            width: 800,
+            height: tempContainer.scrollHeight,
+            windowWidth: 800,
+            windowHeight: tempContainer.scrollHeight
+        }).then(canvas => {
+            // Create PDF
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgWidth = 210; // A4 width in mm
+            const pageHeight = 295; // A4 height in mm
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            let heightLeft = imgHeight;
+            let position = 0;
 
+            // Add first page
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
 
+            // Add additional pages if needed
+            while (heightLeft >= 0) {
+                position = heightLeft - imgHeight;
+                pdf.addPage();
+                pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+            }
 
+            // Download the PDF
+            const cleanTitle = String(decisionData.title || 'decision').replace(/[^a-z0-9]/gi, '_');
+            const fileName = `choicease_advanced_${cleanTitle}_${Date.now()}.pdf`;
+            pdf.save(fileName);
 
-
-function generateEnhancedPDFReport() {
-            console.log('Starting enhanced PDF generation...');
-            console.log('Advanced analytics state:', {
-                hasResults: !!advancedAnalytics.results,
-                hasConfidence: !!advancedAnalytics.confidence,
-                resultsLength: advancedAnalytics.results?.length || 0
-            });
+            // Cleanup
+            document.body.removeChild(tempContainer);
             
-            if (!advancedAnalytics.results || !advancedAnalytics.confidence) {
-                throw new Error('Advanced analytics data not available');
+            showToast('Enhanced PDF generated successfully!', 'success');
+            console.log('Enhanced PDF generation completed successfully');
+        }).catch(error => {
+            // Cleanup on error
+            if (tempContainer.parentNode) {
+                document.body.removeChild(tempContainer);
             }
-
-            // Check if jsPDF is available
-            if (!window.jspdf || !window.jspdf.jsPDF) {
-                throw new Error('jsPDF library not loaded');
-            }
+            console.error('Canvas conversion failed:', error);
+            showToast('PDF generation failed. Please try again.', 'error');
+        });
         
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            
-            // Enhanced color scheme
-            const primaryColor = [102, 126, 234];
-            const secondaryColor = [118, 75, 162];
-            const successColor = [40, 167, 69];
-            const warningColor = [255, 193, 7];
-            const dangerColor = [220, 53, 69];
-            const textDark = [51, 51, 51];
-            const textLight = [102, 102, 102];
-            const backgroundColor = [248, 249, 250];
-            
-            let yPos = 20;
-            const pageWidth = 190;
-            const lineHeight = 7;
-            
-            try {
-                // Professional Header
-                doc.setFillColor(...primaryColor);
-                doc.rect(0, 0, 210, 50, 'F');
-                
-                doc.setTextColor(255, 255, 255);
-                doc.setFontSize(28);
-                doc.setFont(undefined, 'bold');
-                doc.text('Advanced Decision Analysis', 105, 25, { align: 'center' });
-                
-                doc.setFontSize(14);
-                doc.setFont(undefined, 'normal');
-                doc.text('Comprehensive Report with Analytics', 105, 35, { align: 'center' });
-                
-                doc.setFontSize(10);
-                doc.text('Generated by Choicease - Smart Choices, Made Easy', 105, 45, { align: 'center' });
-                
-                yPos = 65;
-                
-                // Executive Summary Section
-                doc.setTextColor(...textDark);
-                doc.setFillColor(212, 237, 218);
-                doc.rect(10, yPos, pageWidth, 45, 'F');
-                doc.setDrawColor(...successColor);
-                doc.setLineWidth(2);
-                doc.rect(10, yPos, pageWidth, 45, 'S');
-                
-                doc.setFontSize(16);
-                doc.setFont(undefined, 'bold');
-                doc.text('🏆 EXECUTIVE SUMMARY', 15, yPos + 10);
-                
-                const winner = advancedAnalytics.results[0];
-                const confidence = advancedAnalytics.confidence;
-                
-                doc.setFontSize(12);
-                doc.setFont(undefined, 'bold');
-                doc.text(`Recommended Choice: ${winner.option.name}`, 15, yPos + 20);
-                
-                doc.setFontSize(10);
-                doc.setFont(undefined, 'normal');
-                doc.text(`Final Score: ${winner.totalScore.toFixed(2)}/5.0 (${Math.round((winner.totalScore/5)*100)}%)`, 15, yPos + 28);
-                doc.text(`Decision Confidence: ${confidence.level.toUpperCase()} (${confidence.percentage}%)`, 15, yPos + 35);
-                doc.text(`Analysis: ${confidence.explanation}`, 15, yPos + 42);
-                
-                yPos += 60;
-                
-                // Decision Details
-                doc.setFillColor(...backgroundColor);
-                doc.rect(10, yPos, pageWidth, 30, 'F');
-                doc.setDrawColor(200, 200, 200);
-                doc.rect(10, yPos, pageWidth, 30, 'S');
-                
-                doc.setFontSize(14);
-                doc.setFont(undefined, 'bold');
-                doc.setTextColor(...primaryColor);
-                doc.text('📋 DECISION DETAILS', 15, yPos + 10);
-                
-                doc.setFontSize(11);
-                doc.setFont(undefined, 'bold');
-                doc.setTextColor(...textDark);
-                doc.text(`Decision: ${decisionData.title}`, 15, yPos + 20);
-                
-                if (decisionData.description) {
-                    doc.setFontSize(9);
-                    doc.setFont(undefined, 'normal');
-                    doc.setTextColor(...textLight);
-                    const descLines = doc.splitTextToSize(`Context: ${decisionData.description}`, pageWidth - 10);
-                    if (descLines.length > 1) {
-                        // Extend box if needed
-                        const extraHeight = (descLines.length - 1) * 4;
-                        doc.setFillColor(...backgroundColor);
-                        doc.rect(10, yPos, pageWidth, 30 + extraHeight, 'F');
-                        doc.setDrawColor(200, 200, 200);
-                        doc.rect(10, yPos, pageWidth, 30 + extraHeight, 'S');
-                        
-                        // Redraw title
-                        doc.setFontSize(14);
-                        doc.setFont(undefined, 'bold');
-                        doc.setTextColor(...primaryColor);
-                        doc.text('📋 DECISION DETAILS', 15, yPos + 10);
-                        doc.setFontSize(11);
-                        doc.setFont(undefined, 'bold');
-                        doc.setTextColor(...textDark);
-                        doc.text(`Decision: ${decisionData.title}`, 15, yPos + 20);
-                        
-                        doc.setFontSize(9);
-                        doc.setFont(undefined, 'normal');
-                        doc.setTextColor(...textLight);
-                        yPos += 5;
-                    }
-                    doc.text(descLines, 15, yPos + 20);
-                    yPos += descLines.length * 4;
-                }
-                
-                yPos += 40;
-                
-                // Check if we need a new page
-                if (yPos > 220) {
-                    doc.addPage();
-                    yPos = 20;
-                }
-                
-                // Complete Rankings with Enhanced Details
-                doc.setTextColor(...primaryColor);
-                doc.setFontSize(14);
-                doc.setFont(undefined, 'bold');
-                doc.text('🏆 COMPLETE RANKINGS & ANALYSIS', 15, yPos);
-                yPos += 15;
-                
-                advancedAnalytics.results.forEach((result, index) => {
-                    if (yPos > 240) {
-                        doc.addPage();
-                        yPos = 20;
-                    }
-                    
-                    // Rank badge and option name
-                    const badgeColor = index === 0 ? successColor : primaryColor;
-                    doc.setFillColor(...badgeColor);
-                    doc.circle(25, yPos + 5, 8, 'F');
-                    doc.setTextColor(255, 255, 255);
-                    doc.setFontSize(12);
-                    doc.setFont(undefined, 'bold');
-                    doc.text(`${index + 1}`, 25, yPos + 8, { align: 'center' });
-                    
-                    // Option details
-                    doc.setTextColor(...textDark);
-                    doc.setFontSize(12);
-                    doc.setFont(undefined, 'bold');
-                    doc.text(result.option.name, 40, yPos + 5);
-                    
-                    if (index === 0) {
-                        doc.setTextColor(...successColor);
-                        doc.setFontSize(10);
-                        doc.text('WINNER', 150, yPos + 5);
-                    }
-                    
-                    // Score visualization
-                    doc.setTextColor(...textDark);
-                    doc.setFontSize(10);
-                    doc.setFont(undefined, 'normal');
-                    doc.text(`Score: ${result.totalScore.toFixed(2)}/5.0`, 40, yPos + 12);
-                    
-                    // Enhanced score bar
-                    const barWidth = 80;
-                    const scoreWidth = (result.totalScore / 5) * barWidth;
-                    
-                    doc.setFillColor(230, 230, 230);
-                    doc.rect(40, yPos + 15, barWidth, 6, 'F');
-                    
-                    doc.setFillColor(...(index === 0 ? successColor : primaryColor));
-                    doc.rect(40, yPos + 15, scoreWidth, 6, 'F');
-                    
-                    // Percentage
-                    doc.setTextColor(...(index === 0 ? successColor : primaryColor));
-                    doc.setFont(undefined, 'bold');
-                    doc.text(`${Math.round((result.totalScore/5)*100)}%`, 125, yPos + 19);
-                    
-                    yPos += 30;
-                });
-                
-                yPos += 10;
-                
-                // Performance Matrix
-                if (yPos > 200) {
-                    doc.addPage();
-                    yPos = 20;
-                }
-                
-                doc.setTextColor(...primaryColor);
-                doc.setFontSize(14);
-                doc.setFont(undefined, 'bold');
-                doc.text('📊 PERFORMANCE MATRIX', 15, yPos);
-                yPos += 15;
-                
-                // Matrix header
-                doc.setFontSize(8);
-                doc.setFont(undefined, 'bold');
-                doc.setTextColor(...textDark);
-                doc.text('Option', 15, yPos);
-                
-                let xPos = 50;
-                decisionData.criteria.forEach(criteria => {
-                    const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
-                    const shortName = criteria.name.substring(0, 8) + (criteria.name.length > 8 ? '...' : '');
-                    doc.text(`${shortName}`, xPos, yPos);
-                    doc.setFontSize(7);
-                    doc.setTextColor(...textLight);
-                    doc.text(`(${weight}%)`, xPos, yPos + 4);
-                    doc.setFontSize(8);
-                    doc.setTextColor(...textDark);
-                    xPos += 25;
-                });
-                
-                doc.text('Total', xPos, yPos);
-                yPos += 12;
-                
-                // Matrix rows
-                advancedAnalytics.results.forEach((result, optIndex) => {
-                    if (yPos > 260) {
-                        doc.addPage();
-                        yPos = 20;
-                    }
-                    
-                    doc.setFontSize(8);
-                    doc.setFont(undefined, 'normal');
-                    const shortOptionName = result.option.name.substring(0, 12) + (result.option.name.length > 12 ? '...' : '');
-                    doc.text(shortOptionName, 15, yPos);
-                    
-                    xPos = 50;
-                    decisionData.criteria.forEach(criteria => {
-                        const ratingKey = `${result.option.id}-${criteria.id}`;
-                        const rating = decisionData.ratings[ratingKey] || 3;
-                        
-                        // Color code based on rating
-                        if (rating >= 4) doc.setTextColor(...successColor);
-                        else if (rating >= 3) doc.setTextColor(...textDark);
-                        else doc.setTextColor(...dangerColor);
-                        
-                        doc.text(`${rating}`, xPos + 5, yPos, { align: 'center' });
-                        xPos += 25;
-                    });
-                    
-                    // Total score
-                    doc.setTextColor(optIndex === 0 ? successColor : primaryColor);
-                    doc.setFont(undefined, 'bold');
-                    doc.text(`${result.totalScore.toFixed(1)}`, xPos + 5, yPos, { align: 'center' });
-                    doc.setFont(undefined, 'normal');
-                    
-                    yPos += 8;
-                });
-                
-                // Add new page for sensitivity analysis
-                doc.addPage();
-                yPos = 20;
-                
-                // Sensitivity Analysis
-                doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-                doc.setFontSize(14);
-                doc.setFont(undefined, 'bold');
-                doc.text('⚖️ SENSITIVITY ANALYSIS', 15, yPos);
-                yPos += 15;
-                
-                const flipPoints = computeFlipPoints();
-                
-                doc.setFontSize(10);
-                doc.setFont(undefined, 'normal');
-                doc.setTextColor(textDark[0], textDark[1], textDark[2]);
-                doc.text('Criteria sensitivity to weight changes (lower values = more critical):', 15, yPos);
-                yPos += 15;
-                
-                flipPoints.forEach(fp => {
-                    if (yPos > 250) {
-                        doc.addPage();
-                        yPos = 20;
-                    }
-                    
-                    // Color code by criticality
-                    const color = fp.criticality === 'critical' ? dangerColor : 
-                                 fp.criticality === 'moderate' ? [255, 152, 0] : successColor;
-                    
-                    doc.setTextColor(...color);
-                    doc.setFontSize(9);
-                    doc.setFont(undefined, 'bold');
-                    doc.text(`● ${fp.criteriaName}`, 20, yPos);
-                    
-                    doc.setTextColor(...textDark);
-                    doc.setFontSize(8);
-                    doc.setFont(undefined, 'normal');
-                    doc.text(`Change needed: ${fp.changeNeeded}`, 25, yPos + 5);
-                    doc.text(`Current weight: ${fp.currentWeight}%`, 25, yPos + 10);
-                    
-                    yPos += 18;
-                });
-                
-                // Footer with enhanced branding
-                const pageCount = doc.internal.getNumberOfPages();
-                for (let i = 1; i <= pageCount; i++) {
-                    doc.setPage(i);
-                    
-                    // Enhanced footer
-                    doc.setDrawColor(...primaryColor);
-                    doc.setLineWidth(1);
-                    doc.line(15, 285, 195, 285);
-                    
-                    doc.setTextColor(...textLight);
-                    doc.setFontSize(8);
-                    doc.setFont(undefined, 'normal');
-                    doc.text('Advanced Decision Analysis Report', 105, 290, { align: 'center' });
-                    doc.text(`Generated by Choicease - choicease.com | Page ${i} of ${pageCount}`, 105, 295, { align: 'center' });
-                    doc.text(`Report Date: ${new Date().toLocaleString()}`, 105, 300, { align: 'center' });
-                }
-                
-                console.log('Enhanced PDF generation completed successfully');
-                
-                // Download with enhanced filename
-                const fileName = `choicease_advanced_${decisionData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
-                doc.save(fileName);
-                
-            } catch (pdfError) {
-                console.error('Error during PDF generation:', pdfError);
-                throw new Error(`PDF generation failed: ${pdfError.message}`);
-            }
+    } catch (error) {
+        // Cleanup on error
+        if (tempContainer.parentNode) {
+            document.body.removeChild(tempContainer);
         }
+        console.error('Error during PDF generation:', error);
+        showToast('PDF generation failed. Please try again.', 'error');
+    }
+}
+
+
+
+function generateReportHTML() {
+    const winner = advancedAnalytics.results[0];
+    const runnerUp = advancedAnalytics.results[1];
+    const confidence = advancedAnalytics.confidence;
+    
+    // Calculate enhanced metrics
+    const flipPoints = computeFlipPoints();
+    
+    // Find top contributing criteria for winner
+    const winnerContributions = [];
+    decisionData.criteria.forEach(criteria => {
+        const ratingKey = `${winner.option.id}-${criteria.id}`;
+        const rating = decisionData.ratings[ratingKey] || 3;
+        const weight = decisionData.normalizedWeights[criteria.id] || 0;
+        const contribution = rating * (weight / 100);
+        winnerContributions.push({
+            name: criteria.name,
+            rating: rating,
+            weight: Math.round(weight),
+            contribution: contribution,
+            impact: contribution / winner.totalScore * 100
+        });
+    });
+    winnerContributions.sort((a, b) => b.contribution - a.contribution);
+    const topContributors = winnerContributions.slice(0, 3);
+
+    return `
+        <div style="max-width: 100%; margin: 0 auto;">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; margin: -40px -40px 40px -40px; text-align: center; border-radius: 0;">
+                <h1 style="font-size: 32px; margin: 0 0 10px 0; font-weight: bold;">Advanced Decision Analysis</h1>
+                <p style="font-size: 16px; margin: 0; opacity: 0.9;">Comprehensive Report with Analytics</p>
+                <p style="font-size: 12px; margin: 10px 0 0 0; opacity: 0.8;">Generated by Choicease - Smart Choices, Made Easy</p>
+            </div>
+
+            <!-- Executive Summary -->
+            <div style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 3px solid #28a745; border-radius: 15px; padding: 30px; margin-bottom: 30px;">
+                <h2 style="color: #155724; margin: 0 0 15px 0; font-size: 24px;">🏆 Executive Summary</h2>
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #155724; margin: 0 0 10px 0; font-size: 20px;">
+                        Recommended Choice: ${sanitizeInput(winner.option.name)}
+                    </h3>
+                    <div style="font-size: 16px; color: #155724; margin-bottom: 15px;">
+                        <strong>Final Score:</strong> ${winner.totalScore.toFixed(2)}/5.0 
+                        <span style="background: #28a745; color: white; padding: 4px 12px; border-radius: 20px; font-size: 14px; margin-left: 10px;">
+                            ${Math.round((winner.totalScore/5)*100)}%
+                        </span>
+                    </div>
+                    ${winner.option.description ? `
+                        <p style="color: #155724; font-style: italic; margin: 10px 0;">
+                            ${sanitizeInput(winner.option.description)}
+                        </p>
+                    ` : ''}
+                </div>
+                
+                <!-- Confidence Analysis -->
+                <div style="background: rgba(255,255,255,0.8); padding: 20px; border-radius: 10px; margin-top: 20px;">
+                    <h4 style="color: #667eea; margin: 0 0 15px 0;">📊 Decision Confidence Analysis</h4>
+                    <div style="margin: 15px 0;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-weight: 600;">Confidence Level: ${confidence.level.toUpperCase()}</span>
+                            <span style="font-weight: bold; color: #667eea;">${confidence.percentage}%</span>
+                        </div>
+                        <div style="width: 100%; height: 12px; background: #e9ecef; border-radius: 6px; overflow: hidden;">
+                            <div style="width: ${confidence.percentage}%; height: 100%; background: ${
+                                confidence.level === 'high' ? 'linear-gradient(135deg, #28a745, #20c997)' :
+                                confidence.level === 'medium' ? 'linear-gradient(135deg, #ffc107, #fd7e14)' :
+                                'linear-gradient(135deg, #dc3545, #c82333)'
+                            }; border-radius: 6px;"></div>
+                        </div>
+                        <p style="margin: 10px 0 0 0; font-size: 14px; color: #666;">
+                            ${confidence.explanation}
+                        </p>
+                    </div>
+                    ${runnerUp ? `
+                        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                            <strong>Margin Analysis:</strong> ${confidence.gap} points ahead of 
+                            <em>${sanitizeInput(runnerUp.option.name)}</em> (${runnerUp.totalScore.toFixed(2)}/5.0)
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+
+            <!-- Decision Details -->
+            <div style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin: 0 0 15px 0; font-size: 20px;">📋 Decision Details</h3>
+                <div style="margin-bottom: 15px;">
+                    <h4 style="color: #333; margin: 0 0 8px 0; font-size: 18px;">${sanitizeInput(decisionData.title)}</h4>
+                    ${decisionData.description ? `
+                        <p style="color: #666; margin: 0 0 15px 0; font-style: italic;">
+                            ${sanitizeInput(decisionData.description)}
+                        </p>
+                    ` : ''}
+                    <p style="color: #888; font-size: 14px; margin: 0;">
+                        Generated on: ${new Date().toLocaleString()}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Complete Rankings -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🏆 Complete Rankings & Analysis</h3>
+                ${advancedAnalytics.results.map((result, index) => `
+                    <div style="display: flex; align-items: center; margin-bottom: 20px; padding: 20px; background: ${index === 0 ? 'linear-gradient(135deg, #d4edda, #c3e6cb)' : '#f8f9fa'}; border-radius: 12px; border: 2px solid ${index === 0 ? '#28a745' : '#e9ecef'};">
+                        <div style="width: 40px; height: 40px; background: ${index === 0 ? '#28a745' : '#667eea'}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 20px; font-size: 18px;">
+                            ${index + 1}
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-weight: bold; font-size: 18px; color: #333; margin-bottom: 8px;">
+                                ${sanitizeInput(result.option.name)} ${index === 0 ? '🏆' : ''}
+                            </div>
+                            <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <div style="width: 200px; height: 16px; background: #e9ecef; border-radius: 8px; margin-right: 15px; overflow: hidden;">
+                                    <div style="width: ${(result.totalScore / 5) * 100}%; height: 100%; background: ${index === 0 ? '#28a745' : '#667eea'}; border-radius: 8px;"></div>
+                                </div>
+                                <span style="font-weight: bold; color: #667eea; font-size: 16px;">${result.totalScore.toFixed(2)}/5.0</span>
+                            </div>
+                            ${result.option.description ? `
+                                <p style="color: #666; margin: 0; font-size: 14px; font-style: italic;">
+                                    ${sanitizeInput(result.option.description)}
+                                </p>
+                            ` : ''}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+
+            <!-- Top Contributing Criteria -->
+            <div style="background: #f8f9fa; border-radius: 12px; padding: 25px; margin-bottom: 30px;">
+                <h3 style="color: #333; margin: 0 0 20px 0; font-size: 20px;">⭐ Top Contributing Criteria</h3>
+                ${topContributors.map((contrib, index) => `
+                    <div style="display: flex; align-items: center; padding: 15px; margin-bottom: 12px; background: white; border-radius: 8px; border-left: 4px solid ${index === 0 ? '#28a745' : index === 1 ? '#667eea' : '#ffc107'};">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #333; margin-bottom: 4px;">${sanitizeInput(contrib.name)}</div>
+                            <div style="font-size: 14px; color: #666;">
+                                Rating: ${contrib.rating}/5 • Weight: ${contrib.weight}% • Impact: ${contrib.impact.toFixed(1)}%
+                            </div>
+                        </div>
+                        <div style="font-size: 18px; font-weight: bold; color: ${index === 0 ? '#28a745' : '#667eea'};">
+                            ${contrib.contribution.toFixed(2)}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+
+            <!-- Performance Matrix -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">📊 Performance Matrix</h3>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12px;">
+                        <thead>
+                            <tr style="background: #f8f9fa;">
+                                <th style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600; text-align: left;">Option</th>
+                                ${decisionData.criteria.map(crit => {
+                                    const weight = Math.round(decisionData.normalizedWeights[crit.id] || 0);
+                                    return `<th style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600; text-align: center; min-width: 80px;">
+                                        ${crit.name}<br><small style="color: #666;">(${weight}%)</small>
+                                    </th>`;
+                                }).join('')}
+                                <th style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600; text-align: center;">Total Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${advancedAnalytics.results.map((result, optIndex) => `
+                                <tr>
+                                    <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600; background: #f8f9fa;">
+                                        ${sanitizeInput(result.option.name)}
+                                    </td>
+                                    ${decisionData.criteria.map(crit => {
+                                        const ratingKey = `${result.option.id}-${crit.id}`;
+                                        const rating = decisionData.ratings[ratingKey] || 3;
+                                        const weight = (decisionData.normalizedWeights[crit.id] || 0) / 100;
+                                        const weightedScore = rating * weight;
+                                        const bgColor = rating >= 4 ? '#e8f5e8' : rating >= 3 ? '#fffde7' : rating >= 2 ? '#fff3e0' : '#ffebee';
+                                        const textColor = rating >= 4 ? '#2e7d32' : rating >= 3 ? '#f57f17' : rating >= 2 ? '#e65100' : '#c62828';
+                                        
+                                        return `<td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: ${bgColor}; color: ${textColor};">
+                                            <div style="font-weight: 600; font-size: 14px;">${rating}</div>
+                                            <div style="font-size: 10px; opacity: 0.8;">${weightedScore.toFixed(2)}</div>
+                                        </td>`;
+                                    }).join('')}
+                                    <td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: ${optIndex === 0 ? '#c8e6c9' : '#f8f9fa'}; color: ${optIndex === 0 ? '#1b5e20' : '#333'}; font-weight: bold;">
+                                        ${result.totalScore.toFixed(2)}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Sensitivity Analysis -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">⚖️ Sensitivity Analysis</h3>
+                <p style="color: #666; margin-bottom: 20px;">
+                    Analysis of how sensitive your decision is to changes in criteria weights. Lower flip points indicate more critical criteria.
+                </p>
+                ${flipPoints.map(fp => `
+                    <div style="display: flex; align-items: center; padding: 15px; margin: 10px 0; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${
+                        fp.criticality === 'critical' ? '#dc3545' : 
+                        fp.criticality === 'moderate' ? '#ffc107' : '#28a745'
+                    };">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #333;">${sanitizeInput(fp.criteriaName)}</div>
+                            <div style="font-size: 14px; color: #666; margin-top: 4px;">
+                                Current: ${fp.currentWeight}% → Required: ${fp.flipPoint}%
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-weight: 600; color: ${
+                                fp.criticality === 'critical' ? '#dc3545' : 
+                                fp.criticality === 'moderate' ? '#f57c00' : '#28a745'
+                            }; font-size: 16px;">
+                                ${fp.changeNeeded}
+                            </div>
+                            <div style="font-size: 12px; color: #666;">
+                                ${fp.criticality === 'critical' ? 'Critical' : 
+                                  fp.criticality === 'moderate' ? 'Moderate' : 'Stable'}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+
+            <!-- Methodology -->
+            <div style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px;">
+                <h3 style="color: #667eea; margin: 0 0 15px 0; font-size: 20px;">📚 Methodology</h3>
+                <p style="margin-bottom: 15px;"><strong>Analysis Method:</strong> Weighted Multi-Criteria Decision Analysis</p>
+                <ul style="margin: 0; padding-left: 20px; line-height: 1.8;">
+                    <li>Each option is rated 1-5 on each criteria</li>
+                    <li>Criteria importance weights are normalized to 100%</li>
+                    <li>Final scores = Σ(rating × weight) for each option</li>
+                    <li>Options with identical scores receive the same rank</li>
+                    <li>Higher scores indicate better alignment with your priorities</li>
+                    <li>Sensitivity analysis shows how weight changes affect rankings</li>
+                </ul>
+            </div>
+
+            <!-- Footer -->
+            <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 2px solid #dee2e6; color: #666; font-size: 14px;">
+                <p style="margin: 0;">Powered by Choicease - Smart Choices, Made Easy</p>
+                <p style="margin: 5px 0 0 0;">Visit: choicease.com</p>
+            </div>
+        </div>
+    `;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
