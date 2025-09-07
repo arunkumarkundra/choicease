@@ -250,5 +250,3 @@ Fixes # (issue)
 If you need help setting up a development environment or want example branches to start with, ping the maintainers via email (contact@choicease.com) or open an issue.
 
 Thanks again — we look forward to your contributions! 🎉
-```
-
