@@ -1,4 +1,3 @@
-````markdown
 # Choicease – Smart Choices, Made Easy 🎯
 
 Choicease is a **free, open-source decision-making tool** that helps you compare options, weigh criteria, and make smarter, more confident choices — all directly in your browser.  
@@ -90,17 +89,3 @@ Email us at: **[contact@choicease.com](mailto:contact@choicease.com)**
 Or open an [issue](https://github.com/<your-username>/choicease/issues).
 
 ---
-
-```
-
----
-
-✅ With this `README.md`, anyone landing on your repo sees:  
-- What the project is  
-- How to run it  
-- License (GPL v3)  
-- Contribution rules  
-- Links to Privacy & Terms  
-
-Would you like me to also **generate a CODE_OF_CONDUCT.md** (Contributor Covenant) so your repo is fully community-ready?
-```
