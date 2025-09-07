@@ -74,10 +74,13 @@ Good first issues:
 
 ## 📜 License
 
-This project is licensed under the **GNU General Public License v3.0 (GPL v3)**.
-You are free to use, study, share, and modify the software, provided that any distribution is also licensed under GPL v3.
+This project is licensed under the **GNU General Public License v3.0 (GPL v3)**.  
+You are free to use, study, share, and modify the software, provided that any distribution is also licensed under GPL v3.  
 
 See the full [LICENSE](LICENSE) file for details.
+
+> ⚠️ Note: The **Choicease name, logo, and domain** are trademarks of the project maintainers and are not licensed under GPL.  
+> While the core app is free and open source, **white-labelled reports** (where branding and links are replaced) may be offered as a paid service by the maintainers. The presence of white-labelling features in the open-source code does *not* obligate the maintainers to provide hosted/paid services for free.
 
 ---
 
