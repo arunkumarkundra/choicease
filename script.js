@@ -2207,6 +2207,11 @@ function generateReportHTML() {
         </div>
     `;
 
+
+        
+
+
+        
     // Complete rankings
         // Calculate results with tie handling
         const resultsWithRanks = assignRanksWithTies(advancedAnalytics.results);
@@ -2540,6 +2545,43 @@ function generateReportHTML() {
                 ${confidenceBlockHtml}
             </div>
 
+
+                <!-- Winner Analysis -->
+                <div style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
+                    <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🏆 Winner Analysis</h3>
+                    
+                    <!-- Why Winner Won Section -->
+                    <div style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 2px solid #28a745; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                        <h4 style="color: #155724; margin: 0 0 15px 0; font-size: 18px;">Why ${safeText(winner.option.name)} Won:</h4>
+                        ${topContributors.map(contrib => `
+                            <div style="display: flex; align-items: center; margin-bottom: 10px; padding: 10px; background: rgba(255,255,255,0.7); border-radius: 6px; border-left: 4px solid #28a745;">
+                                <div style="margin-right: 12px; color: #28a745; font-size: 16px;">▶</div>
+                                <div style="font-size: 14px;">
+                                    <strong>${safeText(contrib.name)}:</strong> 
+                                    Scored ${contrib.rating}/5 with ${contrib.weight}% importance weight
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    ${runnerUp ? `
+                        <!-- Close Alternative Section -->
+                        <div style="background: #e7f3ff; border: 2px solid #b3d7ff; border-radius: 12px; padding: 20px;">
+                            <h4 style="color: #0056b3; margin: 0 0 12px 0; font-size: 16px;">🔍 Close alternative to consider:</h4>
+                            <div style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 6px;">
+                                ${safeText(runnerUp.option.name)} (${fmt(runnerUp.totalScore)}/5.0, Δ ${fmt(confidence.gap)})
+                            </div>
+                            <div style="color: #0056b3; font-style: italic; font-size: 14px;">
+                                ${confidence.gap < 0.2 ? 'Very close race - consider both options!' : 
+                                  confidence.gap < 0.5 ? 'Close second choice worth considering' : 
+                                  'Clear winner, but this is a solid alternative'}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+        
+        
+
             <!-- Decision Details -->
             <div style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 15px 0; font-size: 20px;">📋 Decision Details</h3>
@@ -2631,6 +2673,20 @@ function generateReportHTML() {
             </div>
 
 
+                <!-- Criteria Weights Distribution Pie Chart-->
+                <div style="background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
+                    <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🥧 Criteria Weights Distribution</h3>
+                    
+                    <!-- Pie Chart Placeholder -->
+                    <div id="pdfPieChartContainer" style="text-align: center; margin-bottom: 20px;">
+                        <!-- Pie chart will be inserted here programmatically -->
+                    </div>
+                    
+                    <p style="color: #666; margin-bottom: 20px;">How much each criteria influenced the final decision:</p>
+                    <div style="max-width: 500px; margin: 0 auto;">
+                        ${criteriaHtml}
+                    </div>
+                </div>
             <!-- Criteria Weights Distribution -->
             <div style="background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🥧 Criteria Weights Distribution</h3>
