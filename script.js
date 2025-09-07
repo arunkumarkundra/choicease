@@ -1922,54 +1922,6 @@ function setupRatingStep() {
 
 
         
-        // FIND the generateEnhancedPDF function and REPLACE it with:
-        
-        function generateEnhancedPDF() {
-            if (advancedAnalytics.results && advancedAnalytics.confidence) {
-                generateEnhancedPDFWithErrorHandling();
-            } else {
-                showToast('Please calculate results and show advanced analytics first.', 'warning');
-            }
-        }
-
-
-        function generateEnhancedPDFWithErrorHandling() {
-            try {
-                if (!advancedAnalytics.results || !advancedAnalytics.confidence) {
-                    showToast('Please calculate results and show advanced analytics first.', 'warning');
-                    return;
-                }
-                
-                showToast('Generating enhanced PDF report...', 'info');
-                
-                const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Enhanced PDF generation timed out')), 45000);
-                });
-                
-                const pdfPromise = new Promise((resolve, reject) => {
-                    try {
-                        generateEnhancedPDFReport();
-                        setTimeout(resolve, 1500); // Give enhanced PDF more time
-                    } catch (error) {
-                        reject(error);
-                    }
-                });
-                
-                Promise.race([pdfPromise, timeoutPromise])
-                    .then(() => {
-                        showToast('Enhanced PDF generated successfully!', 'success');
-                    })
-                    .catch(error => {
-                        console.error('Enhanced PDF generation error:', error);
-                        showToast('Enhanced PDF generation failed. Please try again.', 'error');
-                    });
-                    
-            } catch (error) {
-                console.error('Enhanced PDF setup error:', error);
-                showToast('Failed to start enhanced PDF generation.', 'error');
-            }
-        }
-
 
 
 
