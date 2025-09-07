@@ -2023,11 +2023,7 @@ function generateCanvasBasedPDF() {
 
 
 function generateReportHTML() {
-    // Add null checks for better error handling
-    if (!advancedAnalytics.results || advancedAnalytics.results.length === 0) {
-        return '<div>No results available for report generation.</div>';
-    }
-    
+   
     const winner = advancedAnalytics.results[0];
     const runnerUp = advancedAnalytics.results.length > 1 ? advancedAnalytics.results[1] : null;
     const confidence = advancedAnalytics.confidence;
