@@ -2469,6 +2469,51 @@ function generateReportHTML() {
             </div>
 
             ${differentiatorsHtml}
+            <!-- Decision Stability Assessment -->
+            <div style="background: white; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
+                <h3 style="color: #333; margin: 0 0 20px 0; font-size: 20px;">🎯 Decision Stability Assessment</h3>
+                <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                    <span style="font-weight: 600; margin-right: 15px; font-size: 16px;">Stability Level:</span>
+                    <span style="padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; background: ${
+                        stabilityLevel === 'High' ? '#d4edda' : 
+                        stabilityLevel === 'Medium' ? '#fff3cd' : '#f8d7da'
+                    }; color: ${
+                        stabilityLevel === 'High' ? '#155724' : 
+                        stabilityLevel === 'Medium' ? '#856404' : '#721c24'
+                    };">
+                        ${stabilityLevel}
+                    </span>
+                </div>
+                <p style="color: #666; margin: 10px 0 20px 0; font-size: 15px;">${safeText(stabilityText)}</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px;">
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: bold; color: #28a745; margin-bottom: 5px;">${highPerformanceCount}</div>
+                        <div style="font-size: 14px; color: #666;">Strong Areas (4-5)</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: bold; color: ${lowPerformanceCount > 0 ? '#dc3545' : '#28a745'}; margin-bottom: 5px;">${lowPerformanceCount}</div>
+                        <div style="font-size: 14px; color: #666;">Weak Areas (1-2)</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: bold; color: #667eea; margin-bottom: 5px;">${decisionData.criteria.length}</div>
+                        <div style="font-size: 14px; color: #666;">Total Criteria</div>
+                    </div>
+                    <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                        <div style="font-size: 24px; font-weight: bold; color: #667eea; margin-bottom: 5px;">${confidence.percentage}%</div>
+                        <div style="font-size: 14px; color: #666;">Confidence Level</div>
+                    </div>
+                </div>
+            </div>
+
+
+
+
+
+
+
+
+
 
 
 
