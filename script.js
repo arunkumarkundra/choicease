@@ -2456,6 +2456,31 @@ function generateReportHTML() {
                     </p>
                 </div>
             </div>
+            <!-- Complete Rankings -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🏆 Complete Rankings & Analysis</h3>
+                ${resultsHtml}
+            </div>
+
+            <!-- Top Contributing Criteria -->
+            <div style="background: #f8f9fa; border-radius: 12px; padding: 25px; margin-bottom: 30px;">
+                <h3 style="color: #333; margin: 0 0 20px 0; font-size: 20px;">⭐ Top Contributing Criteria</h3>
+                ${topContributorsHtml}
+            </div>
+
+            ${differentiatorsHtml}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
             <!-- Sensitivity Analysis -->
