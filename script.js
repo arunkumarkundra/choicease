@@ -2408,7 +2408,7 @@ function generateReportHTML() {
         stabilityText = 'Generally solid choice with some areas of concern';
     }
 
-    // Criteria weights distribution
+    // Criteria weights distribution -IT IS NOT USED LATER, INSTEAD PIE CHART IS ADDED.
     const criteriaHtml = decisionData.criteria.map((criteria, index) => {
         const weight = Math.round(safeNum(decisionData.normalizedWeights && decisionData.normalizedWeights[criteria.id], 0));
         const colors = ['#667eea', '#764ba2', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6610f2', '#e83e8c'];
@@ -2737,16 +2737,6 @@ function generateReportHTML() {
                     </div>
                 </div>
  
-            
-            <!-- Criteria Weights Distribution -->
-            <div style="background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
-                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🥧 Criteria Weights Distribution</h3>
-                <p style="color: #666; margin-bottom: 20px;">How much each criteria influenced the final decision:</p>
-                <div style="max-width: 500px; margin: 0 auto;">
-                    ${criteriaHtml}
-                </div>
-            </div>
-
 
 
 
