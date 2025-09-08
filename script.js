@@ -2091,21 +2091,36 @@ function generateCanvasBasedPDF() {
         // Function to handle the actual PDF conversion
         function convertToPDF() {
             // Convert to PDF using html2canvas
-            html2canvas(tempContainer, {
-                backgroundColor: '#ffffff',
-                scale: 2,
-                useCORS: true,
-                allowTaint: true,
-                width: 800,
-                height: Math.max(tempContainer.scrollHeight, 3000), 
-                windowWidth: 800,
-                windowHeight: Math.max(tempContainer.scrollHeight, 3000)
-            }).then(canvas => {
+                // Force container to show full content
+                tempContainer.style.height = 'auto';
+                tempContainer.style.maxHeight = 'none';
+                tempContainer.style.overflow = 'visible';
+                
+                // Wait a moment for layout to settle
+                setTimeout(() => {
+                    const finalHeight = Math.max(tempContainer.scrollHeight, tempContainer.offsetHeight, 4000);
+                    console.log('Container heights - scroll:', tempContainer.scrollHeight, 'offset:', tempContainer.offsetHeight, 'using:', finalHeight);
+                    
+                    html2canvas(tempContainer, {
+                        backgroundColor: '#ffffff',
+                        scale: 1.5, // Reduced scale for better performance
+                        useCORS: true,
+                        allowTaint: true,
+                        width: 800,
+                        height: finalHeight,
+                        windowWidth: 800,
+                        windowHeight: finalHeight,
+                        scrollX: 0,
+                        scrollY: 0
+                    }).then(canvas => {
+                }, 100);
                 // Create PDF
                 const pdf = new jsPDF('p', 'mm', 'a4');
                 const imgWidth = 210; // A4 width in mm
-                const pageHeight = 295; // A4 height in mm
+                const pageHeight = 280; // Reduced from 295 to leave margins
                 const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                const totalPages = Math.ceil(imgHeight / pageHeight);
+                console.log(`PDF will have ${totalPages} pages, total height: ${imgHeight}mm`);
                 let heightLeft = imgHeight;
                 let position = 0;
 
@@ -3266,47 +3281,31 @@ function exportResults() {
             let yPos = 20;
             const pageWidth = 190;
             const lineHeight = 7;
-                            
-                // Professional Header with Background
-                doc.setFillColor(...primaryColor);
-                doc.rect(0, 0, 210, 50, 'F'); // Increased height to 50
+                // Logo as letterhead (above header)
+                // We'll add this after we create the PDF structure
                 
-                // Add logo
-                const logoImg = new Image();
-                logoImg.onload = function() {
-                    try {
-                        const logoWidth = 30;
-                        const logoHeight = 30;
-                        const logoX = 105 - (logoWidth / 2); // Center horizontally
-                        const logoY = 8; // Top position
-                        
-                        doc.addImage(logoImg, 'PNG', logoX, logoY, logoWidth, logoHeight);
-                        
-                        // Header Text (moved down to accommodate logo)
-                        doc.setTextColor(255, 255, 255);
-                        doc.setFontSize(24);
-                        doc.setFont(undefined, 'bold');
-                        doc.text('Choicease', 105, 45, { align: 'center' }); // Moved down
-                    } catch (error) {
-                        console.warn('Logo loading failed:', error);
-                        // Fallback: just show text
-                        doc.setTextColor(255, 255, 255);
-                        doc.setFontSize(24);
-                        doc.setFont(undefined, 'bold');
-                        doc.text('Choicease', 105, 25, { align: 'center' });
-                    }
-                };
-                logoImg.src = 'images/Choicease logo.png';
+                // Professional Header with Background (moved down)
+                doc.setFillColor(...primaryColor);
+                doc.rect(0, 30, 210, 40, 'F'); // Moved down by 30
+                
+                // Header Text (adjusted positions)
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(24);
+                doc.setFont(undefined, 'bold');
+                doc.text('Choicease', 105, 50, { align: 'center' }); // Moved down
+                
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'normal');
+                doc.text('Smart Choices, Made Easy', 105, 58, { align: 'center' }); // Moved down
+                
+                doc.setFontSize(10);
+                doc.text('Decision Analysis Report', 105, 65, { align: 'center' }); // Moved down
 
                 
-            doc.setFontSize(12);
-            doc.setFont(undefined, 'normal');
-            doc.text('Smart Choices, Made Easy', 105, 28, { align: 'center' });
-            
             doc.setFontSize(10);
             doc.text('Decision Analysis Report', 105, 35, { align: 'center' });
             
-            yPos = 55;
+            yPos = 85;
             
             // FIXED: Decision Title Section (remove duplication)
             doc.setTextColor(...textDark);
@@ -3585,7 +3584,27 @@ function exportResults() {
                 doc.text('Powered by Choicease - Smart Choices, Made Easy', 105, 285, { align: 'center' });
                 doc.text(`choicease.com | Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
             }
-            
+
+
+                // Add logo to all pages
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    
+                    // Try to add logo (simple approach - no async needed for jsPDF)
+                    try {
+                        // Create a simple logo placeholder or text if image fails
+                        doc.setFillColor(255, 255, 255);
+                        doc.rect(95, 5, 20, 20, 'F'); // White background for logo
+                        doc.setTextColor(102, 126, 234);
+                        doc.setFontSize(8);
+                        doc.text('LOGO', 105, 17, { align: 'center' });
+                    } catch (error) {
+                        console.warn('Logo placement failed:', error);
+                    }
+                }
+
+                
             // Download
             const fileName = `choicease_${decisionData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
             doc.save(fileName);
