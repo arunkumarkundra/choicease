@@ -2926,7 +2926,7 @@ function generateReportHTML() {
 
 
             <!-- Decision Details Section -->
-            <div class="pdf-section decision-details" style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
+            <div class="pdf-section decision-details" style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 15px;">
                 <h3 style="color: #667eea; margin: 0 0 15px 0; font-size: 20px;">📋 Decision Details</h3>
                 <div style="margin-bottom: 15px;">
                     <h4 style="color: #333; margin: 0 0 8px 0; font-size: 18px;">${safeText(decisionData.title)}</h4>
@@ -2943,7 +2943,7 @@ function generateReportHTML() {
 
             <!-- Executive Summary Section -->
             <!-- Executive Summary Section -->
-            <div class="pdf-section executive-summary" style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 3px solid #28a745; border-radius: 15px; padding: 30px; margin-bottom: 30px;">
+            <div class="pdf-section executive-summary" style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 3px solid #28a745; border-radius: 15px; padding: 30px; margin-bottom: 15px;">
                 <h2 style="color: #155724; margin: 0 0 15px 0; font-size: 24px;">🏆 Executive Summary</h2>
                 ${winnerDescriptionHtml}
                 ${confidenceBlockHtml}
