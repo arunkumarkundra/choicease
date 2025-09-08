@@ -1,3 +1,12 @@
+        // Global color scheme for consistent styling across all charts and visualizations
+        const CHART_COLORS = [
+            '#667eea', '#764ba2', '#28a745', '#ffc107', '#dc3545', 
+            '#17a2b8', '#6610f2', '#e83e8c', '#fd7e14', '#20c997',
+            '#6f42c1', '#f39c12', '#9b59b6', '#34495e', '#e74c3c',
+            '#1abc9c', '#3498db', '#f1c40f', '#e67e22', '#95a5a6'
+        ];
+
+
         // Application state
         let currentStep = 1;
         let decisionData = {
@@ -2007,16 +2016,10 @@ function setupRatingStep() {
         // Helper functions
 
         function generateChartColors(count) {
-            const colors = [
-                '#667eea', '#764ba2', '#28a745', '#ffc107', '#dc3545', 
-                '#17a2b8', '#6610f2', '#e83e8c', '#fd7e14', '#20c997',
-                '#6f42c1', '#fd7e14', '#20c997', '#6610f2', '#e83e8c'
-            ];
-            
-            // Ensure we have enough colors
+            // Use global color scheme for consistency across all charts
             const result = [];
             for (let i = 0; i < count; i++) {
-                result.push(colors[i % colors.length]);
+                result.push(CHART_COLORS[i % CHART_COLORS.length]);
             }
             
             return result;
