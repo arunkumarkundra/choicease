@@ -2115,7 +2115,7 @@ function generateCanvasBasedPDF() {
                                      style="max-width: 100%; height: auto; border: 1px solid #dee2e6; border-radius: 8px; margin: 15px auto; display: block;" 
                                      alt="What-If Analysis">
                                 <p style="font-size: 12px; color: #666; margin-top: 10px; text-align: center;">
-                                    Interactive weight adjustment controls and updated rankings
+                                    Criteria weight adjustment study with updated rankings
                                 </p>
                             `;
                         }
