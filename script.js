@@ -3356,13 +3356,67 @@ function captureWhatIfAnalysisFromPage() {
                 const tempCapture = document.createElement('div');
                 tempCapture.style.cssText = 'background: white; padding: 20px; font-family: Arial, sans-serif;';
                 
-                // Capture weight controls
+                
+                // Create a clean table-style representation of weight controls
                 const controlsSection = whatIfSection.querySelector('.what-if-controls');
                 if (controlsSection) {
-                    const controlsClone = controlsSection.cloneNode(true);
-                    tempCapture.appendChild(controlsClone);
+                    const weightsTable = document.createElement('div');
+                    weightsTable.style.cssText = 'margin-bottom: 20px;';
+                    
+                    const title = document.createElement('h4');
+                    title.textContent = 'Current Weight Settings';
+                    title.style.cssText = 'margin-bottom: 15px; color: #333; font-size: 16px;';
+                    weightsTable.appendChild(title);
+                    
+                    // Get all weight controls
+                    const weightControls = controlsSection.querySelectorAll('.weight-control');
+                    weightControls.forEach(control => {
+                        const label = control.querySelector('label');
+                        const slider = control.querySelector('.what-if-slider');
+                        const display = control.querySelector('[id^="weight-display-"]');
+                        
+                        if (label && slider && display) {
+                            const row = document.createElement('div');
+                            row.style.cssText = `
+                                display: flex;
+                                align-items: center;
+                                justify-content: space-between;
+                                padding: 12px;
+                                margin: 8px 0;
+                                background: #f8f9fa;
+                                border-radius: 8px;
+                                border-left: 4px solid #667eea;
+                            `;
+                            
+                            const nameDiv = document.createElement('div');
+                            nameDiv.textContent = label.textContent;
+                            nameDiv.style.cssText = 'font-weight: 600; color: #333; flex: 1;';
+                            
+                            const valueDiv = document.createElement('div');
+                            valueDiv.textContent = display.textContent;
+                            valueDiv.style.cssText = 'font-weight: bold; color: #667eea; font-size: 16px;';
+                            
+                            // Visual weight bar
+                            const barContainer = document.createElement('div');
+                            barContainer.style.cssText = 'width: 120px; height: 8px; background: #e9ecef; border-radius: 4px; margin: 0 15px; overflow: hidden;';
+                            
+                            const barFill = document.createElement('div');
+                            const percentage = parseInt(display.textContent) || 0;
+                            barFill.style.cssText = `width: ${percentage}%; height: 100%; background: #667eea; border-radius: 4px;`;
+                            
+                            barContainer.appendChild(barFill);
+                            row.appendChild(nameDiv);
+                            row.appendChild(barContainer);
+                            row.appendChild(valueDiv);
+                            weightsTable.appendChild(row);
+                        }
+                    });
+                    
+                    tempCapture.appendChild(weightsTable);
                 }
-                
+
+
+                    
                 // Add spacing
                 const spacer = document.createElement('div');
                 spacer.style.height = '20px';
