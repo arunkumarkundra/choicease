@@ -2203,6 +2203,7 @@ function generateCanvasBasedPDF() {
                 { selector: '.winner-analysis', name: 'Winner Analysis' },
                 { selector: '.complete-rankings', name: 'Complete Rankings' },
                 { selector: '.top-contributors', name: 'Top Contributors' },
+                { selector: '.differentiating-factors', name: 'Differentiating Factors' },    
                 { selector: '.decision-stability', name: 'Decision Stability' },
                 { selector: '.performance-matrix', name: 'Performance Matrix' },
                 { selector: '.criteria-weights', name: 'Criteria Weights' },
@@ -2860,7 +2861,7 @@ function generateReportHTML() {
                 ${topContributorsHtml}
             </div>
 
-            ${differentiatorsHtml}
+            ${differentiators.length > 0 ? `<div class="pdf-section differentiating-factors">${differentiatorsHtml}</div>` : ''}
 
             <!-- Decision Stability Assessment Section -->
             <div class="pdf-section decision-stability" style="background: white; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
