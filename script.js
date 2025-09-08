@@ -2101,14 +2101,13 @@ function generateCanvasBasedPDF() {
             } else {
                 const placeholder = tempContainer.querySelector('#pdfPieChartContainer');
                 if (placeholder) {
-                    placeholder.innerHTML = `
-                        <div style="margin: 20px auto; max-width: 400px;">
-                            <p style="text-align: center; color: #666; margin-bottom: 15px; font-style: italic;">
-                                Pie chart not available - showing data table
-                            </p>
-                            ${renderWeightsTableForPDF()}
-                        </div>
-                    `;
+                        placeholder.innerHTML = `
+                            <div style="margin: 20px auto; max-width: 400px;">
+                                <p style="text-align: center; color: #666; margin-bottom: 15px; font-style: italic;">
+                                    Pie chart not available - see detailed breakdown below
+                                </p>
+                            </div>
+                        `;
                 }
             }
             
@@ -2161,9 +2160,8 @@ function generateCanvasBasedPDF() {
                 piePlaceholder.innerHTML = `
                     <div style="margin: 20px auto; max-width: 400px;">
                         <p style="text-align: center; color: #666; margin-bottom: 15px; font-style: italic;">
-                            Chart capture failed - showing data table
+                            Chart capture failed - see detailed breakdown below
                         </p>
-                        ${renderWeightsTableForPDF()}
                     </div>
                 `;
             }
