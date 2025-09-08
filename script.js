@@ -3461,46 +3461,23 @@ function capturePieChartFromPage() {
         const existingCanvas = document.getElementById('weightsCanvas');
         
         if (existingCanvas && chartManager.charts.pie) {
-            console.log('Found existing pie chart, cropping to remove legend...');
+            console.log('Found existing pie chart, capturing it...');
             try {
-                // Create a new canvas for the cropped version
-                const tempCanvas = document.createElement('canvas');
-                const tempCtx = tempCanvas.getContext('2d');
-                
-                // Calculate crop dimensions - remove bottom 25% where legend typically is
-                const originalWidth = existingCanvas.width;
-                const originalHeight = existingCanvas.height;
-                const cropHeight = Math.floor(originalHeight * 0.75); // Keep top 75%
-                
-                tempCanvas.width = originalWidth;
-                tempCanvas.height = cropHeight;
-                
-                // Fill with white background first
-                tempCtx.fillStyle = '#ffffff';
-                tempCtx.fillRect(0, 0, originalWidth, cropHeight);
-                
-                // Copy the top portion of the original canvas (pie chart only)
-                tempCtx.drawImage(
-                    existingCanvas,
-                    0, 0, originalWidth, cropHeight,  // Source: top portion
-                    0, 0, originalWidth, cropHeight   // Destination: fill canvas
-                );
-                
-                const imageData = tempCanvas.toDataURL('image/png', 1.0);
-                console.log('Successfully captured cropped pie chart');
+                // Capture the existing chart directly
+                const imageData = existingCanvas.toDataURL('image/png', 1.0);
+                console.log('Successfully captured existing pie chart');
                 resolve(imageData);
-                
+                return;
             } catch (error) {
-                console.warn('Failed to crop pie chart:', error);
-                resolve(null);
+                console.warn('Failed to capture existing chart:', error);
             }
-        } else {
-            console.log('No existing chart found');
-            resolve(null);
         }
+        
+        // Fallback: Create a simple table-based visualization
+        console.log('No existing chart found, creating fallback visualization...');
+        resolve(null);
     });
 }
-
 
 
 
