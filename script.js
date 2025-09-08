@@ -2256,109 +2256,218 @@ function generateCanvasBasedPDF() {
                 return element;
             }
 
-            // Function to add section to PDF
-            function addSectionToPDF() {
-                if (currentSectionIndex >= sections.length) {
-                    // All sections processed, download the PDF
-                    const cleanTitle = String(decisionData.title || 'decision').replace(/[^a-z0-9]/gi, '_');
-                    const fileName = `choicease_advanced_${cleanTitle}_${Date.now()}.pdf`;
-                    pdf.save(fileName);
-                    
-                    // Cleanup
-                    if (tempContainer.parentNode) {
-                        document.body.removeChild(tempContainer);
-                    }
-                    
-                    showToast('Advanced PDF Report generated successfully!', 'success');
-                    console.log('Multi-section PDF generation completed successfully');
-                    return;
-                }
 
-                const sectionData = sections[currentSectionIndex];
-                const sectionElement = findSection(sectionData);
+
                 
-                if (!sectionElement) {
-                    console.warn(`Skipping missing section: ${sectionData.name}`);
-                    currentSectionIndex++;
-                    addSectionToPDF(); // Continue with next section
-                    return;
-                }
-
-                console.log(`Capturing section ${currentSectionIndex + 1}/${sections.length}: ${sectionData.name}`);
-
-                // Capture the section
-                html2canvas(sectionElement, {
-                    backgroundColor: '#ffffff',
-                    scale: 1.5,
-                    useCORS: true,
-                    allowTaint: true,
-                    scrollX: 0,
-                    scrollY: 0
-                }).then(canvas => {
-                    try {
-                        const imgWidth = 210; // A4 width in mm
-                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            // Function to add section to PDF
+                // Function to add section to PDF
+                function addSectionToPDF() {
+                    if (currentSectionIndex >= sections.length) {
+                        // All sections processed, download the PDF
+                        const cleanTitle = String(decisionData.title || 'decision').replace(/[^a-z0-9]/gi, '_');
+                        const fileName = `choicease_advanced_${cleanTitle}_${Date.now()}.pdf`;
+                        pdf.save(fileName);
                         
-                        console.log(`Section ${sectionData.name}: ${imgWidth}mm x ${imgHeight.toFixed(1)}mm`);
-
-                        // Check if we need a new page
-                        if (!isFirstPage) {
-                            pdf.addPage();
+                        // Cleanup
+                        if (tempContainer.parentNode) {
+                            document.body.removeChild(tempContainer);
                         }
-                        isFirstPage = false;
-
-                        // Check if section is too tall for one page
-                        if (imgHeight > pageHeight) {
-                            console.log(`Section ${sectionData.name} is too tall (${imgHeight.toFixed(1)}mm), splitting...`);
+                        
+                        showToast('Advanced PDF Report generated successfully!', 'success');
+                        console.log('Multi-section PDF generation completed successfully');
+                        return;
+                    }
+                
+                    const sectionData = sections[currentSectionIndex];
+                    
+                    // Handle multiple selectors (combined sections)
+                    if (sectionData.selector.includes(',')) {
+                        // Create a temporary container for multiple sections
+                        const combinedContainer = document.createElement('div');
+                        combinedContainer.style.cssText = 'background: white; padding: 0;';
+                        
+                        const selectors = sectionData.selector.split(',').map(s => s.trim());
+                        let foundElements = 0;
+                        
+                        selectors.forEach(selector => {
+                            const element = tempContainer.querySelector(selector);
+                            if (element) {
+                                const clonedElement = element.cloneNode(true);
+                                combinedContainer.appendChild(clonedElement);
+                                foundElements++;
+                            } else {
+                                console.warn(`Element not found for selector: ${selector}`);
+                            }
+                        });
+                        
+                        if (foundElements === 0) {
+                            console.warn(`No elements found for combined section: ${sectionData.name}`);
+                            currentSectionIndex++;
+                            addSectionToPDF();
+                            return;
+                        }
+                        
+                        // Temporarily add to page for capture
+                        document.body.appendChild(combinedContainer);
+                        combinedContainer.style.position = 'absolute';
+                        combinedContainer.style.left = '-9999px';
+                        combinedContainer.style.top = '-9999px';
+                        combinedContainer.style.width = '800px';
+                        
+                        console.log(`Capturing combined section ${currentSectionIndex + 1}/${sections.length}: ${sectionData.name}`);
+                        
+                        // Capture the combined container
+                        html2canvas(combinedContainer, {
+                            backgroundColor: '#ffffff',
+                            scale: 1.5,
+                            useCORS: true,
+                            allowTaint: true,
+                            scrollX: 0,
+                            scrollY: 0
+                        }).then(canvas => {
+                            // Remove temporary container
+                            document.body.removeChild(combinedContainer);
                             
-                            // Split into multiple pages
-                            let remainingHeight = imgHeight;
-                            let yOffset = 0;
-                            let pageCount = 0;
-                            
-                            while (remainingHeight > 0) {
-                                if (pageCount > 0) {
+                            try {
+                                const imgWidth = 210;
+                                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                                
+                                console.log(`Combined section ${sectionData.name}: ${imgWidth}mm x ${imgHeight.toFixed(1)}mm`);
+                
+                                if (!isFirstPage) {
                                     pdf.addPage();
                                 }
-                                
-                                const currentPageHeight = Math.min(remainingHeight, pageHeight);
-                                const yPosition = -yOffset;
-                                
-                                pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, yPosition, imgWidth, imgHeight);
-                                
-                                yOffset += pageHeight;
-                                remainingHeight -= pageHeight;
-                                pageCount++;
+                                isFirstPage = false;
+                
+                                if (imgHeight > pageHeight) {
+                                    console.log(`Combined section ${sectionData.name} is too tall (${imgHeight.toFixed(1)}mm), splitting...`);
+                                    
+                                    let remainingHeight = imgHeight;
+                                    let yOffset = 0;
+                                    let pageCount = 0;
+                                    
+                                    while (remainingHeight > 0) {
+                                        if (pageCount > 0) {
+                                            pdf.addPage();
+                                        }
+                                        
+                                        const currentPageHeight = Math.min(remainingHeight, pageHeight);
+                                        const yPosition = -yOffset;
+                                        
+                                        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, yPosition, imgWidth, imgHeight);
+                                        
+                                        yOffset += pageHeight;
+                                        remainingHeight -= pageHeight;
+                                        pageCount++;
+                                    }
+                                } else {
+                                    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight);
+                                }
+                
+                                currentSectionIndex++;
+                                setTimeout(() => {
+                                    addSectionToPDF();
+                                }, 100);
+                
+                            } catch (error) {
+                                console.error(`Error processing combined section ${sectionData.name}:`, error);
+                                currentSectionIndex++;
+                                addSectionToPDF();
                             }
-                        } else {
-                            // Fits on one page
-                            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight);
-                        }
-
-                        // Move to next section
-                        currentSectionIndex++;
-                        
-                        // Small delay to prevent memory issues
-                        setTimeout(() => {
+                            
+                        }).catch(error => {
+                            // Remove temporary container on error
+                            if (document.body.contains(combinedContainer)) {
+                                document.body.removeChild(combinedContainer);
+                            }
+                            console.error(`Failed to capture combined section ${sectionData.name}:`, error);
+                            currentSectionIndex++;
                             addSectionToPDF();
-                        }, 100);
-
-                    } catch (error) {
-                        console.error(`Error processing section ${sectionData.name}:`, error);
+                        });
                         
-                        // Continue with next section even if this one failed
-                        currentSectionIndex++;
-                        addSectionToPDF();
+                    } else {
+                        // Handle single section (existing logic)
+                        const sectionElement = findSection(sectionData);
+                        
+                        if (!sectionElement) {
+                            console.warn(`Skipping missing section: ${sectionData.name}`);
+                            currentSectionIndex++;
+                            addSectionToPDF();
+                            return;
+                        }
+                
+                        console.log(`Capturing section ${currentSectionIndex + 1}/${sections.length}: ${sectionData.name}`);
+                
+                        html2canvas(sectionElement, {
+                            backgroundColor: '#ffffff',
+                            scale: 1.5,
+                            useCORS: true,
+                            allowTaint: true,
+                            scrollX: 0,
+                            scrollY: 0
+                        }).then(canvas => {
+                            try {
+                                const imgWidth = 210;
+                                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                                
+                                console.log(`Section ${sectionData.name}: ${imgWidth}mm x ${imgHeight.toFixed(1)}mm`);
+                
+                                if (!isFirstPage) {
+                                    pdf.addPage();
+                                }
+                                isFirstPage = false;
+                
+                                if (imgHeight > pageHeight) {
+                                    console.log(`Section ${sectionData.name} is too tall (${imgHeight.toFixed(1)}mm), splitting...`);
+                                    
+                                    let remainingHeight = imgHeight;
+                                    let yOffset = 0;
+                                    let pageCount = 0;
+                                    
+                                    while (remainingHeight > 0) {
+                                        if (pageCount > 0) {
+                                            pdf.addPage();
+                                        }
+                                        
+                                        const currentPageHeight = Math.min(remainingHeight, pageHeight);
+                                        const yPosition = -yOffset;
+                                        
+                                        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, yPosition, imgWidth, imgHeight);
+                                        
+                                        yOffset += pageHeight;
+                                        remainingHeight -= pageHeight;
+                                        pageCount++;
+                                    }
+                                } else {
+                                    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight);
+                                }
+                
+                                currentSectionIndex++;
+                                setTimeout(() => {
+                                    addSectionToPDF();
+                                }, 100);
+                
+                            } catch (error) {
+                                console.error(`Error processing section ${sectionData.name}:`, error);
+                                currentSectionIndex++;
+                                addSectionToPDF();
+                            }
+                            
+                        }).catch(error => {
+                            console.error(`Failed to capture section ${sectionData.name}:`, error);
+                            currentSectionIndex++;
+                            addSectionToPDF();
+                        });
                     }
-                    
-                }).catch(error => {
-                    console.error(`Failed to capture section ${sectionData.name}:`, error);
-                    
-                    // Continue with next section
-                    currentSectionIndex++;
-                    addSectionToPDF();
-                });
-            }
+                }
+
+
+                
+
+
+
+
+                
 
             // Start processing sections
             addSectionToPDF();
