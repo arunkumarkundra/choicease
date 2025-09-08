@@ -2068,6 +2068,7 @@ function generateCanvasBasedPDF() {
         const reportContent = generateReportHTML();
         tempContainer.innerHTML = reportContent;
 
+       
         // NOW INJECT THE PIE CHART
         generatePieChartForPDF().then(pieChartImage => {
             if (pieChartImage) {
@@ -2082,21 +2083,26 @@ function generateCanvasBasedPDF() {
                             Visual breakdown of criteria importance weights
                         </p>
                     `;
-                    console.log('Pie chart injected successfully into PDF');
-                } else {
-                    console.warn('Pie chart placeholder not found in report HTML');
                 }
             } else {
-                console.warn('No pie chart image generated');
                 // Remove placeholder if no chart
                 const placeholder = tempContainer.querySelector('#pdfPieChartContainer');
                 if (placeholder) {
                     placeholder.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">Chart not available</p>';
                 }
             }
-
-            // NOW CONVERT TO PDF (after pie chart injection)
-            convertToPDF();
+        
+            // Wait for logo to load first, then convert to PDF
+            const logoImg = new Image();
+            logoImg.onload = function() {
+                console.log('Logo loaded, now converting to PDF with proper spacing');
+                convertToPDF();
+            };
+            logoImg.onerror = function() {
+                console.warn('Logo failed to load, proceeding without it');
+                convertToPDF();
+            };
+            logoImg.src = 'images/Choicease logo.png';
             
         }).catch(error => {
             console.error('Pie chart generation failed:', error);
@@ -2106,8 +2112,15 @@ function generateCanvasBasedPDF() {
                 placeholder.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">Chart generation failed</p>';
             }
             
-            // Still convert to PDF without chart
-            convertToPDF();
+            // Load logo and then convert
+            const logoImg = new Image();
+            logoImg.onload = function() {
+                convertToPDF();
+            };
+            logoImg.onerror = function() {
+                convertToPDF();
+            };
+            logoImg.src = 'images/Choicease logo.png';
         });
 
         // Function to handle the actual PDF conversion
@@ -2117,10 +2130,10 @@ function generateCanvasBasedPDF() {
             tempContainer.style.maxHeight = 'none';
             tempContainer.style.overflow = 'visible';
             
-            // Wait a moment for layout to settle
+            // Wait a moment for layout to settle after logo load
             setTimeout(() => {
                 const finalHeight = Math.max(tempContainer.scrollHeight, tempContainer.offsetHeight, 4000);
-                console.log('Container heights - scroll:', tempContainer.scrollHeight, 'offset:', tempContainer.offsetHeight, 'using:', finalHeight);
+                console.log('Container heights after logo load - scroll:', tempContainer.scrollHeight, 'offset:', tempContainer.offsetHeight, 'using:', finalHeight);
                 
                 html2canvas(tempContainer, {
                     backgroundColor: '#ffffff',
@@ -2134,10 +2147,10 @@ function generateCanvasBasedPDF() {
                     scrollX: 0,
                     scrollY: 0
                 }).then(canvas => {
-                    // Create PDF - THIS MUST BE INSIDE THE .then() BLOCK
+                    // Create PDF
                     const pdf = new jsPDF('p', 'mm', 'a4');
-                    const imgWidth = 210; // A4 width in mm
-                    const pageHeight = 280; // Reduced from 295 to leave margins
+                    const imgWidth = 210;
+                    const pageHeight = 280;
                     const imgHeight = (canvas.height * imgWidth) / canvas.width;
                     const totalPages = Math.ceil(imgHeight / pageHeight);
                     console.log(`PDF will have ${totalPages} pages, total height: ${imgHeight}mm`);
@@ -2178,6 +2191,9 @@ function generateCanvasBasedPDF() {
             }, 100);
         }
 
+            
+
+            
     } catch (error) {
         // Cleanup on error
         if (tempContainer.parentNode) {
@@ -2188,8 +2204,9 @@ function generateCanvasBasedPDF() {
     }
 }
 
-
-
+            
+        
+        
 
 
 
