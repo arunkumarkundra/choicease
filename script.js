@@ -1414,10 +1414,13 @@ function setupRatingStep() {
 
         function renderWeightsTable() {
             let html = '<div style="max-width: 400px; margin: 0 auto;">';
-            
+
+            // Get all colors once before the loop
+            const colors = generateChartColors(decisionData.criteria.length);
+                
             decisionData.criteria.forEach((criteria, index) => {
                 const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
-                const color = generateChartColors(decisionData.criteria.length)[index];
+                const color = colors[index];  // Use local array with index
                 
                 html += `
                     <div style="display: flex; align-items: center; justify-content: space-between; margin: 12px 0; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${color};">
