@@ -1468,12 +1468,13 @@ console.log('  - colors for table:', colors);
                 const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
                 const color = colors[index];  // Use local array with index
 console.log('  - index:', index);   
-console.log('  - color:', color);                
+console.log('  - color:', color); 
+console.log('  - criteria name:', criteria.name);
                 html += `
                     <div style="display: flex; align-items: center; justify-content: space-between; margin: 12px 0; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${color};">
                         <div style="display: flex; align-items: center;">
                             <div style="width: 12px; height: 12px; background: ${color}; border-radius: 50%; margin-right: 10px;"></div>
-                            <span style="font-weight: 500;">${sanitizeInput(criteria.name)}</span>
+                            <span style="font-weight: 500;">o${sanitizeInput(criteria.name)}</span>
                         </div>
                         <div style="display: flex; align-items: center;">
                             <div style="width: 100px; height: 8px; background: #e9ecef; border-radius: 4px; margin-right: 10px; overflow: hidden;">
