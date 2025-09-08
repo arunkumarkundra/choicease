@@ -1435,7 +1435,7 @@ console.log('  - colors for pie chart:', colors);
                     <div style="display: flex; align-items: center; justify-content: space-between; margin: 12px 0; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${color};">
                         <div style="display: flex; align-items: center;">
                             <div style="width: 12px; height: 12px; background: ${color}; border-radius: 50%; margin-right: 10px;"></div>
-                            <span style="font-weight: 500;">${sanitizeInput(criteria.name)}</span>
+                            <span style="font-weight: 500;">renderWeightsTable.,.,., ${sanitizeInput(criteria.name)}</span>
                         </div>
                         <div style="display: flex; align-items: center;">
                             <div style="width: 100px; height: 8px; background: #e9ecef; border-radius: 4px; margin-right: 10px; overflow: hidden;">
@@ -1474,7 +1474,7 @@ console.log('  - criteria name:', criteria.name);
                     <div style="display: flex; align-items: center; justify-content: space-between; margin: 12px 0; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${color};">
                         <div style="display: flex; align-items: center;">
                             <div style="width: 12px; height: 12px; background: ${color}; border-radius: 50%; margin-right: 10px;"></div>
-                            <span style="font-weight: 500;">o${sanitizeInput(criteria.name)}</span>
+                            <span style="font-weight: 500;">o.,.,.,${sanitizeInput(criteria.name)}</span>
                         </div>
                         <div style="display: flex; align-items: center;">
                             <div style="width: 100px; height: 8px; background: #e9ecef; border-radius: 4px; margin-right: 10px; overflow: hidden;">
@@ -2556,7 +2556,7 @@ function generateReportHTML() {
     // Criteria weights distribution -IT IS NOT USED LATER, INSTEAD PIE CHART IS ADDED.
     const criteriaHtml = decisionData.criteria.map((criteria, index) => {
         const weight = Math.round(safeNum(decisionData.normalizedWeights && decisionData.normalizedWeights[criteria.id], 0));
-        const colors = ['#667eea', '#764ba2', '#28a745', '#ffc107', '#dc3545', '#17a2b8', '#6610f2', '#e83e8c'];
+        const colors = CHART_COLORS;
         const color = colors[index % colors.length];
         
         return `
@@ -2564,7 +2564,7 @@ function generateReportHTML() {
                 <div style="display: flex; align-items: center; flex: 1;">
                     <div style="width: 12px; height: 12px; background: ${color}; border-radius: 50%; margin-right: 12px;"></div>
                     <div>
-                        <div style="font-weight: 600; color: #333; margin-bottom: 2px;">${safeText(criteria.name)}</div>
+                        <div style="font-weight: 600; color: #333; margin-bottom: 2px;">eee.,.,.,${safeText(criteria.name)}</div>
                         ${criteria.description ? `<div style="font-size: 12px; color: #666;">${safeText(criteria.description.substring(0, 60))}${criteria.description.length > 60 ? '...' : ''}</div>` : ''}
                     </div>
                 </div>
