@@ -1646,7 +1646,7 @@ function setupRatingStep() {
                             `).join('')}
                         </div>
                         
-                        <div style="page-break-before: always;"></div>
+                        <div style="page-break-before: always; height: 1px; clear: both;"></div>
                         <div class="tornado-chart" style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e9ecef;">
                             <h4 style="color: #333; margin: 0 0 15px 0;">🌪️ Sensitivity Tornado Chart</h4>
                             ${renderTornadoChart(flipPoints)}
@@ -2680,7 +2680,7 @@ function generateReportHTML() {
                 ${confidenceBlockHtml}
             </div>
 
-                <div style="page-break-before: always;"></div>
+                <div style="page-break-before: always; height: 1px; clear: both;"></div>
                 <!-- Winner Analysis -->
                 <div style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
                     <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🏆 Winner Analysis</h3>
@@ -2715,14 +2715,14 @@ function generateReportHTML() {
                     ` : ''}
                 </div>
         
-            <div style="page-break-before: always;"></div>
+            <div style="page-break-before: always; height: 1px; clear: both;"></div>
             <!-- Complete Rankings -->
             <div style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🏆 Complete Rankings & Analysis</h3>
                 ${resultsHtml}
             </div>
 
-            <div style="page-break-before: always;"></div>
+            <div style="page-break-before: always; height: 1px; clear: both;"></div>
             <!-- Top Contributing Criteria -->
             <div style="background: #f8f9fa; border-radius: 12px; padding: 25px; margin-bottom: 30px;">
                 <h3 style="color: #333; margin: 0 0 20px 0; font-size: 20px;">⭐ Top Contributing Criteria</h3>
@@ -2768,7 +2768,7 @@ function generateReportHTML() {
             </div>
 
             
-            <div style="page-break-before: always;"></div>
+            <div style="page-break-before: always; height: 1px; clear: both;"></div>
             <!-- Performance Matrix -->
             <div style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">📊 Performance Matrix</h3>
@@ -2795,7 +2795,7 @@ function generateReportHTML() {
                 </div>
             </div>
 
-                <div style="page-break-before: always;"></div>
+                <div style="page-break-before: always; height: 1px; clear: both;"></div>
                 <!-- Criteria Weights Distribution -->
                 <div style="background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
                     <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🥧 Criteria Weights Distribution</h3>
@@ -2823,7 +2823,7 @@ function generateReportHTML() {
 
 
 
-            <div style="page-break-before: always;"></div>
+            <div style="page-break-before: always; height: 1px; clear: both;"></div>
             <!-- Sensitivity Analysis -->
             <div style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">⚖️ Sensitivity Analysis</h3>
@@ -2833,7 +2833,7 @@ function generateReportHTML() {
                 ${flipPointsHtml}
             </div>
 
-            <div style="page-break-before: always;"></div>
+            <div style="page-break-before: always; height: 1px; clear: both;"></div>
             <!-- Risk Analysis -->
             <div style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">⚠️ Risk Analysis</h3>
