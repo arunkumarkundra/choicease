@@ -3281,31 +3281,25 @@ function exportResults() {
             let yPos = 20;
             const pageWidth = 190;
             const lineHeight = 7;
-                // Logo as letterhead (above header)
-                // We'll add this after we create the PDF structure
-                
-                // Professional Header with Background (moved down)
-                doc.setFillColor(...primaryColor);
-                doc.rect(0, 30, 210, 40, 'F'); // Moved down by 30
-                
-                // Header Text (adjusted positions)
-                doc.setTextColor(255, 255, 255);
-                doc.setFontSize(24);
-                doc.setFont(undefined, 'bold');
-                doc.text('Choicease', 105, 50, { align: 'center' }); // Moved down
-                
-                doc.setFontSize(12);
-                doc.setFont(undefined, 'normal');
-                doc.text('Smart Choices, Made Easy', 105, 58, { align: 'center' }); // Moved down
-                
-                doc.setFontSize(10);
-                doc.text('Decision Analysis Report', 105, 65, { align: 'center' }); // Moved down
-
-                
+            
+            // Professional Header with Background
+            doc.setFillColor(...primaryColor);
+            doc.rect(0, 0, 210, 40, 'F');
+            
+            // Header Text
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(24);
+            doc.setFont(undefined, 'bold');
+            doc.text('Choicease', 105, 20, { align: 'center' });
+            
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'normal');
+            doc.text('Smart Choices, Made Easy', 105, 28, { align: 'center' });
+            
             doc.setFontSize(10);
             doc.text('Decision Analysis Report', 105, 35, { align: 'center' });
             
-            yPos = 85;
+            yPos = 55;
             
             // FIXED: Decision Title Section (remove duplication)
             doc.setTextColor(...textDark);
@@ -3460,8 +3454,7 @@ function exportResults() {
                 // Percentage
                 doc.setTextColor(...(isWinner ? successColor : primaryColor));
                 doc.setFont(undefined, 'bold');
-                // doc.text(`Score: ${result.totalScore.toFixed(2)}/5.0`, 45, yPos + 18);
-                // Commented out percentage: (${Math.round((result.totalScore/5)*100)}%)
+                doc.text(`${Math.round((result.totalScore/5)*100)}%`, 135, yPos + 28);
                 
                 yPos += cardHeight + 10;
             });
@@ -3584,32 +3577,21 @@ function exportResults() {
                 doc.text('Powered by Choicease - Smart Choices, Made Easy', 105, 285, { align: 'center' });
                 doc.text(`choicease.com | Page ${i} of ${pageCount}`, 105, 290, { align: 'center' });
             }
-
-
-                // Add logo to all pages
-                const pageCount = doc.internal.getNumberOfPages();
-                for (let i = 1; i <= pageCount; i++) {
-                    doc.setPage(i);
-                    
-                    // Try to add logo (simple approach - no async needed for jsPDF)
-                    try {
-                        // Create a simple logo placeholder or text if image fails
-                        doc.setFillColor(255, 255, 255);
-                        doc.rect(95, 5, 20, 20, 'F'); // White background for logo
-                        doc.setTextColor(102, 126, 234);
-                        doc.setFontSize(8);
-                        doc.text('LOGO', 105, 17, { align: 'center' });
-                    } catch (error) {
-                        console.warn('Logo placement failed:', error);
-                    }
-                }
-
-                
+            
             // Download
             const fileName = `choicease_${decisionData.title.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.pdf`;
             doc.save(fileName);
         }
         
+        
+
+
+
+
+
+
+
+
         // Helper function to calculate results for PDF
         function calculateResultsForPDF() {
             const results = [];
