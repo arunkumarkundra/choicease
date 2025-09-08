@@ -2679,7 +2679,7 @@ function generateReportHTML() {
                 ${confidenceBlockHtml}
             </div>
 
-
+                <div style="page-break-before: always;"></div>
                 <!-- Winner Analysis -->
                 <div style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
                     <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🏆 Winner Analysis</h3>
@@ -2714,13 +2714,14 @@ function generateReportHTML() {
                     ` : ''}
                 </div>
         
-        
+            <div style="page-break-before: always;"></div>
             <!-- Complete Rankings -->
             <div style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🏆 Complete Rankings & Analysis</h3>
                 ${resultsHtml}
             </div>
 
+            <div style="page-break-before: always;"></div>
             <!-- Top Contributing Criteria -->
             <div style="background: #f8f9fa; border-radius: 12px; padding: 25px; margin-bottom: 30px;">
                 <h3 style="color: #333; margin: 0 0 20px 0; font-size: 20px;">⭐ Top Contributing Criteria</h3>
@@ -2764,6 +2765,9 @@ function generateReportHTML() {
                     </div>
                 </div>
             </div>
+
+            
+            <div style="page-break-before: always;"></div>
             <!-- Performance Matrix -->
             <div style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">📊 Performance Matrix</h3>
@@ -2790,7 +2794,7 @@ function generateReportHTML() {
                 </div>
             </div>
 
-
+                <div style="page-break-before: always;"></div>
                 <!-- Criteria Weights Distribution -->
                 <div style="background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
                     <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🥧 Criteria Weights Distribution</h3>
@@ -2818,7 +2822,7 @@ function generateReportHTML() {
 
 
 
-
+            <div style="page-break-before: always;"></div>
             <!-- Sensitivity Analysis -->
             <div style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">⚖️ Sensitivity Analysis</h3>
@@ -2828,6 +2832,7 @@ function generateReportHTML() {
                 ${flipPointsHtml}
             </div>
 
+            <div style="page-break-before: always;"></div>
             <!-- Risk Analysis -->
             <div style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">⚠️ Risk Analysis</h3>
