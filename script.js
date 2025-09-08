@@ -2178,6 +2178,15 @@ function generateCanvasBasedPDF() {
             }, 100);
         }
 
+    } catch (error) {
+        // Cleanup on error
+        if (tempContainer.parentNode) {
+            document.body.removeChild(tempContainer);
+        }
+        console.error('Error during PDF generation:', error);
+        showToast('PDF generation failed. Please try again.', 'error');
+    }
+}
 
 
 
