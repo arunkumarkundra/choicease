@@ -1257,7 +1257,7 @@ function setupRatingStep() {
                     <h4>Criteria Importance Distribution</h4>
                     <div id="weightsPieChart" class="pie-container">
                         ${withCharts ? '<canvas id="weightsCanvas"></canvas>' : ''}
-                        <div id="weightsTableFallback">${renderWeightsTableForCharts()}</div>
+                        <div id="weightsTableFallback">${renderWeightsTableForPDF()}</div>
                     </div>
                 </div>
             `;
@@ -1393,7 +1393,7 @@ function setupRatingStep() {
                         <div class="fallback-icon">📊</div>
                         <div style="font-weight: 600; margin-bottom: 10px;">Interactive Chart Unavailable</div>
                         <div style="font-size: 0.9rem; color: #666; margin-bottom: 20px;">Showing data table instead</div>
-                        ${renderWeightsTableForCharts()}
+                        ${renderWeightsTableForPDF()}
                     </div>
                 `;
             }
@@ -1431,7 +1431,7 @@ function setupRatingStep() {
         }
 
 
-        function renderWeightsTableForCharts() {
+        function renderWeightsTableForPDF() {
             let html = '<div style="max-width: 400px; margin: 0 auto;">';
             
             decisionData.criteria.forEach((criteria, index) => {
@@ -2071,7 +2071,7 @@ function generateCanvasBasedPDF() {
 
        
         // NOW INJECT THE PIE CHART
-        generatePieChartForPDF().then(pieChartImage => {
+        capturePieChartFromPage().then(pieChartImage => {
             if (pieChartImage) {
                 // Find the pie chart placeholder
                 const placeholder = tempContainer.querySelector('#pdfPieChartContainer');
@@ -2086,10 +2086,17 @@ function generateCanvasBasedPDF() {
                     `;
                 }
             } else {
-                // Remove placeholder if no chart
+                // Use the fallback table visualization
                 const placeholder = tempContainer.querySelector('#pdfPieChartContainer');
                 if (placeholder) {
-                    placeholder.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">Chart not available</p>';
+                    placeholder.innerHTML = `
+                        <div style="margin: 20px auto; max-width: 400px;">
+                            <p style="text-align: center; color: #666; margin-bottom: 15px; font-style: italic;">
+                                Pie chart not available - showing data table
+                            </p>
+                            ${renderWeightsTableForPDF()}
+                        </div>
+                    `;
                 }
             }
         
@@ -2106,11 +2113,18 @@ function generateCanvasBasedPDF() {
             logoImg.src = 'images/Choicease logo.png';
             
         }).catch(error => {
-            console.error('Pie chart generation failed:', error);
-            // Remove placeholder and continue without chart
+            console.error('Pie chart capture failed:', error);
+            // Use the fallback table visualization
             const placeholder = tempContainer.querySelector('#pdfPieChartContainer');
             if (placeholder) {
-                placeholder.innerHTML = '<p style="text-align: center; color: #666; font-style: italic;">Chart generation failed</p>';
+                placeholder.innerHTML = `
+                    <div style="margin: 20px auto; max-width: 400px;">
+                        <p style="text-align: center; color: #666; margin-bottom: 15px; font-style: italic;">
+                            Chart capture failed - showing data table
+                        </p>
+                        ${renderWeightsTableForPDF()}
+                    </div>
+                `;
             }
             
             // Load logo and then convert
@@ -3238,76 +3252,40 @@ function exportResults() {
     URL.revokeObjectURL(url);
 }
 
+
+
+
+function capturePieChartFromPage() {
+    return new Promise((resolve) => {
+        // Look for existing pie chart canvas on the page
+        const existingCanvas = document.getElementById('weightsCanvas');
         
-        function generatePieChartForPDF() {
-            return new Promise((resolve) => {
-                // Create temporary canvas for pie chart
-                const canvas = document.createElement('canvas');
-                canvas.width = 300;
-                canvas.height = 300;
-                canvas.style.display = 'none';
-                document.body.appendChild(canvas);
-                
-                const ctx = canvas.getContext('2d');
-                
-                // Check if Chart.js is available
-                if (typeof Chart === 'undefined') {
-                    console.warn('Chart.js not available, skipping pie chart');
-                    document.body.removeChild(canvas);
-                    resolve(null);
-                    return;
-                }
-                
-                try {
-                    const labels = decisionData.criteria.map(c => c.name);
-                    const data = decisionData.criteria.map(c => Math.round(decisionData.normalizedWeights[c.id] || 0));
-                    const colors = generateChartColors(labels.length);
-                    
-                    const chart = new Chart(ctx, {
-                        type: 'pie',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                data: data,
-                                backgroundColor: colors,
-                                borderWidth: 2,
-                                borderColor: '#ffffff'
-                            }]
-                        },
-                        options: {
-                            responsive: false,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    position: 'bottom',
-                                    labels: {
-                                        padding: 10,
-                                        usePointStyle: true,
-                                        font: {
-                                            size: 10
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
-                    
-                    // Wait for chart to render, then convert to image
-                    setTimeout(() => {
-                        const imageData = canvas.toDataURL('image/png');
-                        chart.destroy();
-                        document.body.removeChild(canvas);
-                        resolve(imageData);
-                    }, 500);
-                    
-                } catch (error) {
-                    console.error('Error generating pie chart:', error);
-                    document.body.removeChild(canvas);
-                    resolve(null);
-                }
-            });
+        if (existingCanvas && chartManager.charts.pie) {
+            console.log('Found existing pie chart, capturing it...');
+            try {
+                // Capture the existing chart directly
+                const imageData = existingCanvas.toDataURL('image/png', 1.0);
+                console.log('Successfully captured existing pie chart');
+                resolve(imageData);
+                return;
+            } catch (error) {
+                console.warn('Failed to capture existing chart:', error);
+            }
         }
         
+        // Fallback: Create a simple table-based visualization
+        console.log('No existing chart found, creating fallback visualization...');
+        resolve(null);
+    });
+}
+
+
+
+
+
+
+
+
 
         
         // FIXED PDF GENERATION FUNCTION
