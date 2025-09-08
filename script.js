@@ -3461,36 +3461,37 @@ function capturePieChartFromPage() {
         const existingCanvas = document.getElementById('weightsCanvas');
         
         if (existingCanvas && chartManager.charts.pie) {
-            console.log('Found existing pie chart, capturing canvas only...');
+            console.log('Found existing pie chart, cropping to remove legend...');
             try {
-                // Get the Chart.js instance
-                const chart = chartManager.charts.pie;
-                
-                // Create a new canvas to capture just the chart area (no legend)
+                // Create a new canvas for the cropped version
                 const tempCanvas = document.createElement('canvas');
-                const chartArea = chart.chartArea;
-                
-                // Set canvas size to just the chart area
-                const chartWidth = chartArea.right - chartArea.left;
-                const chartHeight = chartArea.bottom - chartArea.top;
-                
-                tempCanvas.width = chartWidth;
-                tempCanvas.height = chartHeight;
                 const tempCtx = tempCanvas.getContext('2d');
                 
-                // Copy just the chart area from the original canvas
+                // Calculate crop dimensions - remove bottom 25% where legend typically is
+                const originalWidth = existingCanvas.width;
+                const originalHeight = existingCanvas.height;
+                const cropHeight = Math.floor(originalHeight * 0.75); // Keep top 75%
+                
+                tempCanvas.width = originalWidth;
+                tempCanvas.height = cropHeight;
+                
+                // Fill with white background first
+                tempCtx.fillStyle = '#ffffff';
+                tempCtx.fillRect(0, 0, originalWidth, cropHeight);
+                
+                // Copy the top portion of the original canvas (pie chart only)
                 tempCtx.drawImage(
                     existingCanvas,
-                    chartArea.left, chartArea.top, chartWidth, chartHeight,  // Source
-                    0, 0, chartWidth, chartHeight                            // Destination
+                    0, 0, originalWidth, cropHeight,  // Source: top portion
+                    0, 0, originalWidth, cropHeight   // Destination: fill canvas
                 );
                 
                 const imageData = tempCanvas.toDataURL('image/png', 1.0);
-                console.log('Successfully captured pie chart area only');
+                console.log('Successfully captured cropped pie chart');
                 resolve(imageData);
                 
             } catch (error) {
-                console.warn('Failed to capture chart area:', error);
+                console.warn('Failed to crop pie chart:', error);
                 resolve(null);
             }
         } else {
@@ -3499,6 +3500,8 @@ function capturePieChartFromPage() {
         }
     });
 }
+
+
 
 
 
