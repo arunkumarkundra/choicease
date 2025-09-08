@@ -1304,14 +1304,6 @@ function setupRatingStep() {
                 
                 const ctx = canvas.getContext('2d');
                 const labels = decisionData.criteria.map(c => c.name);
-
-console.log('🥧 PIE CHART DEBUG:');
-console.log('  - labels:', labels);
-console.log('  - labels.length:', labels.length);
-console.log('  - decisionData.criteria.length:', decisionData.criteria.length);
-console.log('  - Labels vs Criteria match:', labels.length === decisionData.criteria.length);
-
-
                     
                 // Get raw weights with minimum values to avoid zero slices
                 const rawData = decisionData.criteria.map(c => {
@@ -1422,6 +1414,7 @@ console.log('  - colors for pie chart:', colors);
 
 
         function renderWeightsTable() {
+        // DOESN'T SEEM TO BE USED or EVEN CALLED
             let html = '<div style="max-width: 400px; margin: 0 auto;">';
 
             // Get all colors once before the loop
@@ -1435,7 +1428,7 @@ console.log('  - colors for pie chart:', colors);
                     <div style="display: flex; align-items: center; justify-content: space-between; margin: 12px 0; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${color};">
                         <div style="display: flex; align-items: center;">
                             <div style="width: 12px; height: 12px; background: ${color}; border-radius: 50%; margin-right: 10px;"></div>
-                            <span style="font-weight: 500;">renderWeightsTable.,.,., ${sanitizeInput(criteria.name)}</span>
+                            <span style="font-weight: 500;">${sanitizeInput(criteria.name)}</span>
                         </div>
                         <div style="display: flex; align-items: center;">
                             <div style="width: 100px; height: 8px; background: #e9ecef; border-radius: 4px; margin-right: 10px; overflow: hidden;">
@@ -1453,28 +1446,21 @@ console.log('  - colors for pie chart:', colors);
 
 
         function renderWeightsTableForPDF() {
+            // GETS CALLED BUT DOESN'T SEEM is NOT USED for PDF TABLE
             let html = '<div style="max-width: 400px; margin: 0 auto;">';
             const labels = decisionData.criteria.map(c => c.name);
-console.log('📊 TABLE DEBUG:');
-console.log('  - labels:', labels);
-console.log('  - labels.length:', labels.length);
-console.log('  - decisionData.criteria.length:', decisionData.criteria.length);
                 
             // Get all colors once before the loop
             const colors = generateChartColors(labels.length);  // Use labels.length like pie chart
-console.log('  - colors for table:', colors);
                                 
             decisionData.criteria.forEach((criteria, index) => {
                 const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
                 const color = colors[index];  // Use local array with index
-console.log('  - index:', index);   
-console.log('  - color:', color); 
-console.log('  - criteria name:', criteria.name);
                 html += `
                     <div style="display: flex; align-items: center; justify-content: space-between; margin: 12px 0; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${color};">
                         <div style="display: flex; align-items: center;">
                             <div style="width: 12px; height: 12px; background: ${color}; border-radius: 50%; margin-right: 10px;"></div>
-                            <span style="font-weight: 500;">o.,.,.,${sanitizeInput(criteria.name)}</span>
+                            <span style="font-weight: 500;">${sanitizeInput(criteria.name)}</span>
                         </div>
                         <div style="display: flex; align-items: center;">
                             <div style="width: 100px; height: 8px; background: #e9ecef; border-radius: 4px; margin-right: 10px; overflow: hidden;">
@@ -2553,7 +2539,7 @@ function generateReportHTML() {
         stabilityText = 'Generally solid choice with some areas of concern';
     }
 
-    // Criteria weights distribution -IT IS NOT USED LATER, INSTEAD PIE CHART IS ADDED.
+    // Criteria weights distribution -IT WAS NOT SUPPOSED TO BE USED BUT THIS IS ONE ACTUALLY USED.
     const criteriaHtml = decisionData.criteria.map((criteria, index) => {
         const weight = Math.round(safeNum(decisionData.normalizedWeights && decisionData.normalizedWeights[criteria.id], 0));
         const colors = CHART_COLORS;
@@ -2564,7 +2550,7 @@ function generateReportHTML() {
                 <div style="display: flex; align-items: center; flex: 1;">
                     <div style="width: 12px; height: 12px; background: ${color}; border-radius: 50%; margin-right: 12px;"></div>
                     <div>
-                        <div style="font-weight: 600; color: #333; margin-bottom: 2px;">eee.,.,.,${safeText(criteria.name)}</div>
+                        <div style="font-weight: 600; color: #333; margin-bottom: 2px;">${safeText(criteria.name)}</div>
                         ${criteria.description ? `<div style="font-size: 12px; color: #666;">${safeText(criteria.description.substring(0, 60))}${criteria.description.length > 60 ? '...' : ''}</div>` : ''}
                     </div>
                 </div>
