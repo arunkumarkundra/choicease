@@ -1646,6 +1646,7 @@ function setupRatingStep() {
                             `).join('')}
                         </div>
                         
+                        <div style="page-break-before: always;"></div>
                         <div class="tornado-chart" style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e9ecef;">
                             <h4 style="color: #333; margin: 0 0 15px 0;">🌪️ Sensitivity Tornado Chart</h4>
                             ${renderTornadoChart(flipPoints)}
