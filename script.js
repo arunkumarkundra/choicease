@@ -1305,6 +1305,14 @@ function setupRatingStep() {
                 const ctx = canvas.getContext('2d');
                 const labels = decisionData.criteria.map(c => c.name);
 
+console.log('🥧 PIE CHART DEBUG:');
+console.log('  - labels:', labels);
+console.log('  - labels.length:', labels.length);
+console.log('  - decisionData.criteria.length:', decisionData.criteria.length);
+console.log('  - Labels vs Criteria match:', labels.length === decisionData.criteria.length);
+
+
+                    
                 // Get raw weights with minimum values to avoid zero slices
                 const rawData = decisionData.criteria.map(c => {
                     const weight = decisionData.normalizedWeights[c.id] || 0;
@@ -1337,7 +1345,8 @@ function setupRatingStep() {
                     
                                         
                 const colors = generateChartColors(labels.length);
-                
+console.log('  - colors for pie chart:', colors);
+                    
                 chartManager.charts.pie = new Chart(ctx, {
                     type: 'pie',
                     data: {
@@ -1445,8 +1454,15 @@ function setupRatingStep() {
 
         function renderWeightsTableForPDF() {
             let html = '<div style="max-width: 400px; margin: 0 auto;">';
+            const labels = decisionData.criteria.map(c => c.name);
+console.log('📊 TABLE DEBUG:');
+console.log('  - labels:', labels);
+console.log('  - labels.length:', labels.length);
+console.log('  - decisionData.criteria.length:', decisionData.criteria.length);
+                
             // Get all colors once before the loop
-            const colors = generateChartColors(decisionData.criteria.length);
+            const colors = generateChartColors(labels.length);  // Use labels.length like pie chart
+console.log('  - colors for table:', colors);
                                 
             decisionData.criteria.forEach((criteria, index) => {
                 const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
