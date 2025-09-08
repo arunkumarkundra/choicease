@@ -3458,7 +3458,7 @@ function exportResults() {
                 // Percentage
                 doc.setTextColor(...(isWinner ? successColor : primaryColor));
                 doc.setFont(undefined, 'bold');
-                doc.text(`Score: ${result.totalScore.toFixed(2)}/5.0`, 45, yPos + 18);
+                // doc.text(`Score: ${result.totalScore.toFixed(2)}/5.0`, 45, yPos + 18);
                 // Commented out percentage: (${Math.round((result.totalScore/5)*100)}%)
                 
                 yPos += cardHeight + 10;
