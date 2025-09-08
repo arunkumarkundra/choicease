@@ -2039,8 +2039,11 @@ console.log('  - colors for pie chart:', colors);
 
 
 
+
+
+
 function generateCanvasBasedPDF() {
-    console.log('generateCanvasBasedPDF called - using html2canvas approach');
+    console.log('generateCanvasBasedPDF called - using multi-section approach');
     
     if (!advancedAnalytics.results || !advancedAnalytics.confidence) {
         showToast('Please calculate results and show advanced analytics first.', 'warning');
@@ -2081,86 +2084,81 @@ function generateCanvasBasedPDF() {
         const reportContent = generateReportHTML();
         tempContainer.innerHTML = reportContent;
 
+        // Inject pie chart and what-if analysis
+        capturePieChartFromPage().then(pieChartImage => {
+            if (pieChartImage) {
+                const placeholder = tempContainer.querySelector('#pdfPieChartContainer');
+                if (placeholder) {
+                    placeholder.innerHTML = `
+                        <img src="${pieChartImage}" 
+                             style="max-width: 350px; height: auto; border: 1px solid #dee2e6; border-radius: 8px; margin: 15px auto; display: block;" 
+                             alt="Criteria Importance Pie Chart">
+                        <p style="font-size: 12px; color: #666; margin-top: 10px; text-align: center;">
+                            Visual breakdown of criteria importance weights
+                        </p>
+                    `;
+                }
+            } else {
+                const placeholder = tempContainer.querySelector('#pdfPieChartContainer');
+                if (placeholder) {
+                    placeholder.innerHTML = `
+                        <div style="margin: 20px auto; max-width: 400px;">
+                            <p style="text-align: center; color: #666; margin-bottom: 15px; font-style: italic;">
+                                Pie chart not available - showing data table
+                            </p>
+                            ${renderWeightsTableForPDF()}
+                        </div>
+                    `;
+                }
+            }
+            
+            return captureWhatIfAnalysisFromPage();
+        }).then(whatIfImage => {
+            if (whatIfImage) {
+                const placeholder = tempContainer.querySelector('#pdfWhatIfContainer');
+                if (placeholder) {
+                    placeholder.innerHTML = `
+                        <img src="${whatIfImage}" 
+                             style="max-width: 100%; height: auto; border: 1px solid #dee2e6; border-radius: 8px; margin: 15px auto; display: block;" 
+                             alt="What-If Analysis">
+                        <p style="font-size: 12px; color: #666; margin-top: 10px; text-align: center;">
+                            Criteria weight adjustment study with updated rankings
+                        </p>
+                    `;
+                }
+            } else {
+                const placeholder = tempContainer.querySelector('#pdfWhatIfContainer');
+                if (placeholder) {
+                    placeholder.innerHTML = `
+                        <div style="margin: 20px auto; padding: 30px; background: #f8f9fa; border-radius: 12px; text-align: center;">
+                            <p style="color: #666; font-style: italic; margin: 0;">
+                                What-if analysis capture failed.<br>
+                                This section shows interactive weight adjustments when advanced analytics are active.
+                            </p>
+                        </div>
+                    `;
+                }
+            }
 
-            // NOW INJECT THE PIE CHART
-                capturePieChartFromPage().then(pieChartImage => {
-                    if (pieChartImage) {
-                        // Find the pie chart placeholder
-                        const placeholder = tempContainer.querySelector('#pdfPieChartContainer');
-                        if (placeholder) {
-                            placeholder.innerHTML = `
-                                <img src="${pieChartImage}" 
-                                     style="max-width: 350px; height: auto; border: 1px solid #dee2e6; border-radius: 8px; margin: 15px auto; display: block;" 
-                                     alt="Criteria Importance Pie Chart">
-                                <p style="font-size: 12px; color: #666; margin-top: 10px; text-align: center;">
-                                    Visual breakdown of criteria importance weights
-                                </p>
-                            `;
-                        }
-                    } else {
-                        // Use the fallback table visualization
-                        const placeholder = tempContainer.querySelector('#pdfPieChartContainer');
-                        if (placeholder) {
-                            placeholder.innerHTML = `
-                                <div style="margin: 20px auto; max-width: 400px;">
-                                    <p style="text-align: center; color: #666; margin-bottom: 15px; font-style: italic;">
-                                        Pie chart not available - showing data table
-                                    </p>
-                                    ${renderWeightsTableForPDF()}
-                                </div>
-                            `;
-                        }
-                    }
-                
-                    // NOW INJECT THE WHAT-IF ANALYSIS
-                    return captureWhatIfAnalysisFromPage();
-                }).then(whatIfImage => {
-                    if (whatIfImage) {
-                        // Find the what-if analysis placeholder
-                        const placeholder = tempContainer.querySelector('#pdfWhatIfContainer');
-                        if (placeholder) {
-                            placeholder.innerHTML = `
-                                <img src="${whatIfImage}" 
-                                     style="max-width: 100%; height: auto; border: 1px solid #dee2e6; border-radius: 8px; margin: 15px auto; display: block;" 
-                                     alt="What-If Analysis">
-                                <p style="font-size: 12px; color: #666; margin-top: 10px; text-align: center;">
-                                    Criteria weight adjustment study with updated rankings
-                                </p>
-                            `;
-                        }
-                    } else {
-                        // Use fallback text
-                        const placeholder = tempContainer.querySelector('#pdfWhatIfContainer');
-                        if (placeholder) {
-                            placeholder.innerHTML = `
-                                <div style="margin: 20px auto; padding: 30px; background: #f8f9fa; border-radius: 12px; text-align: center;">
-                                    <p style="color: #666; font-style: italic; margin: 0;">
-                                        Weight adjustment analysis not captured.<br>
-                                        This section shows dynamic weight adjustments and impact on rankings when available.
-                                    </p>
-                                </div>
-                            `;
-                        }
-                    }
-        
-            // Wait for logo to load first, then convert to PDF
+            // Wait for logo to load, then start multi-section PDF generation
             const logoImg = new Image();
             logoImg.onload = function() {
-                console.log('Logo loaded, now converting to PDF with proper spacing');
-                convertToPDF();
+                console.log('Logo loaded, starting multi-section PDF generation');
+                generateMultiSectionPDF();
             };
             logoImg.onerror = function() {
                 console.warn('Logo failed to load, proceeding without it');
-                convertToPDF();
+                generateMultiSectionPDF();
             };
             logoImg.src = 'images/Choicease logo.png';
             
         }).catch(error => {
             console.error('Analysis capture failed:', error);
-            // Use fallback for both pie chart and what-if analysis
+            
+            // Use fallbacks for both pie chart and what-if analysis
             const piePlaceholder = tempContainer.querySelector('#pdfPieChartContainer');
             if (piePlaceholder) {
-                pieePlaceholder.innerHTML = `
+                piePlaceholder.innerHTML = `
                     <div style="margin: 20px auto; max-width: 400px;">
                         <p style="text-align: center; color: #666; margin-bottom: 15px; font-style: italic;">
                             Chart capture failed - showing data table
@@ -2185,85 +2183,161 @@ function generateCanvasBasedPDF() {
             // Load logo and then convert
             const logoImg = new Image();
             logoImg.onload = function() {
-                convertToPDF();
+                generateMultiSectionPDF();
             };
             logoImg.onerror = function() {
-                convertToPDF();
+                generateMultiSectionPDF();
             };
             logoImg.src = 'images/Choicease logo.png';
         });
 
-        // Function to handle the actual PDF conversion
-        function convertToPDF() {
-            // Force container to show full content
-            tempContainer.style.height = 'auto';
-            tempContainer.style.maxHeight = 'none';
-            tempContainer.style.overflow = 'visible';
+        // Function to handle multi-section PDF generation
+        function generateMultiSectionPDF() {
+            console.log('Starting multi-section PDF generation...');
             
-            // Wait a moment for layout to settle after logo load
-            setTimeout(() => {
-                const finalHeight = Math.max(tempContainer.scrollHeight, tempContainer.offsetHeight, 4000);
-                console.log('Container heights after logo load - scroll:', tempContainer.scrollHeight, 'offset:', tempContainer.offsetHeight, 'using:', finalHeight);
+            // Define sections to capture separately
+            const sections = [
+                { selector: '.header-section', name: 'Header' },
+                { selector: '.decision-details', name: 'Decision Details' },
+                { selector: '.executive-summary', name: 'Executive Summary' },
+                { selector: '.winner-analysis', name: 'Winner Analysis' },
+                { selector: '.complete-rankings', name: 'Complete Rankings' },
+                { selector: '.top-contributors', name: 'Top Contributors' },
+                { selector: '.decision-stability', name: 'Decision Stability' },
+                { selector: '.performance-matrix', name: 'Performance Matrix' },
+                { selector: '.criteria-weights', name: 'Criteria Weights' },
+                { selector: '.sensitivity-analysis', name: 'Sensitivity Analysis' },
+                { selector: '.what-if-analysis', name: 'What-If Analysis' },
+                { selector: '.risk-analysis', name: 'Risk Analysis' },
+                { selector: '.methodology', name: 'Methodology' },
+                { selector: '.footer', name: 'Footer' }
+            ];
+
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const pageHeight = 280; // A4 page height in mm
+            let isFirstPage = true;
+            let currentSectionIndex = 0;
+
+            // Function to find section with fallbacks
+            function findSection(sectionData) {
+                const element = tempContainer.querySelector(sectionData.selector) ||
+                              tempContainer.querySelector(sectionData.selector.replace('.', '#')) ||
+                              tempContainer.querySelector(`[data-section="${sectionData.name.toLowerCase()}"]`);
                 
-                html2canvas(tempContainer, {
+                if (!element) {
+                    console.warn(`Section not found: ${sectionData.name} (${sectionData.selector})`);
+                }
+                return element;
+            }
+
+            // Function to add section to PDF
+            function addSectionToPDF() {
+                if (currentSectionIndex >= sections.length) {
+                    // All sections processed, download the PDF
+                    const cleanTitle = String(decisionData.title || 'decision').replace(/[^a-z0-9]/gi, '_');
+                    const fileName = `choicease_advanced_${cleanTitle}_${Date.now()}.pdf`;
+                    pdf.save(fileName);
+                    
+                    // Cleanup
+                    if (tempContainer.parentNode) {
+                        document.body.removeChild(tempContainer);
+                    }
+                    
+                    showToast('Advanced PDF Report generated successfully!', 'success');
+                    console.log('Multi-section PDF generation completed successfully');
+                    return;
+                }
+
+                const sectionData = sections[currentSectionIndex];
+                const sectionElement = findSection(sectionData);
+                
+                if (!sectionElement) {
+                    console.warn(`Skipping missing section: ${sectionData.name}`);
+                    currentSectionIndex++;
+                    addSectionToPDF(); // Continue with next section
+                    return;
+                }
+
+                console.log(`Capturing section ${currentSectionIndex + 1}/${sections.length}: ${sectionData.name}`);
+
+                // Capture the section
+                html2canvas(sectionElement, {
                     backgroundColor: '#ffffff',
                     scale: 1.5,
                     useCORS: true,
                     allowTaint: true,
-                    width: 800,
-                    height: finalHeight,
-                    windowWidth: 800,
-                    windowHeight: finalHeight,
                     scrollX: 0,
                     scrollY: 0
                 }).then(canvas => {
-                    // Create PDF
-                    const pdf = new jsPDF('p', 'mm', 'a4');
-                    const imgWidth = 210;
-                    const pageHeight = 280;
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                    const totalPages = Math.ceil(imgHeight / pageHeight);
-                    console.log(`PDF will have ${totalPages} pages, total height: ${imgHeight}mm`);
-                    let heightLeft = imgHeight;
-                    let position = 0;
-        
-                    // Add first page
-                    pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
-        
-                    // Add additional pages if needed
-                    while (heightLeft >= 0) {
-                        position = heightLeft - imgHeight;
-                        pdf.addPage();
-                        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
-                        heightLeft -= pageHeight;
+                    try {
+                        const imgWidth = 210; // A4 width in mm
+                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                        
+                        console.log(`Section ${sectionData.name}: ${imgWidth}mm x ${imgHeight.toFixed(1)}mm`);
+
+                        // Check if we need a new page
+                        if (!isFirstPage) {
+                            pdf.addPage();
+                        }
+                        isFirstPage = false;
+
+                        // Check if section is too tall for one page
+                        if (imgHeight > pageHeight) {
+                            console.log(`Section ${sectionData.name} is too tall (${imgHeight.toFixed(1)}mm), splitting...`);
+                            
+                            // Split into multiple pages
+                            let remainingHeight = imgHeight;
+                            let yOffset = 0;
+                            let pageCount = 0;
+                            
+                            while (remainingHeight > 0) {
+                                if (pageCount > 0) {
+                                    pdf.addPage();
+                                }
+                                
+                                const currentPageHeight = Math.min(remainingHeight, pageHeight);
+                                const yPosition = -yOffset;
+                                
+                                pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, yPosition, imgWidth, imgHeight);
+                                
+                                yOffset += pageHeight;
+                                remainingHeight -= pageHeight;
+                                pageCount++;
+                            }
+                        } else {
+                            // Fits on one page
+                            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight);
+                        }
+
+                        // Move to next section
+                        currentSectionIndex++;
+                        
+                        // Small delay to prevent memory issues
+                        setTimeout(() => {
+                            addSectionToPDF();
+                        }, 100);
+
+                    } catch (error) {
+                        console.error(`Error processing section ${sectionData.name}:`, error);
+                        
+                        // Continue with next section even if this one failed
+                        currentSectionIndex++;
+                        addSectionToPDF();
                     }
-        
-                    // Download the PDF
-                    const cleanTitle = String(decisionData.title || 'decision').replace(/[^a-z0-9]/gi, '_');
-                    const fileName = `choicease_advanced_${cleanTitle}_${Date.now()}.pdf`;
-                    pdf.save(fileName);
-        
-                    // Cleanup
-                    document.body.removeChild(tempContainer);
-                    
-                    showToast('Advanced PDF Report generated successfully!', 'success');
-                    console.log('Enhanced PDF generation completed successfully');
                     
                 }).catch(error => {
-                    // Cleanup on error
-                    if (tempContainer.parentNode) {
-                        document.body.removeChild(tempContainer);
-                    }
-                    console.error('Canvas conversion failed:', error);
-                    showToast('PDF generation failed. Please try again.', 'error');
+                    console.error(`Failed to capture section ${sectionData.name}:`, error);
+                    
+                    // Continue with next section
+                    currentSectionIndex++;
+                    addSectionToPDF();
                 });
-            }, 100);
+            }
+
+            // Start processing sections
+            addSectionToPDF();
         }
-
-            
-
-            
+        
     } catch (error) {
         // Cleanup on error
         if (tempContainer.parentNode) {
@@ -2277,6 +2351,14 @@ function generateCanvasBasedPDF() {
             
         
         
+
+
+
+
+
+
+
+
 
 
 
@@ -2344,11 +2426,6 @@ function generateReportHTML() {
             </h3>
             <div style="font-size: 16px; color: #155724; margin-bottom: 15px;">
                     <strong>Final Score:</strong> ${fmt(winnerTotalScore)}/5.0
-                    <!-- Commented out percentage display:
-                    <span style="background: #28a745; color: white; padding: 4px 12px; border-radius: 20px; font-size: 14px; margin-left: 10px;">
-                            ${Math.round((winnerTotalScore/5)*100)}%
-                    </span>
-                    -->
             </div>
             ${winner.option.description ? `
                 <p style="color: #155724; font-style: italic; margin: 10px 0;">
@@ -2387,58 +2464,50 @@ function generateReportHTML() {
         </div>
     `;
 
-
-        
-
-
-        
     // Complete rankings
-        // Calculate results with tie handling
-        const resultsWithRanks = assignRanksWithTies(advancedAnalytics.results);
+    const resultsWithRanks = assignRanksWithTies(advancedAnalytics.results);
+    
+    const resultsHtml = resultsWithRanks.map((result, index) => {
+        const percentage = Math.round((result.totalScore/5)*100);
+        let badgeColor = '#667eea';
+        let badgeText = result.rank;
         
-        const resultsHtml = resultsWithRanks.map((result, index) => {
-            const percentage = Math.round((result.totalScore/5)*100);
-            let badgeColor = '#667eea';
-            let badgeText = result.rank;
-            
-            if (result.rank === 1) {
-                badgeColor = '#28a745';
-                if (resultsWithRanks.filter(r => r.rank === 1).length > 1) {
-                    badgeText = `${result.rank}*`; // Indicate tie
-                }
-            } else if (result.isTied) {
-                badgeColor = '#ffc107';
+        if (result.rank === 1) {
+            badgeColor = '#28a745';
+            if (resultsWithRanks.filter(r => r.rank === 1).length > 1) {
                 badgeText = `${result.rank}*`; // Indicate tie
             }
-            
-            return `
-                <div style="display: flex; align-items: center; margin-bottom: 20px; padding: 20px; background: ${result.rank === 1 ? 'linear-gradient(135deg, #d4edda, #c3e6cb)' : '#f8f9fa'}; border-radius: 12px; border: 2px solid ${result.rank === 1 ? '#28a745' : '#e9ecef'};">
-                    <div style="width: 40px; height: 40px; background: ${badgeColor}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 20px; font-size: 18px;">
-                        ${badgeText}
-                    </div>
-                    <div style="flex: 1;">
-                        <div style="font-weight: bold; font-size: 18px; color: #333; margin-bottom: 8px;">
-                            ${safeText(result.option ? result.option.name : result.name)} ${result.rank === 1 ? '🏆' : ''}
-                            ${result.isTied ? '<span style="background: #fff3cd; color: #856404; padding: 2px 6px; border-radius: 8px; font-size: 12px; margin-left: 8px;">TIE</span>' : ''}
-                        </div>
-                        <div style="display: flex; align-items: center; margin-bottom: 8px;">
-                            <div style="width: 200px; height: 16px; background: #e9ecef; border-radius: 8px; margin-right: 15px; overflow: hidden;">
-                                <div style="width: ${percentage}%; height: 100%; background: ${badgeColor}; border-radius: 8px;"></div>
-                            </div>
-                            <span style="font-weight: bold; color: #667eea; font-size: 16px;">${fmt(result.totalScore)}/5.0 <!-- Commented out percentage: (${percentage}%) --></span>
-                        </div>
-                        ${result.option && result.option.description ? `
-                            <p style="color: #666; margin: 0; font-size: 14px; font-style: italic;">
-                                ${safeText(result.option.description)}
-                            </p>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-
+        } else if (result.isTied) {
+            badgeColor = '#ffc107';
+            badgeText = `${result.rank}*`; // Indicate tie
+        }
         
+        return `
+            <div style="display: flex; align-items: center; margin-bottom: 20px; padding: 20px; background: ${result.rank === 1 ? 'linear-gradient(135deg, #d4edda, #c3e6cb)' : '#f8f9fa'}; border-radius: 12px; border: 2px solid ${result.rank === 1 ? '#28a745' : '#e9ecef'};">
+                <div style="width: 40px; height: 40px; background: ${badgeColor}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 20px; font-size: 18px;">
+                    ${badgeText}
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-weight: bold; font-size: 18px; color: #333; margin-bottom: 8px;">
+                        ${safeText(result.option ? result.option.name : result.name)} ${result.rank === 1 ? '🏆' : ''}
+                        ${result.isTied ? '<span style="background: #fff3cd; color: #856404; padding: 2px 6px; border-radius: 8px; font-size: 12px; margin-left: 8px;">TIE</span>' : ''}
+                    </div>
+                    <div style="display: flex; align-items: center; margin-bottom: 8px;">
+                        <div style="width: 200px; height: 16px; background: #e9ecef; border-radius: 8px; margin-right: 15px; overflow: hidden;">
+                            <div style="width: ${percentage}%; height: 100%; background: ${badgeColor}; border-radius: 8px;"></div>
+                        </div>
+                        <span style="font-weight: bold; color: #667eea; font-size: 16px;">${fmt(result.totalScore)}/5.0</span>
+                    </div>
+                    ${result.option && result.option.description ? `
+                        <p style="color: #666; margin: 0; font-size: 14px; font-style: italic;">
+                            ${safeText(result.option.description)}
+                        </p>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+
     // Top contributing criteria computation
     const winnerContributions = [];
     if (decisionData.criteria && Array.isArray(decisionData.criteria)) {
@@ -2539,7 +2608,7 @@ function generateReportHTML() {
         stabilityText = 'Generally solid choice with some areas of concern';
     }
 
-    // Criteria weights distribution -IT WAS NOT SUPPOSED TO BE USED BUT THIS IS ONE ACTUALLY USED.
+    // Criteria weights distribution
     const criteriaHtml = decisionData.criteria.map((criteria, index) => {
         const weight = Math.round(safeNum(decisionData.normalizedWeights && decisionData.normalizedWeights[criteria.id], 0));
         const colors = CHART_COLORS;
@@ -2706,26 +2775,23 @@ function generateReportHTML() {
             </ul>
         </div>
     `;
-/**************************************************/
 
-    // Final return (single template literal)
+    // Final return (single template literal with section classes)
     return `
         <div style="max-width: 100%; margin: 0 auto;">
-            <!-- Logo as letterhead (above header) -->
-            <div style="text-align: center; padding: 30px 0; background: white;">
+            <!-- Header Section -->
+            <div class="pdf-section header-section" style="text-align: center; padding: 30px 0; background: white;">
                 <img src="images/Choicease logo.png" alt="Choicease Logo" style="height: 60px; width: auto; display: block; margin: 0 auto;">
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; margin: 20px -40px 40px -40px; text-align: center; border-radius: 0;">
+                    <h1 style="font-size: 32px; margin: 0 0 10px 0; font-weight: bold;">Advanced Decision Analysis</h1>
+                    <p style="font-size: 16px; margin: 0; opacity: 0.9;">Comprehensive Report with Analytics</p>
+                    <p style="font-size: 12px; margin: 10px 0 0 0; opacity: 0.8;">Generated by Choicease - Smart Choices, Made Easy</p>
+                </div>
             </div>
-            <!-- Header -->
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; margin: 0 -40px 40px -40px; text-align: center; border-radius: 0;">
-                <h1 style="font-size: 32px; margin: 0 0 10px 0; font-weight: bold;">Advanced Decision Analysis</h1>
-                <p style="font-size: 16px; margin: 0; opacity: 0.9;">Comprehensive Report with Analytics</p>
-                <p style="font-size: 12px; margin: 10px 0 0 0; opacity: 0.8;">Generated by Choicease - Smart Choices, Made Easy</p>
-            </div>
 
 
-
-            <!-- Decision Details -->
-            <div style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
+            <!-- Decision Details Section -->
+            <div class="pdf-section decision-details" style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 15px 0; font-size: 20px;">📋 Decision Details</h3>
                 <div style="margin-bottom: 15px;">
                     <h4 style="color: #333; margin: 0 0 8px 0; font-size: 18px;">${safeText(decisionData.title)}</h4>
@@ -2740,67 +2806,64 @@ function generateReportHTML() {
                 </div>
             </div>
 
-
-
-            <!-- Executive Summary -->
-            <div style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 3px solid #28a745; border-radius: 15px; padding: 30px; margin-bottom: 30px;">
+            <!-- Executive Summary Section -->
+            <!-- Executive Summary Section -->
+            <div class="pdf-section executive-summary" style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 3px solid #28a745; border-radius: 15px; padding: 30px; margin-bottom: 30px;">
                 <h2 style="color: #155724; margin: 0 0 15px 0; font-size: 24px;">🏆 Executive Summary</h2>
                 ${winnerDescriptionHtml}
                 ${confidenceBlockHtml}
             </div>
 
-                <div style="page-break-before: always; height: 1px; clear: both;"></div>
-                <!-- Winner Analysis -->
-                <div style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
-                    <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🏆 Winner Analysis</h3>
-                    
-                    <!-- Why Winner Won Section -->
-                    <div style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 2px solid #28a745; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-                        <h4 style="color: #155724; margin: 0 0 15px 0; font-size: 18px;">Why ${safeText(winner.option.name)} Won:</h4>
-                        ${topContributors.map(contrib => `
-                            <div style="display: flex; align-items: center; margin-bottom: 10px; padding: 10px; background: rgba(255,255,255,0.7); border-radius: 6px; border-left: 4px solid #28a745;">
-                                <div style="margin-right: 12px; color: #28a745; font-size: 16px;">▶</div>
-                                <div style="font-size: 14px;">
-                                    <strong>${safeText(contrib.name)}:</strong> 
-                                    Scored ${contrib.rating}/5 with ${contrib.weight}% importance weight
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-                    
-                    ${runnerUp ? `
-                        <!-- Close Alternative Section -->
-                        <div style="background: #e7f3ff; border: 2px solid #b3d7ff; border-radius: 12px; padding: 20px;">
-                            <h4 style="color: #0056b3; margin: 0 0 12px 0; font-size: 16px;">🔍 Close alternative to consider:</h4>
-                            <div style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 6px;">
-                                ${safeText(runnerUp.option.name)} (${fmt(runnerUp.totalScore)}/5.0, Δ ${fmt(confidence.gap)})
-                            </div>
-                            <div style="color: #0056b3; font-style: italic; font-size: 14px;">
-                                ${confidence.gap < 0.2 ? 'Very close race - consider both options!' : 
-                                  confidence.gap < 0.5 ? 'Close second choice worth considering' : 
-                                  'Clear winner, but this is a solid alternative'}
+            <!-- Winner Analysis Section -->
+            <div class="pdf-section winner-analysis" style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🏆 Winner Analysis</h3>
+                
+                <!-- Why Winner Won Section -->
+                <div style="background: linear-gradient(135deg, #d4edda, #c3e6cb); border: 2px solid #28a745; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                    <h4 style="color: #155724; margin: 0 0 15px 0; font-size: 18px;">Why ${safeText(winner.option.name)} Won:</h4>
+                    ${topContributors.map(contrib => `
+                        <div style="display: flex; align-items: center; margin-bottom: 10px; padding: 10px; background: rgba(255,255,255,0.7); border-radius: 6px; border-left: 4px solid #28a745;">
+                            <div style="margin-right: 12px; color: #28a745; font-size: 16px;">▶</div>
+                            <div style="font-size: 14px;">
+                                <strong>${safeText(contrib.name)}:</strong> 
+                                Scored ${contrib.rating}/5 with ${contrib.weight}% importance weight
                             </div>
                         </div>
-                    ` : ''}
+                    `).join('')}
                 </div>
-        
-            <div style="page-break-before: always; height: 1px; clear: both;"></div>
-            <!-- Complete Rankings -->
-            <div style="margin-bottom: 30px;">
+                
+                ${runnerUp ? `
+                    <!-- Close Alternative Section -->
+                    <div style="background: #e7f3ff; border: 2px solid #b3d7ff; border-radius: 12px; padding: 20px;">
+                        <h4 style="color: #0056b3; margin: 0 0 12px 0; font-size: 16px;">🔍 Close alternative to consider:</h4>
+                        <div style="font-size: 16px; font-weight: 600; color: #333; margin-bottom: 6px;">
+                            ${safeText(runnerUp.option.name)} (${fmt(runnerUp.totalScore)}/5.0, Δ ${fmt(confidence.gap)})
+                        </div>
+                        <div style="color: #0056b3; font-style: italic; font-size: 14px;">
+                            ${confidence.gap < 0.2 ? 'Very close race - consider both options!' : 
+                              confidence.gap < 0.5 ? 'Close second choice worth considering' : 
+                              'Clear winner, but this is a solid alternative'}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+
+            <!-- Complete Rankings Section -->
+            <div class="pdf-section complete-rankings" style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🏆 Complete Rankings & Analysis</h3>
                 ${resultsHtml}
             </div>
 
-            <div style="page-break-before: always; height: 1px; clear: both;"></div>
-            <!-- Top Contributing Criteria -->
-            <div style="background: #f8f9fa; border-radius: 12px; padding: 25px; margin-bottom: 30px;">
+            <!-- Top Contributing Criteria Section -->
+            <div class="pdf-section top-contributors" style="background: #f8f9fa; border-radius: 12px; padding: 25px; margin-bottom: 30px;">
                 <h3 style="color: #333; margin: 0 0 20px 0; font-size: 20px;">⭐ Top Contributing Criteria</h3>
                 ${topContributorsHtml}
             </div>
 
             ${differentiatorsHtml}
-            <!-- Decision Stability Assessment -->
-            <div style="background: white; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
+
+            <!-- Decision Stability Assessment Section -->
+            <div class="pdf-section decision-stability" style="background: white; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
                 <h3 style="color: #333; margin: 0 0 20px 0; font-size: 20px;">🎯 Decision Stability Assessment</h3>
                 <div style="display: flex; align-items: center; margin-bottom: 15px;">
                     <span style="font-weight: 600; margin-right: 15px; font-size: 16px;">Stability Level:</span>
@@ -2836,10 +2899,8 @@ function generateReportHTML() {
                 </div>
             </div>
 
-            
-            <div style="page-break-before: always; height: 1px; clear: both;"></div>
-            <!-- Performance Matrix -->
-            <div style="margin-bottom: 30px;">
+            <!-- Performance Matrix Section -->
+            <div class="pdf-section performance-matrix" style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">📊 Performance Matrix</h3>
                 <p style="color: #666; margin-bottom: 15px;">Detailed breakdown of how each option performed on each criteria:</p>
                 <div style="overflow-x: auto;">
@@ -2864,37 +2925,23 @@ function generateReportHTML() {
                 </div>
             </div>
 
-                <div style="page-break-before: always; height: 1px; clear: both;"></div>
-                <!-- Criteria Weights Distribution -->
-                <div style="background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
-                    <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🥧 Criteria Weights Distribution</h3>
-                    
-                    <!-- Pie Chart Placeholder -->
-                    <div id="pdfPieChartContainer" style="text-align: center; margin-bottom: 20px;">
-                        <!-- Pie chart will be injected here programmatically -->
-                    </div>
-                    
-                    <p style="color: #666; margin-bottom: 20px;">How much each criteria influenced the final decision:</p>
-                    <div style="max-width: 500px; margin: 0 auto;">
-                        ${criteriaHtml}
-                    </div>
+            <!-- Criteria Weights Distribution Section -->
+            <div class="pdf-section criteria-weights" style="background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🥧 Criteria Weights Distribution</h3>
+                
+                <!-- Pie Chart Placeholder -->
+                <div id="pdfPieChartContainer" style="text-align: center; margin-bottom: 20px;">
+                    <!-- Pie chart will be injected here programmatically -->
                 </div>
- 
+                
+                <p style="color: #666; margin-bottom: 20px;">How much each criteria influenced the final decision:</p>
+                <div style="max-width: 500px; margin: 0 auto;">
+                    ${criteriaHtml}
+                </div>
+            </div>
 
-
-
-
-
-
-
-
-
-
-
-
-            <div style="page-break-before: always; height: 1px; clear: both;"></div>
-            <!-- Sensitivity Analysis -->
-            <div style="margin-bottom: 30px;">
+            <!-- Sensitivity Analysis Section -->
+            <div class="pdf-section sensitivity-analysis" style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">⚖️ Sensitivity Analysis</h3>
                 <p style="color: #666; margin-bottom: 20px;">
                     How sensitive your decision is to changes in criteria weights. Lower flip points indicate more critical criteria.
@@ -2902,10 +2949,8 @@ function generateReportHTML() {
                 ${flipPointsHtml}
             </div>
 
-
-            <div style="page-break-before: always; height: 1px; clear: both;"></div>
-            <!-- What-If Analysis -->
-            <div style="margin-bottom: 30px;">
+            <!-- What-If Analysis Section -->
+            <div class="pdf-section what-if-analysis" style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🎛️ What-If Analysis</h3>
                 <p style="color: #666; margin-bottom: 20px;">
                     Comprehensive study of how changes in criteria weights affect the final ranking. This analysis helps validate decision robustness by showing which weight adjustments would change the winner, providing confidence in the stability of your choice.
@@ -2917,17 +2962,16 @@ function generateReportHTML() {
                 </div>
             </div>
 
-            <div style="page-break-before: always; height: 1px; clear: both;"></div>
-            <!-- Risk Analysis -->
-            <div style="margin-bottom: 30px;">
+            <!-- Risk Analysis Section -->
+            <div class="pdf-section risk-analysis" style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">⚠️ Risk Analysis</h3>
                 <div style="padding: 20px;">
                     ${risksHtml}
                 </div>
             </div>
 
-            <!-- Methodology -->
-            <div style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 20px;">
+            <!-- Methodology Section -->
+            <div class="pdf-section methodology" style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 15px; padding: 25px; margin-bottom: 20px;">
                 <h3 style="color: #667eea; margin: 0 0 15px 0; font-size: 20px;">📚 Methodology & Technical Details</h3>
                 
                 <div style="margin-bottom: 20px;">
@@ -2981,64 +3025,15 @@ function generateReportHTML() {
                 </div>
             </div>
 
-            <!-- Footer -->
-            <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #dee2e6; color: #666; font-size: 14px;">
+            <!-- Footer Section -->
+            <div class="pdf-section footer" style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #dee2e6; color: #666; font-size: 14px;">
                 <p style="margin: 0 0 5px 0; font-weight: 600;">Powered by Choicease - Smart Choices, Made Easy</p>
                 <p style="margin: 0 0 5px 0;">Visit: <strong>choicease.com</strong></p>
                 <p style="margin: 0; font-size: 12px; color: #888;">This report was generated using advanced decision analytics to help you make informed choices.</p>
             </div>
         </div>
     `;
-/**************************************/    
 }
-
-/* SMOKE TESTS */
-
-// Test 1: Missing analytics results
-// const html1 = generateReportHTML.call({
-//     advancedAnalytics: null,
-//     decisionData: { criteria: [] }
-// });
-// console.assert(typeof html1 === 'string' && html1.includes('No analytics results available'), 'Test 1 failed');
-
-// Test 2: Confidence capitalization and defaulting
-// const html2 = generateReportHTML.call({
-//     advancedAnalytics: {
-//         results: [{ option: { id: '1', name: 'TestOption' }, totalScore: 4.2 }],
-//         confidence: { level: 'High', percentage: 85, explanation: 'Test' }
-//     },
-//     decisionData: {
-//         title: 'Test Decision',
-//         criteria: [{ id: '1', name: 'TestCriteria' }],
-//         normalizedWeights: { '1': 100 },
-//         ratings: { '1-1': 4 },
-//         options: [{ id: '1', name: 'TestOption' }]
-//     }
-// });
-// console.assert(typeof html2 === 'string' && html2.includes('HIGH') && html2.includes('85%'), 'Test 2 failed');
-
-// Test 3: Empty flipPoints & risks
-// const html3 = generateReportHTML.call({
-//     advancedAnalytics: {
-//         results: [{ option: { id: '1', name: 'TestOption' }, totalScore: 4.2 }],
-//         confidence: { level: 'medium', percentage: 60, explanation: 'Test' },
-//         risks: []
-//     },
-//     decisionData: {
-//         title: 'Test Decision',
-//         criteria: [{ id: '1', name: 'TestCriteria' }],
-//         normalizedWeights: { '1': 100 },
-//         ratings: { '1-1': 4 },
-//         options: [{ id: '1', name: 'TestOption' }]
-//     },
-//     computeFlipPoints: () => []
-// });
-// console.assert(typeof html3 === 'string' && html3.includes('No Major Weaknesses Identified'), 'Test 3 failed');
-
-// All tests pass when the required global variables (advancedAnalytics, decisionData, computeFlipPoints) are properly set.
-
-
-
 
 
 
