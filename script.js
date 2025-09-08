@@ -2072,36 +2072,67 @@ function generateCanvasBasedPDF() {
         const reportContent = generateReportHTML();
         tempContainer.innerHTML = reportContent;
 
-       
-        // NOW INJECT THE PIE CHART
-        capturePieChartFromPage().then(pieChartImage => {
-            if (pieChartImage) {
-                // Find the pie chart placeholder
-                const placeholder = tempContainer.querySelector('#pdfPieChartContainer');
-                if (placeholder) {
-                    placeholder.innerHTML = `
-                        <img src="${pieChartImage}" 
-                             style="max-width: 350px; height: auto; border: 1px solid #dee2e6; border-radius: 8px; margin: 15px auto; display: block;" 
-                             alt="Criteria Importance Pie Chart">
-                        <p style="font-size: 12px; color: #666; margin-top: 10px; text-align: center;">
-                            Visual breakdown of criteria importance weights
-                        </p>
-                    `;
-                }
-            } else {
-                // Use the fallback table visualization
-                const placeholder = tempContainer.querySelector('#pdfPieChartContainer');
-                if (placeholder) {
-                    placeholder.innerHTML = `
-                        <div style="margin: 20px auto; max-width: 400px;">
-                            <p style="text-align: center; color: #666; margin-bottom: 15px; font-style: italic;">
-                                Pie chart not available - showing data table
-                            </p>
-                            ${renderWeightsTableForPDF()}
-                        </div>
-                    `;
-                }
-            }
+
+            // NOW INJECT THE PIE CHART
+                capturePieChartFromPage().then(pieChartImage => {
+                    if (pieChartImage) {
+                        // Find the pie chart placeholder
+                        const placeholder = tempContainer.querySelector('#pdfPieChartContainer');
+                        if (placeholder) {
+                            placeholder.innerHTML = `
+                                <img src="${pieChartImage}" 
+                                     style="max-width: 350px; height: auto; border: 1px solid #dee2e6; border-radius: 8px; margin: 15px auto; display: block;" 
+                                     alt="Criteria Importance Pie Chart">
+                                <p style="font-size: 12px; color: #666; margin-top: 10px; text-align: center;">
+                                    Visual breakdown of criteria importance weights
+                                </p>
+                            `;
+                        }
+                    } else {
+                        // Use the fallback table visualization
+                        const placeholder = tempContainer.querySelector('#pdfPieChartContainer');
+                        if (placeholder) {
+                            placeholder.innerHTML = `
+                                <div style="margin: 20px auto; max-width: 400px;">
+                                    <p style="text-align: center; color: #666; margin-bottom: 15px; font-style: italic;">
+                                        Pie chart not available - showing data table
+                                    </p>
+                                    ${renderWeightsTableForPDF()}
+                                </div>
+                            `;
+                        }
+                    }
+                
+                    // NOW INJECT THE WHAT-IF ANALYSIS
+                    return captureWhatIfAnalysisFromPage();
+                }).then(whatIfImage => {
+                    if (whatIfImage) {
+                        // Find the what-if analysis placeholder
+                        const placeholder = tempContainer.querySelector('#pdfWhatIfContainer');
+                        if (placeholder) {
+                            placeholder.innerHTML = `
+                                <img src="${whatIfImage}" 
+                                     style="max-width: 100%; height: auto; border: 1px solid #dee2e6; border-radius: 8px; margin: 15px auto; display: block;" 
+                                     alt="What-If Analysis">
+                                <p style="font-size: 12px; color: #666; margin-top: 10px; text-align: center;">
+                                    Interactive weight adjustment controls and updated rankings
+                                </p>
+                            `;
+                        }
+                    } else {
+                        // Use fallback text
+                        const placeholder = tempContainer.querySelector('#pdfWhatIfContainer');
+                        if (placeholder) {
+                            placeholder.innerHTML = `
+                                <div style="margin: 20px auto; padding: 30px; background: #f8f9fa; border-radius: 12px; text-align: center;">
+                                    <p style="color: #666; font-style: italic; margin: 0;">
+                                        What-if analysis not available in current view.<br>
+                                        This section shows interactive weight adjustments when advanced analytics are active.
+                                    </p>
+                                </div>
+                            `;
+                        }
+                    }
         
             // Wait for logo to load first, then convert to PDF
             const logoImg = new Image();
@@ -2116,16 +2147,28 @@ function generateCanvasBasedPDF() {
             logoImg.src = 'images/Choicease logo.png';
             
         }).catch(error => {
-            console.error('Pie chart capture failed:', error);
-            // Use the fallback table visualization
-            const placeholder = tempContainer.querySelector('#pdfPieChartContainer');
-            if (placeholder) {
-                placeholder.innerHTML = `
+            console.error('Analysis capture failed:', error);
+            // Use fallback for both pie chart and what-if analysis
+            const piePlaceholder = tempContainer.querySelector('#pdfPieChartContainer');
+            if (piePlaceholder) {
+                pieePlaceholder.innerHTML = `
                     <div style="margin: 20px auto; max-width: 400px;">
                         <p style="text-align: center; color: #666; margin-bottom: 15px; font-style: italic;">
                             Chart capture failed - showing data table
                         </p>
                         ${renderWeightsTableForPDF()}
+                    </div>
+                `;
+            }
+            
+            const whatIfPlaceholder = tempContainer.querySelector('#pdfWhatIfContainer');
+            if (whatIfPlaceholder) {
+                whatIfPlaceholder.innerHTML = `
+                    <div style="margin: 20px auto; padding: 30px; background: #f8f9fa; border-radius: 12px; text-align: center;">
+                        <p style="color: #666; font-style: italic; margin: 0;">
+                            What-if analysis capture failed.<br>
+                            This section shows interactive weight adjustments when advanced analytics are active.
+                        </p>
                     </div>
                 `;
             }
@@ -2850,8 +2893,27 @@ function generateReportHTML() {
                 ${flipPointsHtml}
             </div>
 
+
+            <div style="page-break-before: always; height: 1px; clear: both;"></div>
+            <!-- What-If Analysis -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🎛️ What-If Analysis</h3>
+                <p style="color: #666; margin-bottom: 20px;">
+                    Interactive analysis showing how changes in criteria weights affect the ranking. This helps validate decision robustness.
+                </p>
+                
+                <!-- What-If Analysis Image Placeholder -->
+                <div id="pdfWhatIfContainer" style="text-align: center; margin-bottom: 20px;">
+                    <!-- What-if analysis will be injected here programmatically -->
+                </div>
+            </div>
+
             <div style="page-break-before: always; height: 1px; clear: both;"></div>
             <!-- Risk Analysis -->
+            <div style="margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">⚠️ Risk Analysis</h3>
+
+            
             <div style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">⚠️ Risk Analysis</h3>
                 <div style="padding: 20px;">
@@ -3283,6 +3345,42 @@ function capturePieChartFromPage() {
 }
 
 
+
+
+function captureWhatIfAnalysisFromPage() {
+    return new Promise((resolve) => {
+        // Look for existing what-if analysis section on the page
+        const whatIfSection = document.getElementById('advancedWhatIf');
+        
+        if (whatIfSection && !whatIfSection.classList.contains('hidden')) {
+            console.log('Found what-if analysis section, capturing it...');
+            try {
+                // Use html2canvas to capture the what-if section
+                html2canvas(whatIfSection, {
+                    backgroundColor: '#ffffff',
+                    scale: 1.5,
+                    useCORS: true,
+                    allowTaint: true,
+                    width: whatIfSection.offsetWidth,
+                    height: whatIfSection.offsetHeight
+                }).then(canvas => {
+                    const imageData = canvas.toDataURL('image/png', 1.0);
+                    console.log('Successfully captured what-if analysis');
+                    resolve(imageData);
+                }).catch(error => {
+                    console.warn('Failed to capture what-if analysis:', error);
+                    resolve(null);
+                });
+                return;
+            } catch (error) {
+                console.warn('Error capturing what-if analysis:', error);
+            }
+        }
+        
+        console.log('No what-if analysis found or not visible');
+        resolve(null);
+    });
+}
 
 
 
