@@ -3358,11 +3358,11 @@ function exportResults() {
             const winners = resultsWithRanks.filter(r => r.rank === 1);
             if (winners.length > 1) {
                 doc.text(`Co-Winners: ${winners.map(w => w.name).join(', ')}`, 15, yPos + 16);
-                doc.text(`Tied Score: ${winners[0].totalScore.toFixed(2)}/5.0 (${Math.round((winners[0].totalScore/5)*100)}%)`, 15, yPos + 23);
+                doc.text(`Tied Score: ${winners[0].totalScore.toFixed(2)}/5.0`, 15, yPos + 23);
                 doc.text(`${winners.length} options tied for first place`, 15, yPos + 30);
             } else {
                 doc.text(`Recommended Choice: ${winners[0].name}`, 15, yPos + 16);
-                doc.text(`Score: ${winners[0].totalScore.toFixed(2)}/5.0 (${Math.round((winners[0].totalScore/5)*100)}%)`, 15, yPos + 23);
+                doc.text(`Score: ${winners[0].totalScore.toFixed(2)}/5.0`, 15, yPos + 23);
                 doc.text('Clear winner identified', 15, yPos + 30);
             }
             
@@ -3451,10 +3451,6 @@ function exportResults() {
                 doc.setFillColor(...(isWinner ? successColor : primaryColor));
                 doc.rect(45, barY, scoreWidth, 8, 'F');
                 
-                // Percentage
-                doc.setTextColor(...(isWinner ? successColor : primaryColor));
-                doc.setFont(undefined, 'bold');
-                doc.text(`${Math.round((result.totalScore/5)*100)}%`, 135, yPos + 28);
                 
                 yPos += cardHeight + 10;
             });
