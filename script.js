@@ -1467,7 +1467,8 @@ console.log('  - colors for table:', colors);
             decisionData.criteria.forEach((criteria, index) => {
                 const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
                 const color = colors[index];  // Use local array with index
-                
+console.log('  - index:', index);   
+console.log('  - color:', color);                
                 html += `
                     <div style="display: flex; align-items: center; justify-content: space-between; margin: 12px 0; padding: 12px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid ${color};">
                         <div style="display: flex; align-items: center;">
