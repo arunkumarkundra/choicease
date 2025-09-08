@@ -2196,23 +2196,48 @@ function generateCanvasBasedPDF() {
             console.log('Starting multi-section PDF generation...');
             
             // Define sections to capture separately
-            const sections = [
-                { selector: '.header-section', name: 'Header' },
-                { selector: '.decision-details', name: 'Decision Details' },
-                { selector: '.executive-summary', name: 'Executive Summary' },
-                { selector: '.winner-analysis', name: 'Winner Analysis' },
-                { selector: '.complete-rankings', name: 'Complete Rankings' },
-                { selector: '.top-contributors', name: 'Top Contributors' },
-                { selector: '.differentiating-factors', name: 'Differentiating Factors' },    
-                { selector: '.decision-stability', name: 'Decision Stability' },
-                { selector: '.performance-matrix', name: 'Performance Matrix' },
-                { selector: '.criteria-weights', name: 'Criteria Weights' },
-                { selector: '.sensitivity-analysis', name: 'Sensitivity Analysis' },
-                { selector: '.what-if-analysis', name: 'What-If Analysis' },
-                { selector: '.risk-analysis', name: 'Risk Analysis' },
-                { selector: '.methodology', name: 'Methodology' },
-                { selector: '.footer', name: 'Footer' }
-            ];
+                const sections = [
+                    { 
+                        selector: '.header-section, .decision-details, .executive-summary', 
+                        name: 'Page 1 - Overview' 
+                    },
+                    { 
+                        selector: '.winner-analysis', 
+                        name: 'Winner Analysis' 
+                    },
+                    { 
+                        selector: '.complete-rankings', 
+                        name: 'Complete Rankings' 
+                    },
+                    { 
+                        selector: '.top-contributors, .differentiating-factors, .decision-stability', 
+                        name: 'Page 4 - Analysis Details' 
+                    },
+                    { 
+                        selector: '.performance-matrix', 
+                        name: 'Performance Matrix' 
+                    },
+                    { 
+                        selector: '.criteria-weights', 
+                        name: 'Criteria Weights' 
+                    },
+                    { 
+                        selector: '.sensitivity-analysis', 
+                        name: 'Sensitivity Analysis' 
+                    },
+                    { 
+                        selector: '.what-if-analysis', 
+                        name: 'What-If Analysis' 
+                    },
+                    { 
+                        selector: '.risk-analysis, .methodology, .footer', 
+                        name: 'Page 9 - Risk & Methodology' 
+                    }
+                ];
+
+
+                
+                
 
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pageHeight = 280; // A4 page height in mm
