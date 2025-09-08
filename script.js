@@ -2112,84 +2112,71 @@ function generateCanvasBasedPDF() {
 
         // Function to handle the actual PDF conversion
         function convertToPDF() {
-            // Convert to PDF using html2canvas
-                // Force container to show full content
-                tempContainer.style.height = 'auto';
-                tempContainer.style.maxHeight = 'none';
-                tempContainer.style.overflow = 'visible';
+            // Force container to show full content
+            tempContainer.style.height = 'auto';
+            tempContainer.style.maxHeight = 'none';
+            tempContainer.style.overflow = 'visible';
+            
+            // Wait a moment for layout to settle
+            setTimeout(() => {
+                const finalHeight = Math.max(tempContainer.scrollHeight, tempContainer.offsetHeight, 4000);
+                console.log('Container heights - scroll:', tempContainer.scrollHeight, 'offset:', tempContainer.offsetHeight, 'using:', finalHeight);
                 
-                // Wait a moment for layout to settle
-                setTimeout(() => {
-                    const finalHeight = Math.max(tempContainer.scrollHeight, tempContainer.offsetHeight, 4000);
-                    console.log('Container heights - scroll:', tempContainer.scrollHeight, 'offset:', tempContainer.offsetHeight, 'using:', finalHeight);
-                    
-                    html2canvas(tempContainer, {
-                        backgroundColor: '#ffffff',
-                        scale: 1.5, // Reduced scale for better performance
-                        useCORS: true,
-                        allowTaint: true,
-                        width: 800,
-                        height: finalHeight,
-                        windowWidth: 800,
-                        windowHeight: finalHeight,
-                        scrollX: 0,
-                        scrollY: 0
-                    }).then(canvas => {
-                }, 100);
-                // Create PDF
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgWidth = 210; // A4 width in mm
-                const pageHeight = 280; // Reduced from 295 to leave margins
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                const totalPages = Math.ceil(imgHeight / pageHeight);
-                console.log(`PDF will have ${totalPages} pages, total height: ${imgHeight}mm`);
-                let heightLeft = imgHeight;
-                let position = 0;
-
-                // Add first page
-                pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-
-                // Add additional pages if needed
-                while (heightLeft >= 0) {
-                    position = heightLeft - imgHeight;
-                    pdf.addPage();
+                html2canvas(tempContainer, {
+                    backgroundColor: '#ffffff',
+                    scale: 1.5,
+                    useCORS: true,
+                    allowTaint: true,
+                    width: 800,
+                    height: finalHeight,
+                    windowWidth: 800,
+                    windowHeight: finalHeight,
+                    scrollX: 0,
+                    scrollY: 0
+                }).then(canvas => {
+                    // Create PDF - THIS MUST BE INSIDE THE .then() BLOCK
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const imgWidth = 210; // A4 width in mm
+                    const pageHeight = 280; // Reduced from 295 to leave margins
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    const totalPages = Math.ceil(imgHeight / pageHeight);
+                    console.log(`PDF will have ${totalPages} pages, total height: ${imgHeight}mm`);
+                    let heightLeft = imgHeight;
+                    let position = 0;
+        
+                    // Add first page
                     pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
                     heightLeft -= pageHeight;
-                }
-
-                // Download the PDF
-                const cleanTitle = String(decisionData.title || 'decision').replace(/[^a-z0-9]/gi, '_');
-                const fileName = `choicease_advanced_${cleanTitle}_${Date.now()}.pdf`;
-                pdf.save(fileName);
-
-                // Cleanup
-                document.body.removeChild(tempContainer);
-                
-                showToast('Advanced PDF Report generated successfully!', 'success');
-                console.log('Enhanced PDF generation completed successfully');
-            }).catch(error => {
-                // Cleanup on error
-                if (tempContainer.parentNode) {
-                    document.body.removeChild(tempContainer);
-                }
-                console.error('Canvas conversion failed:', error);
-                showToast('PDF generation failed. Please try again.', 'error');
-            });
-        }
         
-    } catch (error) {
-        // Cleanup on error
-        if (tempContainer.parentNode) {
-            document.body.removeChild(tempContainer);
+                    // Add additional pages if needed
+                    while (heightLeft >= 0) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+        
+                    // Download the PDF
+                    const cleanTitle = String(decisionData.title || 'decision').replace(/[^a-z0-9]/gi, '_');
+                    const fileName = `choicease_advanced_${cleanTitle}_${Date.now()}.pdf`;
+                    pdf.save(fileName);
+        
+                    // Cleanup
+                    document.body.removeChild(tempContainer);
+                    
+                    showToast('Advanced PDF Report generated successfully!', 'success');
+                    console.log('Enhanced PDF generation completed successfully');
+                    
+                }).catch(error => {
+                    // Cleanup on error
+                    if (tempContainer.parentNode) {
+                        document.body.removeChild(tempContainer);
+                    }
+                    console.error('Canvas conversion failed:', error);
+                    showToast('PDF generation failed. Please try again.', 'error');
+                });
+            }, 100);
         }
-        console.error('Error during PDF generation:', error);
-        showToast('PDF generation failed. Please try again.', 'error');
-    }
-}
-
-
-
 
 
 
