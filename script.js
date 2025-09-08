@@ -1295,16 +1295,38 @@ function setupRatingStep() {
                 
                 const ctx = canvas.getContext('2d');
                 const labels = decisionData.criteria.map(c => c.name);
-                const rawData = decisionData.criteria.map(c => decisionData.normalizedWeights[c.id] || 0);
+
+                // Get raw weights with minimum values to avoid zero slices
+                const rawData = decisionData.criteria.map(c => {
+                    const weight = decisionData.normalizedWeights[c.id] || 0;
+                    return Math.max(weight, 0.5); // Minimum 0.5% to ensure visible slice
+                });
+                
+                // Normalize to exactly 100
                 const total = rawData.reduce((sum, val) => sum + val, 0);
-                // Ensure data sums to exactly 100 by adjusting the largest value
-                const data = rawData.map(val => Math.round(val));
-                const dataTotal = data.reduce((sum, val) => sum + val, 0);
-                if (dataTotal !== 100 && data.length > 0) {
-                    const maxIndex = data.indexOf(Math.max(...data));
-                    data[maxIndex] += (100 - dataTotal);
-                }
+                const normalizedData = rawData.map(val => (val / total) * 100);
+                
+                // Round intelligently while maintaining sum of 100
+                let data = normalizedData.map(val => Math.floor(val));
+                let remainder = 100 - data.reduce((sum, val) => sum + val, 0);
+                
+                // Distribute remainder to largest values
+                if (remainder > 0) {
+                    const sortedIndices = normalizedData
+                        .map((val, idx) => ({ val, idx }))
+                        .sort((a, b) => b.val - a.val)
+                        .map(item => item.idx);
                     
+                    for (let i = 0; i < remainder && i < sortedIndices.length; i++) {
+                        data[sortedIndices[i]]++;
+                    }
+                }
+                
+                console.log('Pie chart data:', data, 'Total:', data.reduce((a, b) => a + b, 0));                    
+
+
+                    
+                                        
                 const colors = generateChartColors(labels.length);
                 
                 chartManager.charts.pie = new Chart(ctx, {
