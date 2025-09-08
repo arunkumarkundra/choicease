@@ -2912,10 +2912,6 @@ function generateReportHTML() {
             <!-- Risk Analysis -->
             <div style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">⚠️ Risk Analysis</h3>
-
-            
-            <div style="margin-bottom: 30px;">
-                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">⚠️ Risk Analysis</h3>
                 <div style="padding: 20px;">
                     ${risksHtml}
                 </div>
