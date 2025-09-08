@@ -3461,24 +3461,44 @@ function capturePieChartFromPage() {
         const existingCanvas = document.getElementById('weightsCanvas');
         
         if (existingCanvas && chartManager.charts.pie) {
-            console.log('Found existing pie chart, capturing it...');
+            console.log('Found existing pie chart, capturing canvas only...');
             try {
-                // Capture the existing chart directly
-                const imageData = existingCanvas.toDataURL('image/png', 1.0);
-                console.log('Successfully captured existing pie chart');
+                // Get the Chart.js instance
+                const chart = chartManager.charts.pie;
+                
+                // Create a new canvas to capture just the chart area (no legend)
+                const tempCanvas = document.createElement('canvas');
+                const chartArea = chart.chartArea;
+                
+                // Set canvas size to just the chart area
+                const chartWidth = chartArea.right - chartArea.left;
+                const chartHeight = chartArea.bottom - chartArea.top;
+                
+                tempCanvas.width = chartWidth;
+                tempCanvas.height = chartHeight;
+                const tempCtx = tempCanvas.getContext('2d');
+                
+                // Copy just the chart area from the original canvas
+                tempCtx.drawImage(
+                    existingCanvas,
+                    chartArea.left, chartArea.top, chartWidth, chartHeight,  // Source
+                    0, 0, chartWidth, chartHeight                            // Destination
+                );
+                
+                const imageData = tempCanvas.toDataURL('image/png', 1.0);
+                console.log('Successfully captured pie chart area only');
                 resolve(imageData);
-                return;
+                
             } catch (error) {
-                console.warn('Failed to capture existing chart:', error);
+                console.warn('Failed to capture chart area:', error);
+                resolve(null);
             }
+        } else {
+            console.log('No existing chart found');
+            resolve(null);
         }
-        
-        // Fallback: Create a simple table-based visualization
-        console.log('No existing chart found, creating fallback visualization...');
-        resolve(null);
     });
 }
-
 
 
 
