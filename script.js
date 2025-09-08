@@ -2715,7 +2715,7 @@ function generateReportHTML() {
                     ` : ''}
                 </div>
         
-            <div style="page-break-before: always; background: red; height: 50px; color: white; text-align: center; padding: 20px;">PAGE BREAK TEST</div>
+            <div style="page-break-before: always; height: 1px; clear: both;"></div>
             <!-- Complete Rankings -->
             <div style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🏆 Complete Rankings & Analysis</h3>
