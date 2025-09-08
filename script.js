@@ -3364,7 +3364,7 @@ function captureWhatIfAnalysisFromPage() {
                     weightsTable.style.cssText = 'margin-bottom: 20px;';
                     
                     const title = document.createElement('h4');
-                    title.textContent = 'Current Weight Settings';
+                    title.textContent = 'Weight Settings for Analysis';
                     title.style.cssText = 'margin-bottom: 15px; color: #333; font-size: 16px;';
                     weightsTable.appendChild(title);
                     
