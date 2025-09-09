@@ -2093,7 +2093,7 @@ function generateCanvasBasedPDF() {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         color: #333;
         line-height: 1.6;
-        padding: 40px;
+        padding: 80px;
     `;
     document.body.appendChild(tempContainer);
 
