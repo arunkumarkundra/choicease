@@ -612,10 +612,10 @@ function setupRatingStep() {
                 <div class="rating-row">
                     <span class="option-name">${option.name}</span>
                     <div class="rating-controls">
-                        <span style="font-size: 0.9rem; color: #666;">[1]</span>
-                        <input type="range" min="1" max="5" value="${currentRating}" 
+                        <span style="font-size: 0.9rem; color: #666;">[0]</span>
+                        <input type="range" min="0" max="5" value="${currentRating}" 
                                class="slider" role="slider" aria-label="Rating for ${option.name} on ${criteria.name}"
-                               aria-valuemin="1" aria-valuemax="5" aria-valuenow="${currentRating}"
+                               aria-valuemin="0" aria-valuemax="5" aria-valuenow="${currentRating}"
                                onchange="updateRating('${ratingKey}', this.value)">
                         <span style="font-size: 0.9rem; color: #666;">[5]</span>
                         <span id="rating-${ratingKey}" style="font-weight: bold; color: #667eea; min-width: 20px;">${currentRating}</span>
@@ -659,7 +659,7 @@ function setupRatingStep() {
                 const criteriaScores = {};
                 decisionData.criteria.forEach(criteria => {
                     const ratingKey = `${option.id}-${criteria.id}`;
-                    const rating = decisionData.ratings[ratingKey] || 3;
+                    const rating = decisionData.ratings[ratingKey] || 2; // Default value changed to 2 from 3
                     const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
                     const score = rating * weight;
                     criteriaScores[criteria.name] = {
@@ -970,22 +970,32 @@ function setupRatingStep() {
         }
         
         // Risk analysis computation
+        // Update risk severity classification
         function computeRiskAnalysis(results) {
             const risks = [];
             const winner = results[0];
             
             decisionData.criteria.forEach(criteria => {
                 const ratingKey = `${winner.option.id}-${criteria.id}`;
-                const rating = decisionData.ratings[ratingKey] || 3;
+                const rating = decisionData.ratings[ratingKey] || 2;
                 const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
                 
-                if (rating <= 2) {
+                if (rating <= 1) {
+                    let severity, description;
+                    if (rating === 0) {
+                        severity = 'critical';
+                        description = `Unacceptable performance (${rating}/5) with ${weight}% importance - serious concern`;
+                    } else { // rating === 1
+                        severity = 'high';
+                        description = `Poor performance (${rating}/5) with ${weight}% importance`;
+                    }
+                    
                     risks.push({
                         criteriaName: criteria.name,
                         rating: rating,
                         weight: weight,
-                        severity: rating === 1 ? 'high' : 'moderate',
-                        description: `Low performance (${rating}/5) with ${weight}% importance`
+                        severity: severity,
+                        description: description
                     });
                 }
             });
@@ -1008,7 +1018,7 @@ function setupRatingStep() {
             const winnerContributions = [];
             decisionData.criteria.forEach(criteria => {
                 const ratingKey = `${winner.option.id}-${criteria.id}`;
-                const rating = decisionData.ratings[ratingKey] || 3;
+                const rating = decisionData.ratings[ratingKey] || 2; // Default value changed to 2 from 3
                 const weight = decisionData.normalizedWeights[criteria.id] || 0;
                 const contribution = rating * (weight / 100);
                 winnerContributions.push({
@@ -1199,7 +1209,7 @@ function setupRatingStep() {
             const winnerContributions = [];
             decisionData.criteria.forEach(criteria => {
                 const ratingKey = `${winner.option.id}-${criteria.id}`;
-                const rating = decisionData.ratings[ratingKey] || 3;
+                const rating = decisionData.ratings[ratingKey] || 2; // Default value changed to 2 from 3
                 const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
                 const contribution = rating * (weight / 100);
                 winnerContributions.push({
@@ -1480,133 +1490,146 @@ console.log('  - colors for pie chart:', colors);
 
 
 
-
-        function renderPerformanceHeatmap() {
-            const container = document.getElementById('advancedHeatmap');
-            if (!container || !advancedAnalytics.results) return;
+function renderPerformanceHeatmap() {
+    const container = document.getElementById('advancedHeatmap');
+    if (!container || !advancedAnalytics.results) return;
+    
+    const options = decisionData.options;
+    const criteria = decisionData.criteria;
+    
+    let html = `
+        <div style="padding: 20px;">
+            <p style="color: #666; margin-bottom: 20px;">Performance matrix showing how each option rates on each criteria. Colors range from dark red (unacceptable) to dark green (excellent).</p>
+            <div class="heatmap-container" style="overflow-x: auto;">
+                <table class="heatmap-table" style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                    <thead>
+                        <tr>
+                            <th style="padding: 12px; background: #f8f9fa; border: 1px solid #dee2e6; font-weight: 600;">Option</th>
+    `;
+    
+    // Add criteria headers
+    criteria.forEach(crit => {
+        const weight = Math.round(decisionData.normalizedWeights[crit.id] || 0);
+        html += `<th style="padding: 12px; background: #f8f9fa; border: 1px solid #dee2e6; font-weight: 600; text-align: center; min-width: 120px;">
+                    ${crit.name}<br><small style="color: #666;">(${weight}%)</small>
+                 </th>`;
+    });
+    
+    html += `
+                            <th style="padding: 12px; background: #f8f9fa; border: 1px solid #dee2e6; font-weight: 600; text-align: center;">Total Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+    
+    // Add option rows
+    advancedAnalytics.results.forEach((result, optIndex) => {
+        html += `<tr>
+                    <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600; background: #f8f9fa;">
+                        ${result.option.name}
+                    </td>`;
+        
+        criteria.forEach(crit => {
+            const ratingKey = `${result.option.id}-${crit.id}`;
+            const rating = decisionData.ratings[ratingKey] || 2; // Changed from 3 to 2
+            const weight = (decisionData.normalizedWeights[crit.id] || 0) / 100;
+            const weightedScore = rating * weight;
             
-            const options = decisionData.options;
-            const criteria = decisionData.criteria;
+            // Updated heatmap color scheme for 0-5 scale
+            const { backgroundColor, textColor } = getHeatmapColors(rating);
             
-            let html = `
-                <div style="padding: 20px;">
-                    <p style="color: #666; margin-bottom: 20px;">Performance matrix showing how each option rates on each criteria. Colors range from red (poor) to green (excellent).</p>
-                    <div class="heatmap-container" style="overflow-x: auto;">
-                        <table class="heatmap-table" style="width: 100%; border-collapse: collapse; margin: 20px 0;">
-                            <thead>
-                                <tr>
-                                    <th style="padding: 12px; background: #f8f9fa; border: 1px solid #dee2e6; font-weight: 600;">Option</th>
-            `;
-            
-            // Add criteria headers
-            criteria.forEach(crit => {
-                const weight = Math.round(decisionData.normalizedWeights[crit.id] || 0);
-                html += `<th style="padding: 12px; background: #f8f9fa; border: 1px solid #dee2e6; font-weight: 600; text-align: center; min-width: 120px;">
-                            ${crit.name}<br><small style="color: #666;">(${weight}%)</small>
-                         </th>`;
-            });
-            
-            html += `
-                                <th style="padding: 12px; background: #f8f9fa; border: 1px solid #dee2e6; font-weight: 600; text-align: center;">Total Score</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-            
-            // Add option rows
-            advancedAnalytics.results.forEach((result, optIndex) => {
-                html += `<tr>
-                            <td style="padding: 12px; border: 1px solid #dee2e6; font-weight: 600; background: #f8f9fa;">
-                                ${result.option.name}
-                            </td>`;
-                
-                criteria.forEach(crit => {
-                    const ratingKey = `${result.option.id}-${crit.id}`;
-                    const rating = decisionData.ratings[ratingKey] || 3;
-                    const weight = (decisionData.normalizedWeights[crit.id] || 0) / 100;
-                    const weightedScore = rating * weight;
-                    
-                    // Accessible heatmap color scheme
-                    const { backgroundColor, textColor } = getHeatmapColors(rating);
-                    
-                    html += `<td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: ${backgroundColor}; color: ${textColor}; position: relative;" 
-                                  title="Rating: ${rating}/5, Weight: ${Math.round(weight * 100)}%, Weighted Score: ${weightedScore.toFixed(2)}">
-                                <div style="font-weight: 600; font-size: 1.1rem;">${rating}</div>
-                                <div style="font-size: 0.8rem; opacity: 0.8;">${weightedScore.toFixed(2)}</div>
-                             </td>`;
-                });
-                
-                // Total score column with gradient
-                const { backgroundColor: totalBg, textColor: totalText } = getTotalScoreColors(result.totalScore, optIndex === 0);
-                html += `<td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: ${totalBg}; color: ${totalText}; font-weight: bold;">
-                            ${result.totalScore.toFixed(2)}
-                         </td>`;
-                
-                html += '</tr>';
-            });
-            
-            html += `
-                        </tbody>
-                    </table>
-                    <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 0.9rem;">
-                        <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
-                            <div><strong>Color Legend:</strong></div>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <div style="width: 20px; height: 20px; background: #ffcdd2; border: 1px solid #ccc; border-radius: 3px;"></div>
-                                <span>1 (Poor)</span>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <div style="width: 20px; height: 20px; background: #ffcc80; border: 1px solid #ccc; border-radius: 3px;"></div>
-                                <span>2 (Fair)</span>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <div style="width: 20px; height: 20px; background: #fff176; border: 1px solid #ccc; border-radius: 3px;"></div>
-                                <span>3 (Good)</span>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <div style="width: 20px; height: 20px; background: #a5d6a7; border: 1px solid #ccc; border-radius: 3px;"></div>
-                                <span>4 (Very Good)</span>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <div style="width: 20px; height: 20px; background: #66bb6a; border: 1px solid #ccc; border-radius: 3px;"></div>
-                                <span>5 (Excellent)</span>
-                            </div>
+            html += `<td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: ${backgroundColor}; color: ${textColor}; position: relative;" 
+                          title="Rating: ${rating}/5, Weight: ${Math.round(weight * 100)}%, Weighted Score: ${weightedScore.toFixed(2)}">
+                        <div style="font-weight: 600; font-size: 1.1rem;">${rating}</div>
+                        <div style="font-size: 0.8rem; opacity: 0.8;">${weightedScore.toFixed(2)}</div>
+                     </td>`;
+        });
+        
+        // Total score column with gradient
+        const { backgroundColor: totalBg, textColor: totalText } = getTotalScoreColors(result.totalScore, optIndex === 0);
+        html += `<td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: ${totalBg}; color: ${totalText}; font-weight: bold;">
+                    ${result.totalScore.toFixed(2)}
+                 </td>`;
+        
+        html += '</tr>';
+    });
+    
+    html += `
+                    </tbody>
+                </table>
+                <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 0.9rem;">
+                    <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                        <div><strong>Color Legend:</strong></div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 20px; height: 20px; background: #ffcdd2; border: 1px solid #ccc; border-radius: 3px;"></div>
+                            <span>0 (Unacceptable)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 20px; height: 20px; background: #ffebee; border: 1px solid #ccc; border-radius: 3px;"></div>
+                            <span>1 (Poor)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 20px; height: 20px; background: #fff3e0; border: 1px solid #ccc; border-radius: 3px;"></div>
+                            <span>2 (Fair)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 20px; height: 20px; background: #fffde7; border: 1px solid #ccc; border-radius: 3px;"></div>
+                            <span>3 (Good)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 20px; height: 20px; background: #a5d6a7; border: 1px solid #ccc; border-radius: 3px;"></div>
+                            <span>4 (Very Good)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 20px; height: 20px; background: #66bb6a; border: 1px solid #ccc; border-radius: 3px;"></div>
+                            <span>5 (Excellent)</span>
                         </div>
                     </div>
                 </div>
-            `;
-            
-            container.innerHTML = html;
-        }
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+
+
+
+
         
-        // Helper function for accessible heatmap colors
+        // Helper function for accessible heatmap colors (UPDATED for 0-5 scale)
         function getHeatmapColors(rating) {
             const colorSchemes = {
-                1: { backgroundColor: '#ffebee', textColor: '#c62828' }, // Light red background, dark red text
-                2: { backgroundColor: '#fff3e0', textColor: '#e65100' }, // Light orange background, dark orange text
-                3: { backgroundColor: '#fffde7', textColor: '#f57f17' }, // Light yellow background, dark yellow text
-                4: { backgroundColor: '#e8f5e8', textColor: '#2e7d32' }, // Light green background, dark green text
-                5: { backgroundColor: '#c8e6c9', textColor: '#1b5e20' }  // Medium green background, dark green text
+                0: { backgroundColor: '#ffcdd2', textColor: '#b71c1c' }, // Unacceptable - Dark red
+                1: { backgroundColor: '#ffebee', textColor: '#c62828' }, // Poor - Light red  
+                2: { backgroundColor: '#fff3e0', textColor: '#e65100' }, // Fair - Orange
+                3: { backgroundColor: '#fffde7', textColor: '#f57f17' }, // Good - Yellow
+                4: { backgroundColor: '#a5d6a7', textColor: '#2e7d32' }, // Very Good - Light green
+                5: { backgroundColor: '#66bb6a', textColor: '#1b5e20' }  // Excellent - Dark green
             };
             
-            return colorSchemes[rating] || colorSchemes[3];
+            return colorSchemes[rating] || colorSchemes[2]; // Default to Fair (2) instead of Good (3)
         }
         
         // Helper function for total score colors
+        // Helper function for total score colors (UPDATED for better 0-5 scale distribution)
         function getTotalScoreColors(score, isWinner) {
             if (isWinner) {
                 return { backgroundColor: '#c8e6c9', textColor: '#1b5e20' };
             }
             
-            // Color based on score range
+            // Color based on score range (adjusted for 0-5 scale with better distribution)
             if (score >= 4.0) {
                 return { backgroundColor: '#e8f5e8', textColor: '#2e7d32' };
             } else if (score >= 3.0) {
                 return { backgroundColor: '#fffde7', textColor: '#f57f17' };
-            } else if (score >= 2.0) {
+            } else if (score >= 1.5) {
                 return { backgroundColor: '#fff3e0', textColor: '#e65100' };
-            } else {
+            } else if (score >= 0.5) {
                 return { backgroundColor: '#ffebee', textColor: '#c62828' };
+            } else {
+                return { backgroundColor: '#ffcdd2', textColor: '#b71c1c' };
             }
         }
 
@@ -2877,36 +2900,37 @@ function generateReportHTML() {
     `;
 
     // Risk analysis with mitigation recommendations
-    const risksHtml = risks.length === 0 ? `
-        <div style="text-align: center; padding: 25px; background: #d4edda; border-radius: 12px; border: 2px solid #28a745;">
-            <h4 style="color: #155724; margin: 0 0 10px 0; font-size: 18px;">✅ No Major Weaknesses Identified</h4>
-            <p style="color: #155724; margin: 0; font-size: 14px;">Your top choice performs well across all criteria.</p>
-        </div>
-    ` : `
-        <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
-            Areas where <strong>${safeText(winner.option.name)}</strong> could be vulnerable:
-        </p>
-        ${risks.map(risk => `
-            <div style="background: ${risk.severity === 'high' ? '#f8d7da' : '#fff3cd'}; border: 1px solid ${risk.severity === 'high' ? '#f5c6cb' : '#ffeaa7'}; border-radius: 8px; padding: 15px; margin: 10px 0; border-left: 4px solid ${risk.severity === 'high' ? '#dc3545' : '#ffc107'};">
-                <div style="font-weight: 600; color: ${risk.severity === 'high' ? '#721c24' : '#856404'}; margin-bottom: 8px; font-size: 14px;">
-                    ${risk.severity === 'high' ? '🔴' : '🟡'} ${safeText(risk.criteriaName)}
-                </div>
-                <div style="font-size: 13px; color: ${risk.severity === 'high' ? '#721c24' : '#856404'};">
-                    ${safeText(risk.description)}
-                </div>
+        const risksHtml = risks.length === 0 ? `
+            <div style="text-align: center; padding: 25px; background: #d4edda; border-radius: 12px; border: 2px solid #28a745;">
+                <h4 style="color: #155724; margin: 0 0 10px 0; font-size: 18px;">✅ No Major Weaknesses Identified</h4>
+                <p style="color: #155724; margin: 0; font-size: 14px;">Your top choice performs well across all criteria.</p>
             </div>
-        `).join('')}
-        
-        <div style="margin-top: 20px; padding: 15px; background: #e7f3ff; border: 1px solid #b3d7ff; border-radius: 8px;">
-            <h4 style="color: #0056b3; margin: 0 0 10px 0; font-size: 14px;">💡 Risk Mitigation Recommendations</h4>
-            <ul style="margin: 0; padding-left: 20px; color: #0056b3; font-size: 13px; line-height: 1.5;">
-                <li>Consider if low-scoring criteria can be improved post-decision</li>
-                <li>Evaluate if alternative options perform better in critical weak areas</li>
-                <li>Assess whether poor performance in these areas is acceptable given your priorities</li>
-                ${risks.length > 2 ? '<li>Consider if you have too many criteria with conflicting requirements</li>' : ''}
-            </ul>
-        </div>
-    `;
+        ` : `
+            <p style="color: #666; margin-bottom: 20px; font-size: 14px;">
+                Areas where <strong>${safeText(winner.option.name)}</strong> could be vulnerable:
+            </p>
+            ${risks.map(risk => `
+                <div style="background: ${risk.severity === 'critical' ? '#ffcdd2' : risk.severity === 'high' ? '#f8d7da' : '#fff3cd'}; border: 1px solid ${risk.severity === 'critical' ? '#f5c6cb' : risk.severity === 'high' ? '#f5c6cb' : '#ffeaa7'}; border-radius: 8px; padding: 15px; margin: 10px 0; border-left: 4px solid ${risk.severity === 'critical' ? '#b71c1c' : risk.severity === 'high' ? '#dc3545' : '#ffc107'};">
+                    <div style="font-weight: 600; color: ${risk.severity === 'critical' ? '#b71c1c' : risk.severity === 'high' ? '#721c24' : '#856404'}; margin-bottom: 8px; font-size: 14px;">
+                        ${risk.severity === 'critical' ? '🚫' : risk.severity === 'high' ? '🔴' : '🟡'} ${safeText(risk.criteriaName)}
+                    </div>
+                    <div style="font-size: 13px; color: ${risk.severity === 'critical' ? '#b71c1c' : risk.severity === 'high' ? '#721c24' : '#856404'};">
+                        ${safeText(risk.description)}
+                    </div>
+                </div>
+            `).join('')}
+            
+            <div style="margin-top: 20px; padding: 15px; background: #e7f3ff; border: 1px solid #b3d7ff; border-radius: 8px;">
+                <h4 style="color: #0056b3; margin: 0 0 10px 0; font-size: 14px;">💡 Risk Mitigation Recommendations</h4>
+                <ul style="margin: 0; padding-left: 20px; color: #0056b3; font-size: 13px; line-height: 1.5;">
+                    <li>Consider if low-scoring criteria can be improved post-decision</li>
+                    <li>Evaluate if alternative options perform better in critical weak areas</li>
+                    <li>Assess whether poor performance in these areas is acceptable given your priorities</li>
+                    ${risks.some(r => r.severity === 'critical') ? '<li>⚠️ <strong>Critical risks detected</strong> - consider if these options are truly viable</li>' : ''}
+                    ${risks.length > 2 ? '<li>Consider if you have too many criteria with conflicting requirements</li>' : ''}
+                </ul>
+            </div>
+        `;
 
     // Final return (single template literal with section classes)
     return `
@@ -3042,8 +3066,16 @@ function generateReportHTML() {
                     <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
                         <div><strong>Color Legend:</strong></div>
                         <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 16px; height: 16px; background: #ffcdd2; border: 1px solid #ccc;"></div>
+                            <span>0 (Unacceptable)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
                             <div style="width: 16px; height: 16px; background: #ffebee; border: 1px solid #ccc;"></div>
-                            <span>1-2 (Poor-Fair)</span>
+                            <span>1 (Poor)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 16px; height: 16px; background: #fff3e0; border: 1px solid #ccc;"></div>
+                            <span>2 (Fair)</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <div style="width: 16px; height: 16px; background: #fffde7; border: 1px solid #ccc;"></div>
@@ -3051,7 +3083,11 @@ function generateReportHTML() {
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <div style="width: 16px; height: 16px; background: #e8f5e8; border: 1px solid #ccc;"></div>
-                            <span>4-5 (Very Good-Excellent)</span>
+                            <span>4 (Very Good)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div style="width: 16px; height: 16px; background: #c8e6c9; border: 1px solid #ccc;"></div>
+                            <span>5 (Excellent)</span>
                         </div>
                     </div>
                 </div>
@@ -3109,7 +3145,7 @@ function generateReportHTML() {
                 <div style="margin-bottom: 20px;">
                     <h4 style="color: #333; margin: 0 0 10px 0; font-size: 16px;">Analysis Method: Weighted Multi-Criteria Decision Analysis</h4>
                     <ul style="margin: 0; padding-left: 20px; line-height: 1.8; color: #333; font-size: 14px;">
-                        <li>Each option is rated 1-5 on each criteria (1=Poor, 5=Excellent)</li>
+                        <li>Each option is rated 0-5 on each criteria (0=Unacceptable, 1=Poor, 2=Fair, 3=Good, 4=Very Good, 5=Excellent)</li>
                         <li>Criteria importance weights are normalized to 100% total</li>
                         <li>Final scores = Σ(rating × normalized_weight) for each option</li>
                         <li>Options with identical scores receive the same rank</li>
@@ -3891,7 +3927,7 @@ function captureWhatIfAnalysisFromPage() {
             doc.setFont(undefined, 'normal');
             const methodology = [
                 'This analysis uses a weighted scoring model where:',
-                '• Each option is rated 1-5 on each criteria',
+                '• Each option is rated 0-5 on each criteria (0=Unacceptable, 5=Excellent)',
                 '• Criteria importance weights are normalized to 100%',
                 '• Final scores = Σ(rating × weight) for each option',
                 '• Options with identical scores receive the same rank',
@@ -3941,7 +3977,7 @@ function captureWhatIfAnalysisFromPage() {
                 const criteriaScores = {};
                 decisionData.criteria.forEach(criteria => {
                     const ratingKey = `${option.id}-${criteria.id}`;
-                    const rating = decisionData.ratings[ratingKey] || 3;
+                    const rating = decisionData.ratings[ratingKey] || 2; // Default value changed to 2 from 3
                     const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
                     const score = rating * weight;
                     criteriaScores[criteria.name] = {
@@ -4044,7 +4080,7 @@ function exportToCSV() {
         
         decisionData.criteria.forEach(criteria => {
             const ratingKey = `${option.id}-${criteria.id}`;
-            const rating = decisionData.ratings[ratingKey] || 3;
+            const rating = decisionData.ratings[ratingKey] || 2; // Default value changed to 2 from 3
             const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
             const score = rating * weight;
             criteriaScores[criteria.name] = {
@@ -4127,10 +4163,11 @@ function exportToCSV() {
     csvContent += '\n';
     csvContent += 'METHODOLOGY\n';
     csvContent += 'Scoring Method,"Weighted Multi-Criteria Decision Analysis"\n';
-    csvContent += 'Rating Scale,"1-5 (1=Poor, 5=Excellent)"\n';
+    csvContent += 'Rating Scale,"0-5 (0=Unacceptable, 1=Poor, 2=Fair, 3=Good, 4=Very Good, 5=Excellent)"\n';
     csvContent += 'Weight Calculation,"Normalized to 100% based on importance ratings"\n';
     csvContent += 'Final Score Formula,"Sum of (Rating x Weight) for each criteria"\n';
     csvContent += 'Maximum Possible Score,5.0\n';
+    csvContent += 'Default Rating,2 (Fair)\n';
     
     // Create and download CSV file
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -4182,7 +4219,7 @@ function getTopChoice() {
         let totalScore = 0;
         decisionData.criteria.forEach(criteria => {
             const ratingKey = `${option.id}-${criteria.id}`;
-            const rating = decisionData.ratings[ratingKey] || 3;
+            const rating = decisionData.ratings[ratingKey] || 2; // Default value changed to 2 from 3
             const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
             totalScore += rating * weight;
         });
@@ -4198,7 +4235,7 @@ function getTopScore() {
         let totalScore = 0;
         decisionData.criteria.forEach(criteria => {
             const ratingKey = `${option.id}-${criteria.id}`;
-            const rating = decisionData.ratings[ratingKey] || 3;
+            const rating = decisionData.ratings[ratingKey] || 2; // Default value changed to 2 from 3
             const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
             totalScore += rating * weight;
         });
@@ -4217,7 +4254,7 @@ function createShareableImage() {
             let totalScore = 0;
             decisionData.criteria.forEach(criteria => {
                 const ratingKey = `${option.id}-${criteria.id}`;
-                const rating = decisionData.ratings[ratingKey] || 3;
+                const rating = decisionData.ratings[ratingKey] || 2; // Default value changed to 2 from 3
                 const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
                 totalScore += rating * weight;
             });
