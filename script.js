@@ -607,7 +607,7 @@ function setupRatingStep() {
         `;
         decisionData.options.forEach(option => {
             const ratingKey = `${option.id}-${criteria.id}`;
-            const currentRating = decisionData.ratings[ratingKey] || 3;
+            const currentRating = decisionData.ratings[ratingKey] ?? 2;
             html += `
                 <div class="rating-row">
                     <span class="option-name">${option.name}</span>
@@ -936,8 +936,8 @@ function setupRatingStep() {
             const runnerUp = advancedAnalytics.results[1];
             
             decisionData.criteria.forEach(criteria => {
-                const winnerRating = winner.criteriaScores[criteria.name]?.rating || 3;
-                const runnerUpRating = runnerUp.criteriaScores[criteria.name]?.rating || 3;
+                const winnerRating = winner.criteriaScores[criteria.name]?.rating ?? 2;
+                const runnerUpRating = runnerUp.criteriaScores[criteria.name]?.rating ?? 2;
                 const currentWeight = (decisionData.normalizedWeights[criteria.id] || 0);
                 
                 // Simplified flip point calculation
@@ -1038,8 +1038,8 @@ function setupRatingStep() {
                 decisionData.criteria.forEach(criteria => {
                     const winnerRatingKey = `${winner.option.id}-${criteria.id}`;
                     const runnerUpRatingKey = `${runnerUp.option.id}-${criteria.id}`;
-                    const winnerRating = decisionData.ratings[winnerRatingKey] || 3;
-                    const runnerUpRating = decisionData.ratings[runnerUpRatingKey] || 3;
+                    const winnerRating = decisionData.ratings[winnerRatingKey] ?? 2;
+                    const runnerUpRating = decisionData.ratings[runnerUpRatingKey] ?? 2;
                     const ratingDiff = winnerRating - runnerUpRating;
                     const weight = decisionData.normalizedWeights[criteria.id] || 0;
                     
@@ -1719,8 +1719,8 @@ function renderPerformanceHeatmap() {
             
             decisionData.criteria.forEach(criteria => {
                 const currentWeight = decisionData.normalizedWeights[criteria.id] || 0;
-                const winnerRating = decisionData.ratings[`${winner.option.id}-${criteria.id}`] || 3;
-                const runnerUpRating = decisionData.ratings[`${runnerUp.option.id}-${criteria.id}`] || 3;
+                const winnerRating = decisionData.ratings[`${winner.option.id}-${criteria.id}`] ?? 2;
+                const runnerUpRating = decisionData.ratings[`${runnerUp.option.id}-${criteria.id}`] ?? 2;
                 
                 // Calculate approximate flip point
                 const ratingDiff = winnerRating - runnerUpRating;
