@@ -2100,7 +2100,7 @@ function generateCanvasBasedPDF() {
     try {
         // Generate comprehensive report content
         const reportContent = generateReportHTML();
-        tempContainer.innerHTML = reportContent;
+        tempContainer.innerHTML = `<div style="margin: 40px;">${reportContent}</div>`;
 
         // Inject pie chart and what-if analysis
         capturePieChartFromPage().then(pieChartImage => {
