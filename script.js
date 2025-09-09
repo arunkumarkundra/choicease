@@ -28,7 +28,8 @@
         };
 
 
-
+        // Copy for Whatif Analysis
+        let whatIfDecisionData = null;
 
         // Chart management state
         let chartManager = {
@@ -1792,11 +1793,11 @@ console.log('  - colors for pie chart:', colors);
             const container = document.getElementById('advancedWhatIf');
             if (!container) return;
             
-            // Store original weights for reset functionality
-            if (!window.originalWeights) {
-                window.originalWeights = { ...decisionData.normalizedWeights };
+            // ✅ ONLY initialize if null (first time)
+            if (whatIfDecisionData === null) {
+                whatIfDecisionData = JSON.parse(JSON.stringify(decisionData));
             }
-            
+                        
             container.innerHTML = `
                 <div style="padding: 20px;">
                     <p style="color: #666; margin-bottom: 20px;">
@@ -1813,8 +1814,8 @@ console.log('  - colors for pie chart:', colors);
                     </div>
                     
                     <div class="what-if-controls" style="margin-bottom: 25px;">
-                        ${decisionData.criteria.map(criteria => {
-                            const currentWeight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
+                        ${whatIfDecisionData.criteria.map(criteria => {
+                            const currentWeight = Math.round(whatIfDecisionData.normalizedWeights[criteria.id] || 0);
                             return `
                                 <div class="weight-control" style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 12px; border: 1px solid #e9ecef;">
                                     <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 10px;">
@@ -1857,7 +1858,7 @@ console.log('  - colors for pie chart:', colors);
         // Create debounced version for calculations
         const debouncedUpdateWhatIf = debounce(function(criteriaId, newWeight) {
             // Update the weight
-            decisionData.normalizedWeights[criteriaId] = parseFloat(newWeight);
+            whatIfDecisionData.normalizedWeights[criteriaId] = parseFloat(newWeight);
             
             // Recalculate and update results
             updateWhatIfResults();
@@ -1919,7 +1920,7 @@ console.log('  - colors for pie chart:', colors);
 
         function updateWhatIfResults() {
             // Create cache key from current weights
-            const cacheKey = JSON.stringify(decisionData.normalizedWeights);
+            const cacheKey = JSON.stringify(whatIfDecisionData.normalizedWeights);
             const cached = getCachedResults(cacheKey);
             
             if (cached) {
@@ -1932,12 +1933,12 @@ console.log('  - colors for pie chart:', colors);
             
             // Recalculate results with new weights
             const newResults = [];
-            decisionData.options.forEach(option => {
+            whatIfDecisionData.options.forEach(option => {
                 let totalScore = 0;
-                decisionData.criteria.forEach(criteria => {
+                whatIfDecisionData.criteria.forEach(criteria => {
                     const ratingKey = `${option.id}-${criteria.id}`;
-                    const rating = decisionData.ratings[ratingKey] || 3;
-                    const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
+                    const rating = whatIfDecisionData.ratings[ratingKey] || 3;
+                    const weight = (whatIfDecisionData.normalizedWeights[criteria.id] || 0) / 100;
                     totalScore += rating * weight;
                 });
                 newResults.push({
@@ -1958,12 +1959,11 @@ console.log('  - colors for pie chart:', colors);
 
         
         function resetToOriginalWeights() {
-            // Restore original weights
-            decisionData.normalizedWeights = { ...window.originalWeights };
+            // ✅ REPLACE THIS ENTIRE FUNCTION with:
+            whatIfDecisionData = JSON.parse(JSON.stringify(decisionData));
             
-            // Update all sliders
-            decisionData.criteria.forEach(criteria => {
-                const originalWeight = Math.round(window.originalWeights[criteria.id] || 0);
+            whatIfDecisionData.criteria.forEach(criteria => {
+                const originalWeight = Math.round(whatIfDecisionData.normalizedWeights[criteria.id] || 0);
                 const slider = document.getElementById(`weight-slider-${criteria.id}`);
                 const display = document.getElementById(`weight-display-${criteria.id}`);
                 
@@ -1971,10 +1971,7 @@ console.log('  - colors for pie chart:', colors);
                 if (display) display.textContent = `${originalWeight}%`;
             });
             
-            // Update results
             updateWhatIfResults();
-            
-            // Hide alert
             document.getElementById('whatIfAlert').style.display = 'none';
         }
 
@@ -5383,6 +5380,7 @@ function updateUIWithImportedData() {
            advancedAnalytics.isVisible = false;
                         
            if (confirm('Are you sure you want to start a new decision? This will clear all current data.')) {
+                whatIfDecisionData = null; // Release WhatifAnalysis temp memory
                 currentStep = 1;
                 decisionData = {
                     title: '',
