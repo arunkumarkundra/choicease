@@ -2219,27 +2219,23 @@ function generateCanvasBasedPDF() {
                 const sections = [
                     { 
                         selector: '.header-section, .decision-details, .executive-summary', 
-                        name: 'Page 1 - Overview' 
-                    },
-                    { 
-                        selector: '.winner-analysis', 
-                        name: 'Winner Analysis' 
+                        name: 'Overview' 
                     },
                     { 
                         selector: '.complete-rankings', 
                         name: 'Complete Rankings' 
                     },
                     { 
-                        selector: '.top-contributors, .differentiating-factors, .decision-stability', 
-                        name: 'Page 4 - Analysis Details' 
+                        selector: '.criteria-weights', 
+                        name: 'Criteria Weights' 
+                    },
+                    { 
+                        selector: '.winner-analysis, .risk-analysis, .top-contributors, .differentiating-factors', 
+                        name: 'Winner Analysis' 
                     },
                     { 
                         selector: '.performance-matrix', 
                         name: 'Performance Matrix' 
-                    },
-                    { 
-                        selector: '.criteria-weights', 
-                        name: 'Criteria Weights' 
                     },
                     { 
                         selector: '.sensitivity-analysis', 
@@ -2250,8 +2246,8 @@ function generateCanvasBasedPDF() {
                         name: 'What-If Analysis' 
                     },
                     { 
-                        selector: '.risk-analysis, .methodology, .footer', 
-                        name: 'Page 9 - Risk & Methodology' 
+                        selector: '.decision-stability, .methodology, .footer', 
+                        name: 'Decision Stability & Methodology' 
                     }
                 ];
 
