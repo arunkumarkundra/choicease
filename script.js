@@ -659,7 +659,7 @@ function setupRatingStep() {
                 const criteriaScores = {};
                 decisionData.criteria.forEach(criteria => {
                     const ratingKey = `${option.id}-${criteria.id}`;
-                    const rating = decisionData.ratings[ratingKey] || 2; // Default value changed to 2 from 3
+                    const rating = decisionData.ratings[ratingKey] || 2; // Default: 2 (Fair)
                     const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
                     const score = rating * weight;
                     criteriaScores[criteria.name] = {
@@ -1018,7 +1018,7 @@ function setupRatingStep() {
             const winnerContributions = [];
             decisionData.criteria.forEach(criteria => {
                 const ratingKey = `${winner.option.id}-${criteria.id}`;
-                const rating = decisionData.ratings[ratingKey] || 2; // Default value changed to 2 from 3
+                const rating = decisionData.ratings[ratingKey] || 2; // Default: 2 (Fair)
                 const weight = decisionData.normalizedWeights[criteria.id] || 0;
                 const contribution = rating * (weight / 100);
                 winnerContributions.push({
@@ -1209,7 +1209,7 @@ function setupRatingStep() {
             const winnerContributions = [];
             decisionData.criteria.forEach(criteria => {
                 const ratingKey = `${winner.option.id}-${criteria.id}`;
-                const rating = decisionData.ratings[ratingKey] || 2; // Default value changed to 2 from 3
+                const rating = decisionData.ratings[ratingKey] || 2; // Default: 2 (Fair)
                 const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
                 const contribution = rating * (weight / 100);
                 winnerContributions.push({
@@ -1960,7 +1960,7 @@ function renderPerformanceHeatmap() {
                 let totalScore = 0;
                 whatIfDecisionData.criteria.forEach(criteria => {
                     const ratingKey = `${option.id}-${criteria.id}`;
-                    const rating = whatIfDecisionData.ratings[ratingKey] || 3;
+                    const rating = whatIfDecisionData.ratings[ratingKey] || 2;
                     const weight = (whatIfDecisionData.normalizedWeights[criteria.id] || 0) / 100;
                     totalScore += rating * weight;
                 });
@@ -2668,7 +2668,7 @@ function generateReportHTML() {
     if (decisionData.criteria && Array.isArray(decisionData.criteria)) {
         decisionData.criteria.forEach(criteria => {
             const ratingKey = `${winner.option.id}-${criteria.id}`;
-            const rating = safeNum(decisionData.ratings && decisionData.ratings[ratingKey], 3);
+            const rating = safeNum(decisionData.ratings && decisionData.ratings[ratingKey], 2);
             const weight = safeNum(decisionData.normalizedWeights && decisionData.normalizedWeights[criteria.id], 0);
             const contribution = rating * (weight / 100);
             const impact = winnerTotalScore !== 0 ? (contribution / winnerTotalScore) * 100 : 0;
@@ -2704,8 +2704,8 @@ function generateReportHTML() {
         decisionData.criteria.forEach(criteria => {
             const winnerRatingKey = `${winner.option.id}-${criteria.id}`;
             const runnerUpRatingKey = `${runnerUp.option.id}-${criteria.id}`;
-            const winnerRating = safeNum(decisionData.ratings && decisionData.ratings[winnerRatingKey], 3);
-            const runnerUpRating = safeNum(decisionData.ratings && decisionData.ratings[runnerUpRatingKey], 3);
+            const winnerRating = safeNum(decisionData.ratings && decisionData.ratings[winnerRatingKey], 2);
+            const runnerUpRating = safeNum(decisionData.ratings && decisionData.ratings[runnerUpRatingKey], 2);
             const ratingDiff = winnerRating - runnerUpRating;
             const weight = safeNum(decisionData.normalizedWeights && decisionData.normalizedWeights[criteria.id], 0);
             
@@ -2811,7 +2811,7 @@ function generateReportHTML() {
                         </td>
                         ${decisionData.criteria.map(crit => {
                             const ratingKey = `${result.option.id}-${crit.id}`;
-                            const rating = safeNum(decisionData.ratings && decisionData.ratings[ratingKey], 3);
+                            const rating = safeNum(decisionData.ratings && decisionData.ratings[ratingKey], 2);
                             const weight = safeNum(decisionData.normalizedWeights && decisionData.normalizedWeights[crit.id], 0) / 100;
                             const weightedScore = rating * weight;
                             const bgColor = rating >= 4 ? '#e8f5e8' : rating >= 3 ? '#fffde7' : rating >= 2 ? '#fff3e0' : '#ffebee';
@@ -3977,7 +3977,7 @@ function captureWhatIfAnalysisFromPage() {
                 const criteriaScores = {};
                 decisionData.criteria.forEach(criteria => {
                     const ratingKey = `${option.id}-${criteria.id}`;
-                    const rating = decisionData.ratings[ratingKey] || 2; // Default value changed to 2 from 3
+                    const rating = decisionData.ratings[ratingKey] || 2; // Default: 2 (Fair)
                     const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
                     const score = rating * weight;
                     criteriaScores[criteria.name] = {
@@ -4080,7 +4080,7 @@ function exportToCSV() {
         
         decisionData.criteria.forEach(criteria => {
             const ratingKey = `${option.id}-${criteria.id}`;
-            const rating = decisionData.ratings[ratingKey] || 2; // Default value changed to 2 from 3
+            const rating = decisionData.ratings[ratingKey] || 2; // Default: 2 (Fair)
             const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
             const score = rating * weight;
             criteriaScores[criteria.name] = {
@@ -4219,7 +4219,7 @@ function getTopChoice() {
         let totalScore = 0;
         decisionData.criteria.forEach(criteria => {
             const ratingKey = `${option.id}-${criteria.id}`;
-            const rating = decisionData.ratings[ratingKey] || 2; // Default value changed to 2 from 3
+            const rating = decisionData.ratings[ratingKey] || 2; // Default: 2 (Fair)
             const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
             totalScore += rating * weight;
         });
@@ -4235,7 +4235,7 @@ function getTopScore() {
         let totalScore = 0;
         decisionData.criteria.forEach(criteria => {
             const ratingKey = `${option.id}-${criteria.id}`;
-            const rating = decisionData.ratings[ratingKey] || 2; // Default value changed to 2 from 3
+            const rating = decisionData.ratings[ratingKey] || 2; // Default: 2 (Fair)
             const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
             totalScore += rating * weight;
         });
@@ -4254,7 +4254,7 @@ function createShareableImage() {
             let totalScore = 0;
             decisionData.criteria.forEach(criteria => {
                 const ratingKey = `${option.id}-${criteria.id}`;
-                const rating = decisionData.ratings[ratingKey] || 2; // Default value changed to 2 from 3
+                const rating = decisionData.ratings[ratingKey] || 2; // Default: 2 (Fair)
                 const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
                 totalScore += rating * weight;
             });
