@@ -776,15 +776,17 @@ function setupRatingStep() {
                             <div id="advancedSummary"></div>
                         </div>
                         <div class="section">
-                            <div class="section-title">🏆 Winner Analysis</div>
-                            <div id="advancedWinnerAnalysis"></div>
-                        </div>
-                      
-                        <div class="section">
                             <div class="section-title">🥧 Criteria Weights</div>
                             <div id="advancedWeights"></div>
                         </div>
-        
+                        <div class="section">
+                            <div class="section-title">🏆 Winner Analysis</div>
+                            <div id="advancedWinnerAnalysis"></div>
+                        </div>
+                        <div class="section">
+                            <div class="section-title">⚠️ Risk Analysis</div>
+                            <div id="advancedRisks"></div>
+                        </div>
                        <div class="section">
                             <div class="section-title">🔥 Performance Heatmap</div>
                             <div id="advancedHeatmap"></div>
@@ -800,10 +802,6 @@ function setupRatingStep() {
                             <div id="advancedWhatIf"></div>
                         </div>
                         
-                        <div class="section">
-                            <div class="section-title">⚠️ Risk Analysis</div>
-                            <div id="advancedRisks"></div>
-                        </div>
                         <div class="section">
                             <div class="section-title">📄 Enhanced Export</div>
                             <div id="advancedExport" style="text-align: center; padding: 20px;">
