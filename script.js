@@ -5494,7 +5494,20 @@ function updateUIWithImportedData() {
             document.getElementById('howItWorksModal').style.display = 'none';
             document.body.style.overflow = 'auto'; // Restore scrolling
         }
-        
+
+        function goToHomeTab() {
+            // Only navigate if not already on step 1
+            if (currentStep !== 1) {
+                currentStep = 1;
+                showStep(currentStep);
+                updateProgressBar();
+                updateStepIndicator();
+                showToast('Returned to decision definition', 'info');
+            }
+        }
+
+
+
         // Keyboard support
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Enter' && !event.shiftKey) {
