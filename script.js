@@ -1563,23 +1563,23 @@ function renderPerformanceHeatmap() {
                         <div><strong>Color Legend:</strong></div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <div style="width: 20px; height: 20px; background: #ffcdd2; border: 1px solid #ccc; border-radius: 3px;"></div>
-                            <span>0 (Unacceptable)</span>
+                            <span>0.0-0.5 (Unacceptable)</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <div style="width: 20px; height: 20px; background: #ffebee; border: 1px solid #ccc; border-radius: 3px;"></div>
-                            <span>1 (Poor)</span>
+                            <span>1.0-1.5 (Poor)</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <div style="width: 20px; height: 20px; background: #fff3e0; border: 1px solid #ccc; border-radius: 3px;"></div>
-                            <span>2 (Fair)</span>
+                            <span>2.0-2.5 (Fair)</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <div style="width: 20px; height: 20px; background: #fffde7; border: 1px solid #ccc; border-radius: 3px;"></div>
-                            <span>3 (Good)</span>
+                            <span>3.0-3.5 (Good)</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <div style="width: 20px; height: 20px; background: #a5d6a7; border: 1px solid #ccc; border-radius: 3px;"></div>
-                            <span>4 (Very Good)</span>
+                            <span>4.0-4.5 (Very Good)</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <div style="width: 20px; height: 20px; background: #66bb6a; border: 1px solid #ccc; border-radius: 3px;"></div>
@@ -4149,7 +4149,7 @@ function exportToCSV() {
         decisionData.criteria.forEach(criteria => {
             const scores = result.criteriaScores[criteria.name];
             if (scores) {
-                row += `,${scores.rating},${scores.weight}%,${scores.score.toFixed(3)}`;
+                row += `,${scores.rating.toFixed(1)},${scores.weight}%,${scores.score.toFixed(3)}`;
             } else {
                 row += ',N/A,N/A,N/A';
             }
@@ -5312,6 +5312,12 @@ function loadImportedData(data) {
     // Load weights and ratings
     decisionData.weights = data.weights || {};
     decisionData.ratings = data.ratings || {};
+
+
+        // Convert any integer ratings to decimals for consistency
+        Object.keys(decisionData.ratings).forEach(key => {
+            decisionData.ratings[key] = parseFloat(decisionData.ratings[key]);
+        });
     
     // ✅ Load normalized weights if available, otherwise recalculate
     if (data.normalizedWeights && Object.keys(data.normalizedWeights).length > 0) {
