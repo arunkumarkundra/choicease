@@ -6,6 +6,9 @@
             '#1abc9c', '#3498db', '#f1c40f', '#e67e22', '#95a5a6'
         ];
 
+        // Global default rating value - can be changed here for entire app
+        const DEFAULT_RATING = 2.5;
+
 
         // Application state
         let currentStep = 1;
@@ -607,13 +610,13 @@ function setupRatingStep() {
         `;
         decisionData.options.forEach(option => {
             const ratingKey = `${option.id}-${criteria.id}`;
-            const currentRating = decisionData.ratings[ratingKey] ?? 2;
+            const currentRating = decisionData.ratings[ratingKey] ?? DEFAULT_RATING;
             html += `
                 <div class="rating-row">
                     <span class="option-name">${option.name}</span>
                     <div class="rating-controls">
                         <span style="font-size: 0.9rem; color: #666;">[0]</span>
-                        <input type="range" min="0" max="5" value="${currentRating}" 
+                        <input type="range" min="0" max="5" step="0.5" value="${currentRating}" 
                                class="slider" role="slider" aria-label="Rating for ${option.name} on ${criteria.name}"
                                aria-valuemin="0" aria-valuemax="5" aria-valuenow="${currentRating}"
                                onchange="updateRating('${ratingKey}', this.value)">
@@ -632,7 +635,7 @@ function setupRatingStep() {
 }
 
         function updateRating(key, value) {
-            decisionData.ratings[key] = parseInt(value);
+            decisionData.ratings[key] = parseFloat(value);
             document.getElementById(`rating-${key}`).textContent = value;
         }
 
@@ -659,7 +662,7 @@ function setupRatingStep() {
                 const criteriaScores = {};
                 decisionData.criteria.forEach(criteria => {
                     const ratingKey = `${option.id}-${criteria.id}`;
-                    const rating = decisionData.ratings[ratingKey] ?? 2; // Default: 2 (Fair)
+                    const rating = decisionData.ratings[ratingKey] ?? DEFAULT_RATING; // Default: 2 (Fair)
                     const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
                     const score = rating * weight;
                     criteriaScores[criteria.name] = {
@@ -934,8 +937,8 @@ function setupRatingStep() {
             const runnerUp = advancedAnalytics.results[1];
             
             decisionData.criteria.forEach(criteria => {
-                const winnerRating = winner.criteriaScores[criteria.name]?.rating ?? 2;
-                const runnerUpRating = runnerUp.criteriaScores[criteria.name]?.rating ?? 2;
+                const winnerRating = winner.criteriaScores[criteria.name]?.rating ?? DEFAULT_RATING;
+                const runnerUpRating = runnerUp.criteriaScores[criteria.name]?.rating ?? DEFAULT_RATING;
                 const currentWeight = (decisionData.normalizedWeights[criteria.id] || 0);
                 
                 // Simplified flip point calculation
@@ -975,17 +978,17 @@ function setupRatingStep() {
             
             decisionData.criteria.forEach(criteria => {
                 const ratingKey = `${winner.option.id}-${criteria.id}`;
-                const rating = decisionData.ratings[ratingKey] ?? 2;
+                const rating = decisionData.ratings[ratingKey] ?? DEFAULT_RATING;
                 const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
                 
                 if (rating <= 1) {
                     let severity, description;
                     if (rating === 0) {
                         severity = 'critical';
-                        description = `Unacceptable performance (${rating}/5) with ${weight}% importance - serious concern`;
+                        description = `Unacceptable performance (${rating.toFixed(1)}/5) with ${weight}% importance - serious concern`;
                     } else { // rating === 1
                         severity = 'high';
-                        description = `Poor performance (${rating}/5) with ${weight}% importance`;
+                        description = `Poor performance (${rating.toFixed(1)}/5) with ${weight}% importance`;
                     }
                     
                     risks.push({
@@ -1016,7 +1019,7 @@ function setupRatingStep() {
             const winnerContributions = [];
             decisionData.criteria.forEach(criteria => {
                 const ratingKey = `${winner.option.id}-${criteria.id}`;
-                const rating = decisionData.ratings[ratingKey] ?? 2; // Default: 2 (Fair)
+                const rating = decisionData.ratings[ratingKey] ?? DEFAULT_RATING; // Default: 2 (Fair)
                 const weight = decisionData.normalizedWeights[criteria.id] || 0;
                 const contribution = rating * (weight / 100);
                 winnerContributions.push({
@@ -1036,8 +1039,8 @@ function setupRatingStep() {
                 decisionData.criteria.forEach(criteria => {
                     const winnerRatingKey = `${winner.option.id}-${criteria.id}`;
                     const runnerUpRatingKey = `${runnerUp.option.id}-${criteria.id}`;
-                    const winnerRating = decisionData.ratings[winnerRatingKey] ?? 2;
-                    const runnerUpRating = decisionData.ratings[runnerUpRatingKey] ?? 2;
+                    const winnerRating = decisionData.ratings[winnerRatingKey] ?? DEFAULT_RATING;
+                    const runnerUpRating = decisionData.ratings[runnerUpRatingKey] ?? DEFAULT_RATING;
                     const ratingDiff = winnerRating - runnerUpRating;
                     const weight = decisionData.normalizedWeights[criteria.id] || 0;
                     
@@ -1207,7 +1210,7 @@ function setupRatingStep() {
             const winnerContributions = [];
             decisionData.criteria.forEach(criteria => {
                 const ratingKey = `${winner.option.id}-${criteria.id}`;
-                const rating = decisionData.ratings[ratingKey] ?? 2; // Default: 2 (Fair)
+                const rating = decisionData.ratings[ratingKey] ?? DEFAULT_RATING; // Default: 2 (Fair)
                 const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
                 const contribution = rating * (weight / 100);
                 winnerContributions.push({
@@ -1529,7 +1532,7 @@ function renderPerformanceHeatmap() {
         
         criteria.forEach(crit => {
             const ratingKey = `${result.option.id}-${crit.id}`;
-            const rating = decisionData.ratings[ratingKey] ?? 2; // Changed from 3 to 2
+            const rating = decisionData.ratings[ratingKey] ?? DEFAULT_RATING; // Changed from 3 to 2
             const weight = (decisionData.normalizedWeights[crit.id] || 0) / 100;
             const weightedScore = rating * weight;
             
@@ -1537,8 +1540,8 @@ function renderPerformanceHeatmap() {
             const { backgroundColor, textColor } = getHeatmapColors(rating);
             
             html += `<td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: ${backgroundColor}; color: ${textColor}; position: relative;" 
-                          title="Rating: ${rating}/5, Weight: ${Math.round(weight * 100)}%, Weighted Score: ${weightedScore.toFixed(2)}">
-                        <div style="font-weight: 600; font-size: 1.1rem;">${rating}</div>
+                          title="Rating: ${rating.toFixed(1)}/5, Weight: ${Math.round(weight * 100)}%, Weighted Score: ${weightedScore.toFixed(2)}">
+                        <div style="font-weight: 600; font-size: 1.1rem;">${rating.toFixed(1)}</div>
                         <div style="font-size: 0.8rem; opacity: 0.8;">${weightedScore.toFixed(2)}</div>
                      </td>`;
         });
@@ -1598,16 +1601,18 @@ function renderPerformanceHeatmap() {
         
         // Helper function for accessible heatmap colors (UPDATED for 0-5 scale)
         function getHeatmapColors(rating) {
+            // Group decimal ratings (3.5 uses same color as 3)
+            const colorGroup = Math.floor(rating);
             const colorSchemes = {
-                0: { backgroundColor: '#ffcdd2', textColor: '#b71c1c' }, // Unacceptable - Dark red
-                1: { backgroundColor: '#ffebee', textColor: '#c62828' }, // Poor - Light red  
-                2: { backgroundColor: '#fff3e0', textColor: '#e65100' }, // Fair - Orange
-                3: { backgroundColor: '#fffde7', textColor: '#f57f17' }, // Good - Yellow
-                4: { backgroundColor: '#a5d6a7', textColor: '#2e7d32' }, // Very Good - Light green
-                5: { backgroundColor: '#66bb6a', textColor: '#1b5e20' }  // Excellent - Dark green
+                0: { backgroundColor: '#ffcdd2', textColor: '#b71c1c' }, // 0-0.5
+                1: { backgroundColor: '#ffebee', textColor: '#c62828' }, // 1-1.5
+                2: { backgroundColor: '#fff3e0', textColor: '#e65100' }, // 2-2.5
+                3: { backgroundColor: '#fffde7', textColor: '#f57f17' }, // 3-3.5
+                4: { backgroundColor: '#a5d6a7', textColor: '#2e7d32' }, // 4-4.5
+                5: { backgroundColor: '#66bb6a', textColor: '#1b5e20' }  // 5
             };
             
-            return colorSchemes[rating] || colorSchemes[2]; // Default to Fair (2) instead of Good (3)
+            return colorSchemes[colorGroup] || colorSchemes[Math.floor(DEFAULT_RATING)];
         }
         
         // Helper function for total score colors
@@ -1717,8 +1722,8 @@ function renderPerformanceHeatmap() {
             
             decisionData.criteria.forEach(criteria => {
                 const currentWeight = decisionData.normalizedWeights[criteria.id] || 0;
-                const winnerRating = decisionData.ratings[`${winner.option.id}-${criteria.id}`] ?? 2;
-                const runnerUpRating = decisionData.ratings[`${runnerUp.option.id}-${criteria.id}`] ?? 2;
+                const winnerRating = decisionData.ratings[`${winner.option.id}-${criteria.id}`] ?? DEFAULT_RATING;
+                const runnerUpRating = decisionData.ratings[`${runnerUp.option.id}-${criteria.id}`] ?? DEFAULT_RATING;
                 
                 // Calculate approximate flip point
                 const ratingDiff = winnerRating - runnerUpRating;
@@ -1958,7 +1963,7 @@ function renderPerformanceHeatmap() {
                 let totalScore = 0;
                 whatIfDecisionData.criteria.forEach(criteria => {
                     const ratingKey = `${option.id}-${criteria.id}`;
-                    const rating = whatIfDecisionData.ratings[ratingKey] ?? 2;
+                    const rating = whatIfDecisionData.ratings[ratingKey] ?? DEFAULT_RATING;
                     const weight = (whatIfDecisionData.normalizedWeights[criteria.id] || 0) / 100;
                     totalScore += rating * weight;
                 });
@@ -2662,7 +2667,7 @@ function generateReportHTML() {
     if (decisionData.criteria && Array.isArray(decisionData.criteria)) {
         decisionData.criteria.forEach(criteria => {
             const ratingKey = `${winner.option.id}-${criteria.id}`;
-            const rating = safeNum(decisionData.ratings && decisionData.ratings[ratingKey], 2);
+            const rating = safeNum(decisionData.ratings && decisionData.ratings[ratingKey], DEFAULT_RATING);
             const weight = safeNum(decisionData.normalizedWeights && decisionData.normalizedWeights[criteria.id], 0);
             const contribution = rating * (weight / 100);
             const impact = winnerTotalScore !== 0 ? (contribution / winnerTotalScore) * 100 : 0;
@@ -2698,8 +2703,8 @@ function generateReportHTML() {
         decisionData.criteria.forEach(criteria => {
             const winnerRatingKey = `${winner.option.id}-${criteria.id}`;
             const runnerUpRatingKey = `${runnerUp.option.id}-${criteria.id}`;
-            const winnerRating = safeNum(decisionData.ratings && decisionData.ratings[winnerRatingKey], 2);
-            const runnerUpRating = safeNum(decisionData.ratings && decisionData.ratings[runnerUpRatingKey], 2);
+            const winnerRating = safeNum(decisionData.ratings && decisionData.ratings[winnerRatingKey], DEFAULT_RATING);
+            const runnerUpRating = safeNum(decisionData.ratings && decisionData.ratings[runnerUpRatingKey], DEFAULT_RATING);
             const ratingDiff = winnerRating - runnerUpRating;
             const weight = safeNum(decisionData.normalizedWeights && decisionData.normalizedWeights[criteria.id], 0);
             
@@ -2805,14 +2810,14 @@ function generateReportHTML() {
                         </td>
                         ${decisionData.criteria.map(crit => {
                             const ratingKey = `${result.option.id}-${crit.id}`;
-                            const rating = safeNum(decisionData.ratings && decisionData.ratings[ratingKey], 2);
+                            const rating = safeNum(decisionData.ratings && decisionData.ratings[ratingKey], DEFAULT_RATING);
                             const weight = safeNum(decisionData.normalizedWeights && decisionData.normalizedWeights[crit.id], 0) / 100;
                             const weightedScore = rating * weight;
                             const bgColor = rating >= 4 ? '#e8f5e8' : rating >= 3 ? '#fffde7' : rating >= 2 ? '#fff3e0' : '#ffebee';
                             const textColor = rating >= 4 ? '#2e7d32' : rating >= 3 ? '#f57f17' : rating >= 2 ? '#e65100' : '#c62828';
                             
                             return `<td style="padding: 12px; border: 1px solid #dee2e6; text-align: center; background: ${bgColor}; color: ${textColor};">
-                                <div style="font-weight: 600; font-size: 14px;">${rating}</div>
+                                <div style="font-weight: 600; font-size: 14px;">${rating.toFixed(1)}</div>
                                 <div style="font-size: 10px; opacity: 0.8;">${fmt(weightedScore)}</div>
                             </td>`;
                         }).join('')}
@@ -3334,7 +3339,7 @@ function generateReportHTML() {
                     div.style.justifyContent = 'space-between';
                     div.style.margin = '5px 0';
                     div.style.fontSize = '0.9rem';
-                    div.innerHTML = `<span>${criteriaName}:</span><span>${scores.rating}/5 (${Math.round(scores.score * 20)}%)</span>`;
+                    div.innerHTML = `<span>${criteriaName}:</span><span>${scores.rating.toFixed(1)}/5 (${Math.round(scores.score * 20)}%)</span>`;
                     breakdown.appendChild(div);
                 });
                 details.appendChild(breakdown);
@@ -3971,7 +3976,7 @@ function captureWhatIfAnalysisFromPage() {
                 const criteriaScores = {};
                 decisionData.criteria.forEach(criteria => {
                     const ratingKey = `${option.id}-${criteria.id}`;
-                    const rating = decisionData.ratings[ratingKey] ?? 2; // Default: 2 (Fair)
+                    const rating = decisionData.ratings[ratingKey] ?? DEFAULT_RATING; // Default: 2 (Fair)
                     const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
                     const score = rating * weight;
                     criteriaScores[criteria.name] = {
@@ -4074,7 +4079,7 @@ function exportToCSV() {
         
         decisionData.criteria.forEach(criteria => {
             const ratingKey = `${option.id}-${criteria.id}`;
-            const rating = decisionData.ratings[ratingKey] ?? 2; // Default: 2 (Fair)
+            const rating = decisionData.ratings[ratingKey] ?? DEFAULT_RATING; // Default: 2 (Fair)
             const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
             const score = rating * weight;
             criteriaScores[criteria.name] = {
@@ -4213,7 +4218,7 @@ function getTopChoice() {
         let totalScore = 0;
         decisionData.criteria.forEach(criteria => {
             const ratingKey = `${option.id}-${criteria.id}`;
-            const rating = decisionData.ratings[ratingKey] ?? 2; // Default: 2 (Fair)
+            const rating = decisionData.ratings[ratingKey] ?? DEFAULT_RATING; // Default: 2 (Fair)
             const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
             totalScore += rating * weight;
         });
@@ -4229,7 +4234,7 @@ function getTopScore() {
         let totalScore = 0;
         decisionData.criteria.forEach(criteria => {
             const ratingKey = `${option.id}-${criteria.id}`;
-            const rating = decisionData.ratings[ratingKey] ?? 2; // Default: 2 (Fair)
+            const rating = decisionData.ratings[ratingKey] ?? DEFAULT_RATING; // Default: 2 (Fair)
             const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
             totalScore += rating * weight;
         });
@@ -4248,7 +4253,7 @@ function createShareableImage() {
             let totalScore = 0;
             decisionData.criteria.forEach(criteria => {
                 const ratingKey = `${option.id}-${criteria.id}`;
-                const rating = decisionData.ratings[ratingKey] ?? 2; // Default: 2 (Fair)
+                const rating = decisionData.ratings[ratingKey] ?? DEFAULT_RATING; // Default: 2 (Fair)
                 const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
                 totalScore += rating * weight;
             });
