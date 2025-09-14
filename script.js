@@ -1959,6 +1959,10 @@ function setupRatingStep() {
             }
         }
         
+
+
+
+
         function renderCriteriaImpactAnalysis() {
             const container = document.getElementById('criteriaImpactAnalysis');
             if (!container) return;
@@ -1970,15 +1974,16 @@ function setupRatingStep() {
             const minImpact = impactData.slice(-3).reverse();
             
             let html = `
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 20px 0;">
-                    <!-- Maximum Impact Column -->
-                    <div>
-                        <h4 style="color: #333; margin: 0 0 15px 0; display: flex; align-items: center;">
-                            🎯 Maximum Impact Criteria
-                        </h4>
-                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">
-                            Criteria that most influence your decision
-                        </p>
+                <div class="criteria-impact-analysis" style="padding: 20px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 20px 0;">
+                        <!-- Maximum Impact Column -->
+                        <div>
+                            <h4 style="color: #333; margin: 0 0 15px 0; display: flex; align-items: center;">
+                                🎯 Maximum Impact Criteria
+                            </h4>
+                            <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">
+                                Criteria that most influence your decision
+                            </p>
             `;
             
             // Render maximum impact criteria
@@ -2006,16 +2011,16 @@ function setupRatingStep() {
             });
             
             html += `
-                    </div>
-                    
-                    <!-- Minimum Impact Column -->
-                    <div>
-                        <h4 style="color: #333; margin: 0 0 15px 0; display: flex; align-items: center;">
-                            🎭 Minimum Impact Criteria
-                        </h4>
-                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">
-                            Criteria with similar performance across options
-                        </p>
+                        </div>
+                        
+                        <!-- Minimum Impact Column -->
+                        <div>
+                            <h4 style="color: #333; margin: 0 0 15px 0; display: flex; align-items: center;">
+                                🎭 Minimum Impact Criteria
+                            </h4>
+                            <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">
+                                Criteria with similar performance across options
+                            </p>
             `;
             
             // Render minimum impact criteria
@@ -2043,13 +2048,22 @@ function setupRatingStep() {
             });
             
             html += `
+                        </div>
                     </div>
                 </div>
             `;
             
             container.innerHTML = html;
         }
-        
+
+
+
+
+
+
+
+
+
         function addCriteriaImpactToPDF(doc, yPos) {
             const impactData = calculateCriteriaImpact();
             const maxImpact = impactData.slice(0, 3);
@@ -3391,7 +3405,13 @@ function generateCanvasBasedPDF() {
                         selector: '.criteria-weights', 
                         name: 'Criteria Weights' 
                     },
-                    { name: 'Criteria Impact Analysis', selector: '#criteriaImpactAnalysis' },
+                    
+                    { 
+                        selector: '.criteria-impact-analysis', 
+                        name: 'Criteria Impact Analysis' 
+                    },
+
+                        
                     { 
                         selector: '.winner-analysis, .risk-analysis, .top-contributors, .differentiating-factors', 
                         name: 'Winner Analysis' 
@@ -3948,6 +3968,33 @@ function generateReportHTML() {
         `;
     }).join('');
 
+
+
+        <!-- Criteria Impact Analysis Section -->
+        <div class="pdf-section criteria-impact-analysis" style="background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
+            <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">📊 Criteria Impact Analysis</h3>
+            <p style="color: #666; margin-bottom: 20px;">Analysis of which criteria have the most and least discriminating power in your decision:</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <!-- Maximum Impact Column -->
+                <div>
+                    <h4 style="color: #333; margin: 0 0 15px 0;">🎯 Maximum Impact Criteria</h4>
+                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">Criteria that most influence your decision</p>
+                    ${generateMaxImpactHTML()}
+                </div>
+                
+                <!-- Minimum Impact Column -->
+                <div>
+                    <h4 style="color: #333; margin: 0 0 15px 0;">🎭 Minimum Impact Criteria</h4>
+                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">Criteria with similar performance across options</p>
+                    ${generateMinImpactHTML()}
+                </div>
+            </div>
+        </div>
+
+        
+        
+        
     // Performance matrix table
     const performanceMatrixHtml = `
         <table style="width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12px;">
@@ -4339,6 +4386,50 @@ function generateReportHTML() {
         </div>
     `;
 }
+
+
+
+
+        // Helper Min Max Impact Criteria Functions for generateReportHTML
+        function generateMaxImpactHTML() {
+            const impactData = calculateCriteriaImpact();
+            const maxImpact = impactData.slice(0, 3);
+            
+            return maxImpact.map(criteria => `
+                <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                    <h5 style="color: #333; margin: 0 0 10px 0; font-weight: 600;">${safeText(criteria.criteriaName)}</h5>
+                    <div style="font-size: 0.9rem; color: #666; margin-bottom: 8px;">
+                        Impact Score: <strong style="color: #667eea;">${criteria.impactScore.toFixed(1)}%</strong>
+                    </div>
+                    <div style="font-size: 0.9rem; color: #666; margin-bottom: 8px;">
+                        Variance: ${criteria.variance.toFixed(2)} | Weight: ${criteria.weight}%
+                    </div>
+                    <div style="background: #e3f2fd; border-left: 3px solid #2196f3; padding: 8px; border-radius: 4px; font-size: 0.85rem; color: #1565c0;">
+                        💡 Key decision driver (${(Math.max(...criteria.ratings) - Math.min(...criteria.ratings)).toFixed(1)} point spread)
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function generateMinImpactHTML() {
+            const impactData = calculateCriteriaImpact();
+            const minImpact = impactData.slice(-3).reverse();
+            
+            return minImpact.map(criteria => `
+                <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                    <h5 style="color: #333; margin: 0 0 10px 0; font-weight: 600;">${safeText(criteria.criteriaName)}</h5>
+                    <div style="font-size: 0.9rem; color: #666; margin-bottom: 8px;">
+                        Impact Score: <strong style="color: #6c757d;">${criteria.impactScore.toFixed(1)}%</strong>
+                    </div>
+                    <div style="font-size: 0.9rem; color: #666; margin-bottom: 8px;">
+                        Variance: ${criteria.variance.toFixed(2)} | Weight: ${criteria.weight}%
+                    </div>
+                    <div style="background: #fff3e0; border-left: 3px solid #ff9800; padding: 8px; border-radius: 4px; font-size: 0.85rem; color: #f57c00;">
+                        💡 Similar performance (${(Math.max(...criteria.ratings) - Math.min(...criteria.ratings)).toFixed(1)} point spread)
+                    </div>
+                </div>
+            `).join('');
+        }
 
 
 
