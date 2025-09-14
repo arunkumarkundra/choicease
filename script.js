@@ -782,6 +782,12 @@ function setupRatingStep() {
                             <div class="section-title">🥧 Criteria Weights</div>
                             <div id="advancedWeights"></div>
                         </div>
+
+                        <div class="section">
+                            <div class="section-title">📊 Criteria Impact Analysis</div>
+                            <div id="criteriaImpactAnalysis"></div>
+                        </div>
+
                         <div class="section">
                             <div class="section-title">🏆 Winner Analysis</div>
                             <div id="advancedWinnerAnalysis"></div>
@@ -828,6 +834,14 @@ function setupRatingStep() {
                     document.getElementById('advancedSummary').innerHTML = '<p style="color: #dc3545;">Error loading executive summary</p>';
                 }
 
+
+                try {
+                    renderCriteriaImpactAnalysis();
+                } catch (error) {
+                    console.error('Error rendering criteria impact analysis:', error);
+                    document.getElementById('criteriaImpactAnalysis').innerHTML = '<p style="color: #dc3545;">Error loading criteria impact analysis</p>';
+                }
+                    
                 try {
                     renderWinnerAnalysis();
                 } catch (error) {
@@ -1890,6 +1904,258 @@ function setupRatingStep() {
                 </div>
             `;
         }
+
+
+        // Functions related to Maximum/Minimum Impact Criteria
+        // ===============================
+        // MAXIMUM/MINIMUM IMPACT CRITERIA ANALYSIS
+        // ===============================
+        
+        function calculateCriteriaImpact() {
+            const impactScores = [];
+            
+            decisionData.criteria.forEach(criteria => {
+                // Get all ratings for this criterion
+                const ratings = [];
+                decisionData.options.forEach(option => {
+                    const ratingKey = `${option.id}-${criteria.id}`;
+                    const rating = decisionData.ratings[ratingKey] || DEFAULT_RATING;
+                    ratings.push(rating);
+                });
+                
+                // Calculate variance
+                const mean = ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
+                const variance = ratings.reduce((sum, rating) => sum + Math.pow(rating - mean, 2), 0) / ratings.length;
+                
+                // Get normalized weight
+                const normalizedWeight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
+                
+                // Calculate impact score
+                const impactScore = variance * normalizedWeight * 100;
+                
+                impactScores.push({
+                    criteriaId: criteria.id,
+                    criteriaName: criteria.name,
+                    variance: variance,
+                    weight: Math.round(decisionData.normalizedWeights[criteria.id] || 0),
+                    impactScore: impactScore,
+                    ratings: ratings
+                });
+            });
+            
+            // Sort by impact score (descending)
+            impactScores.sort((a, b) => b.impactScore - a.impactScore);
+            
+            return impactScores;
+        }
+        
+        function getImpactInterpretation(variance, weight, isMaximum, ratings) {
+            const spread = Math.max(...ratings) - Math.min(...ratings);
+            
+            if (isMaximum) {
+                return `This criterion shows wide performance differences (${spread.toFixed(1)} point spread), making it a key decision driver.`;
+            } else {
+                return `Most options perform similarly here (${spread.toFixed(1)} point spread), reducing its influence on the final choice.`;
+            }
+        }
+        
+        function renderCriteriaImpactAnalysis() {
+            const container = document.getElementById('criteriaImpactAnalysis');
+            if (!container) return;
+            
+            const impactData = calculateCriteriaImpact();
+            
+            // Get top 3 maximum and bottom 3 minimum impact criteria
+            const maxImpact = impactData.slice(0, 3);
+            const minImpact = impactData.slice(-3).reverse();
+            
+            let html = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin: 20px 0;">
+                    <!-- Maximum Impact Column -->
+                    <div>
+                        <h4 style="color: #333; margin: 0 0 15px 0; display: flex; align-items: center;">
+                            🎯 Maximum Impact Criteria
+                        </h4>
+                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">
+                            Criteria that most influence your decision
+                        </p>
+            `;
+            
+            // Render maximum impact criteria
+            maxImpact.forEach(criteria => {
+                html += `
+                    <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                        <h5 style="color: #333; margin: 0 0 10px 0; font-weight: 600;">${sanitizeInput(criteria.criteriaName)}</h5>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-size: 0.9rem; color: #666;">Impact Score:</span>
+                            <strong style="color: #667eea;">${criteria.impactScore.toFixed(1)}%</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-size: 0.9rem; color: #666;">Variance:</span>
+                            <span>${criteria.variance.toFixed(2)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                            <span style="font-size: 0.9rem; color: #666;">Weight:</span>
+                            <span>${criteria.weight}%</span>
+                        </div>
+                        <div style="background: #e3f2fd; border-left: 3px solid #2196f3; padding: 8px; border-radius: 4px;">
+                            <span style="font-size: 0.85rem; color: #1565c0;">💡 ${getImpactInterpretation(criteria.variance, criteria.weight, true, criteria.ratings)}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                    
+                    <!-- Minimum Impact Column -->
+                    <div>
+                        <h4 style="color: #333; margin: 0 0 15px 0; display: flex; align-items: center;">
+                            🎭 Minimum Impact Criteria
+                        </h4>
+                        <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">
+                            Criteria with similar performance across options
+                        </p>
+            `;
+            
+            // Render minimum impact criteria
+            minImpact.forEach(criteria => {
+                html += `
+                    <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                        <h5 style="color: #333; margin: 0 0 10px 0; font-weight: 600;">${sanitizeInput(criteria.criteriaName)}</h5>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-size: 0.9rem; color: #666;">Impact Score:</span>
+                            <strong style="color: #6c757d;">${criteria.impactScore.toFixed(1)}%</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span style="font-size: 0.9rem; color: #666;">Variance:</span>
+                            <span>${criteria.variance.toFixed(2)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                            <span style="font-size: 0.9rem; color: #666;">Weight:</span>
+                            <span>${criteria.weight}%</span>
+                        </div>
+                        <div style="background: #fff3e0; border-left: 3px solid #ff9800; padding: 8px; border-radius: 4px;">
+                            <span style="font-size: 0.85rem; color: #f57c00;">💡 ${getImpactInterpretation(criteria.variance, criteria.weight, false, criteria.ratings)}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = html;
+        }
+        
+        function addCriteriaImpactToPDF(doc, yPos) {
+            const impactData = calculateCriteriaImpact();
+            const maxImpact = impactData.slice(0, 3);
+            const minImpact = impactData.slice(-3).reverse();
+            
+            // Section header
+            doc.setFontSize(16);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(102, 126, 234);
+            doc.text('📊 Criteria Impact Analysis', 15, yPos);
+            yPos += 15;
+            
+            // Brief explanation
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(100, 100, 100);
+            doc.text('Analysis of which criteria have the most and least discriminating power in your decision.', 15, yPos);
+            yPos += 20;
+            
+            // Two-column layout
+            const leftX = 15;
+            const rightX = 110;
+            const columnWidth = 85;
+            let leftY = yPos;
+            let rightY = yPos;
+            
+            // Maximum Impact (Left Column)
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(51, 51, 51);
+            doc.text('🎯 Maximum Impact Criteria', leftX, leftY);
+            leftY += 15;
+            
+            maxImpact.forEach(criteria => {
+                // Card background
+                doc.setFillColor(248, 249, 250);
+                doc.rect(leftX, leftY - 5, columnWidth, 35, 'F');
+                doc.setDrawColor(222, 226, 230);
+                doc.rect(leftX, leftY - 5, columnWidth, 35, 'S');
+                
+                // Criteria name
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'bold');
+                doc.setTextColor(51, 51, 51);
+                doc.text(criteria.criteriaName, leftX + 3, leftY + 3);
+                
+                // Impact score
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'normal');
+                doc.text(`Impact Score: ${criteria.impactScore.toFixed(1)}%`, leftX + 3, leftY + 10);
+                doc.text(`Variance: ${criteria.variance.toFixed(2)} | Weight: ${criteria.weight}%`, leftX + 3, leftY + 16);
+                
+                // Brief explanation
+                doc.setFontSize(8);
+                doc.setTextColor(100, 100, 100);
+                const spread = Math.max(...criteria.ratings) - Math.min(...criteria.ratings);
+                doc.text(`Key decision driver (${spread.toFixed(1)} point spread)`, leftX + 3, leftY + 22);
+                
+                leftY += 45;
+            });
+            
+            // Minimum Impact (Right Column)
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.setTextColor(51, 51, 51);
+            doc.text('🎭 Minimum Impact Criteria', rightX, rightY);
+            rightY += 15;
+            
+            minImpact.forEach(criteria => {
+                // Card background
+                doc.setFillColor(248, 249, 250);
+                doc.rect(rightX, rightY - 5, columnWidth, 35, 'F');
+                doc.setDrawColor(222, 226, 230);
+                doc.rect(rightX, rightY - 5, columnWidth, 35, 'S');
+                
+                // Criteria name
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'bold');
+                doc.setTextColor(51, 51, 51);
+                doc.text(criteria.criteriaName, rightX + 3, rightY + 3);
+                
+                // Impact score
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'normal');
+                doc.text(`Impact Score: ${criteria.impactScore.toFixed(1)}%`, rightX + 3, rightY + 10);
+                doc.text(`Variance: ${criteria.variance.toFixed(2)} | Weight: ${criteria.weight}%`, rightX + 3, rightY + 16);
+                
+                // Brief explanation
+                doc.setFontSize(8);
+                doc.setTextColor(100, 100, 100);
+                const spread = Math.max(...criteria.ratings) - Math.min(...criteria.ratings);
+                doc.text(`Similar performance (${spread.toFixed(1)} point spread)`, rightX + 3, rightY + 22);
+                
+                rightY += 45;
+            });
+            
+            return Math.max(leftY, rightY) + 20;
+        }
+
+
+
+
+
+
+
+
 
 
 
@@ -3125,6 +3391,7 @@ function generateCanvasBasedPDF() {
                         selector: '.criteria-weights', 
                         name: 'Criteria Weights' 
                     },
+                    { name: 'Criteria Impact Analysis', selector: '#criteriaImpactAnalysis' },
                     { 
                         selector: '.winner-analysis, .risk-analysis, .top-contributors, .differentiating-factors', 
                         name: 'Winner Analysis' 
