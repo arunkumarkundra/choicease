@@ -2541,23 +2541,67 @@ function renderPerformanceHeatmap() {
         
         // ADD these supporting functions:
 
+
+        function normalizeWhatIfWeights() {
+            // Get all current weight values
+            const weights = {};
+            let total = 0;
+            
+            whatIfDecisionData.criteria.forEach(criteria => {
+                const currentWeight = whatIfDecisionData.normalizedWeights[criteria.id] || 0;
+                weights[criteria.id] = currentWeight;
+                total += currentWeight;
+            });
+            
+            // If total is 0, distribute equally
+            if (total === 0) {
+                const equalWeight = 100 / whatIfDecisionData.criteria.length;
+                whatIfDecisionData.criteria.forEach(criteria => {
+                    whatIfDecisionData.normalizedWeights[criteria.id] = equalWeight;
+                });
+                return;
+            }
+            
+            // Normalize to 100%
+            whatIfDecisionData.criteria.forEach(criteria => {
+                whatIfDecisionData.normalizedWeights[criteria.id] = (weights[criteria.id] / total) * 100;
+            });
+            
+            // Update all displays to show normalized values
+            whatIfDecisionData.criteria.forEach(criteria => {
+                const normalizedWeight = Math.round(whatIfDecisionData.normalizedWeights[criteria.id]);
+                const display = document.getElementById(`weight-display-${criteria.id}`);
+                const slider = document.getElementById(`weight-slider-${criteria.id}`);
+                
+                if (display) display.textContent = `${normalizedWeight}%`;
+                if (slider) slider.value = normalizedWeight;
+            });
+        }
+
+
         // REPLACE the existing updateWhatIfWeight function with this optimized version:
         
         // Create debounced version for calculations
-        const debouncedUpdateWhatIf = debounce(function(criteriaId, newWeight) {
-            // Update the weight
+        const debouncedUpdateWhatIfNormalized = debounce(function() {
+            // Normalize all weights to sum to 100%
+            normalizeWhatIfWeights();
+            
+            // Recalculate and update results with normalized weights
+            updateWhatIfResults();
+        }, 250); // 250ms delay for normalization
+
+
+
+
+        function updateWhatIfWeight(criteriaId, newWeight) {
+            // Update the weight immediately
             whatIfDecisionData.normalizedWeights[criteriaId] = parseFloat(newWeight);
             
-            // Recalculate and update results
-            updateWhatIfResults();
-        }, 150); // 150ms delay
-        
-        function updateWhatIfWeight(criteriaId, newWeight) {
-            // Immediate display update for responsiveness
+            // Immediate display update for responsiveness (show user input)
             document.getElementById(`weight-display-${criteriaId}`).textContent = `${Math.round(newWeight)}%`;
             
-            // Debounced calculation update
-            debouncedUpdateWhatIf(criteriaId, newWeight);
+            // Debounced normalization and calculation update
+            debouncedUpdateWhatIfNormalized(criteriaId, newWeight);
         }        
 
 
