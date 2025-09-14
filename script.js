@@ -5150,87 +5150,100 @@ function capturePieChartFromPage() {
 
 
 
-
-
 function captureWhatIfAnalysisFromPage() {
     return new Promise((resolve) => {
-        console.log('=== WHAT-IF CAPTURE DEBUG START ===');
-        console.log('whatIfDecisionData exists:', !!whatIfDecisionData);
+        console.log('=== WHAT-IF HTML CAPTURE START ===');
         
-        // Try to get current decision data first
-        if (!whatIfDecisionData || !whatIfDecisionData.criteria) {
-            console.log('No what-if data available, using fallback');
+        // Look for the what-if analysis section in the DOM
+        const whatIfSection = document.getElementById('advancedWhatIf');
+        if (!whatIfSection || whatIfSection.classList.contains('hidden')) {
+            console.log('What-if analysis section not found or hidden');
             resolve(null);
             return;
         }
         
         try {
-            console.log('Processing what-if data...');
+            console.log('Capturing from HTML elements...');
             
-            // Create weight settings data from whatIfDecisionData (current weights)
+            // Capture weight settings from the actual display elements
             const weightSettingsData = [];
-            whatIfDecisionData.criteria.forEach(criteria => {
-                const currentWeight = Math.round(whatIfDecisionData.normalizedWeights[criteria.id] || 0);
-                weightSettingsData.push({
-                    name: criteria.name,
-                    weight: currentWeight
-                });
-                console.log(`Added weight: ${criteria.name} = ${currentWeight}%`);
+            const weightControls = whatIfSection.querySelectorAll('.weight-control');
+            
+            console.log(`Found ${weightControls.length} weight controls`);
+            
+            weightControls.forEach((control, index) => {
+                const label = control.querySelector('label');
+                const display = control.querySelector('[id^="weight-display-"]');
+                
+                if (label && display) {
+                    const name = label.textContent.trim();
+                    const weightText = display.textContent.trim();
+                    const weight = parseInt(weightText.replace('%', '')) || 0;
+                    
+                    weightSettingsData.push({
+                        name: name,
+                        weight: weight
+                    });
+                    
+                    console.log(`Weight ${index + 1}: ${name} = ${weight}%`);
+                } else {
+                    console.log(`Missing elements in weight control ${index + 1}`);
+                }
             });
             
-            console.log('=== RATINGS ANALYSIS ===');
-            console.log('Available rating keys:', Object.keys(whatIfDecisionData.ratings || {}));
-            
-            // Create rankings data using the SAME logic as updateWhatIfResults()
+            // Capture rankings from the actual rankings display
             const rankingsData = [];
-            whatIfDecisionData.options.forEach(option => {
-                console.log(`\n--- Processing option: ${option.name} (ID: ${option.id}) ---`);
-                
-                let totalScore = 0;
-                whatIfDecisionData.criteria.forEach(criteria => {
-                    // Use the EXACT same rating key format as updateWhatIfResults()
-                    const ratingKey = `${option.id}-${criteria.id}`;
-                    const rating = whatIfDecisionData.ratings[ratingKey] ?? 3; // DEFAULT_RATING is 3
-                    
-                    console.log(`  ${criteria.name}: ratingKey="${ratingKey}", rating=${rating}`);
-                    
-                    // Use current weight from whatIfDecisionData
-                    const weight = (whatIfDecisionData.normalizedWeights[criteria.id] || 0) / 100;
-                    const contribution = rating * weight;
-                    totalScore += contribution;
-                    
-                    console.log(`    weight=${weight}, contribution=${contribution}`);
-                });
-                
-                rankingsData.push({
-                    name: option.name,
-                    score: totalScore
-                });
-                
-                console.log(`🎯 Final score for ${option.name}: ${totalScore}`);
-            });
+            const rankingsContainer = whatIfSection.querySelector('#whatIfRankings');
             
-            // Sort rankings by score (highest first)
+            if (rankingsContainer) {
+                const rankingItems = rankingsContainer.querySelectorAll('div[style*="display: flex"]');
+                console.log(`Found ${rankingItems.length} ranking items`);
+                
+                rankingItems.forEach((item, index) => {
+                    // Look for the option name and score within the item
+                    const textContent = item.textContent;
+                    
+                    // Try to find the option name (usually after the rank number)
+                    const nameMatch = textContent.match(/#?\d+\s*(.+?)\s*Score:/);
+                    const name = nameMatch ? nameMatch[1].trim() : `Option ${index + 1}`;
+                    
+                    // Try to find the score (look for pattern like "Score: X.XX/5.0")
+                    const scoreMatch = textContent.match(/Score:\s*([\d.]+)/);
+                    const score = scoreMatch ? parseFloat(scoreMatch[1]) : 0;
+                    
+                    rankingsData.push({
+                        name: name,
+                        score: score
+                    });
+                    
+                    console.log(`Ranking ${index + 1}: ${name} = ${score}`);
+                });
+            } else {
+                console.log('Rankings container not found');
+            }
+            
+            // Sort rankings by score (should already be sorted, but just in case)
             rankingsData.sort((a, b) => b.score - a.score);
             
-            console.log('\n=== FINAL RESULTS ===');
+            console.log('=== CAPTURED DATA ===');
             console.log('Weight settings:', weightSettingsData);
             console.log('Rankings:', rankingsData);
-            console.log('=== WHAT-IF CAPTURE DEBUG END ===');
+            console.log('=== WHAT-IF HTML CAPTURE END ===');
             
-            resolve({ weightSettingsData, rankingsData });
+            if (weightSettingsData.length > 0 && rankingsData.length > 0) {
+                resolve({ weightSettingsData, rankingsData });
+            } else {
+                console.log('Insufficient data captured, returning null');
+                resolve(null);
+            }
             
         } catch (error) {
-            console.warn('Error capturing what-if analysis:', error);
+            console.warn('Error capturing from HTML:', error);
             console.log('Error details:', error.stack);
-            console.log('=== WHAT-IF CAPTURE DEBUG END (ERROR) ===');
             resolve(null);
         }
     });
 }
-
-
-
 
 
 
