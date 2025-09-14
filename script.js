@@ -3982,8 +3982,8 @@ function generateReportHTML() {
 
         // Criteria Impact Analysis HTML generation
         const impactData = calculateCriteriaImpact();
-        const maxImpact = impactData.slice(0, 3);
-        const minImpact = impactData.slice(-3).reverse();
+        const maxImpactCr = impactData.slice(0, 3);
+        const minImpactCr = impactData.slice(-3).reverse();
         
         const criteriaImpactHtml = `
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
@@ -3991,7 +3991,7 @@ function generateReportHTML() {
                 <div>
                     <h4 style="color: #333; margin: 0 0 15px 0;">🎯 Maximum Impact Criteria</h4>
                     <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">Criteria that most influence your decision</p>
-                    ${maxImpact.map(criteria => `
+                    ${maxImpactCr.map(criteria => `
                         <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
                             <h5 style="color: #333; margin: 0 0 10px 0; font-weight: 600;">${safeText(criteria.criteriaName)}</h5>
                             <div style="font-size: 0.9rem; color: #666; margin-bottom: 8px;">
@@ -4011,7 +4011,7 @@ function generateReportHTML() {
                 <div>
                     <h4 style="color: #333; margin: 0 0 15px 0;">🎭 Minimum Impact Criteria</h4>
                     <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">Criteria with similar performance across options</p>
-                    ${minImpact.map(criteria => `
+                    ${minImpactCr.map(criteria => `
                         <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
                             <h5 style="color: #333; margin: 0 0 10px 0; font-weight: 600;">${safeText(criteria.criteriaName)}</h5>
                             <div style="font-size: 0.9rem; color: #666; margin-bottom: 8px;">
