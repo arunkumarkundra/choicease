@@ -5150,11 +5150,12 @@ function capturePieChartFromPage() {
 
 
 
+
+
 function captureWhatIfAnalysisFromPage() {
     return new Promise((resolve) => {
         console.log('=== WHAT-IF CAPTURE DEBUG START ===');
         console.log('whatIfDecisionData exists:', !!whatIfDecisionData);
-        console.log('decisionData exists:', !!decisionData);
         
         // Try to get current decision data first
         if (!whatIfDecisionData || !whatIfDecisionData.criteria) {
@@ -5178,50 +5179,38 @@ function captureWhatIfAnalysisFromPage() {
             });
             
             console.log('=== RATINGS ANALYSIS ===');
+            console.log('Available rating keys:', Object.keys(whatIfDecisionData.ratings || {}));
             
-            // Create rankings data by using ratings from original decisionData
-            // but weights from whatIfDecisionData (current adjusted weights)
+            // Create rankings data using the SAME logic as updateWhatIfResults()
             const rankingsData = [];
-            
-            // Use original decisionData for options and ratings
-            if (decisionData && decisionData.options) {
-                decisionData.options.forEach((option, optionIndex) => {
-                    console.log(`\n--- Processing option ${optionIndex + 1}: ${option.name} ---`);
-                    console.log('Option ratings:', option.ratings);
+            whatIfDecisionData.options.forEach(option => {
+                console.log(`\n--- Processing option: ${option.name} (ID: ${option.id}) ---`);
+                
+                let totalScore = 0;
+                whatIfDecisionData.criteria.forEach(criteria => {
+                    // Use the EXACT same rating key format as updateWhatIfResults()
+                    const ratingKey = `${option.id}-${criteria.id}`;
+                    const rating = whatIfDecisionData.ratings[ratingKey] ?? 3; // DEFAULT_RATING is 3
                     
-                    let totalScore = 0;
-                    whatIfDecisionData.criteria.forEach((criteria, criteriaIndex) => {
-                        console.log(`\n  Criteria ${criteriaIndex + 1}: ${criteria.name} (ID: ${criteria.id})`);
-                        
-                        // Get rating from original decisionData
-                        let rating = 0;
-                        if (option.ratings && typeof option.ratings === 'object') {
-                            rating = option.ratings[criteria.id] || 0;
-                            console.log(`    Found rating: ${rating}`);
-                        } else {
-                            console.log(`    No ratings found for option`);
-                        }
-                        
-                        // Use current weight from whatIfDecisionData
-                        const weight = (whatIfDecisionData.normalizedWeights[criteria.id] || 0) / 100;
-                        const contribution = rating * weight;
-                        totalScore += contribution;
-                        
-                        console.log(`    Final: rating=${rating}, weight=${weight}, contribution=${contribution}`);
-                    });
+                    console.log(`  ${criteria.name}: ratingKey="${ratingKey}", rating=${rating}`);
                     
-                    rankingsData.push({
-                        name: option.name,
-                        score: totalScore
-                    });
+                    // Use current weight from whatIfDecisionData
+                    const weight = (whatIfDecisionData.normalizedWeights[criteria.id] || 0) / 100;
+                    const contribution = rating * weight;
+                    totalScore += contribution;
                     
-                    console.log(`\n🎯 Final score for ${option.name}: ${totalScore}`);
+                    console.log(`    weight=${weight}, contribution=${contribution}`);
                 });
-            } else {
-                console.log('No decisionData.options found, cannot calculate rankings');
-            }
+                
+                rankingsData.push({
+                    name: option.name,
+                    score: totalScore
+                });
+                
+                console.log(`🎯 Final score for ${option.name}: ${totalScore}`);
+            });
             
-            // Sort rankings by score
+            // Sort rankings by score (highest first)
             rankingsData.sort((a, b) => b.score - a.score);
             
             console.log('\n=== FINAL RESULTS ===');
@@ -5239,6 +5228,7 @@ function captureWhatIfAnalysisFromPage() {
         }
     });
 }
+
 
 
 
