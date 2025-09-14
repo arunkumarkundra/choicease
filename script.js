@@ -5147,13 +5147,78 @@ function capturePieChartFromPage() {
 
 
 
+
+
+
 function captureWhatIfAnalysisFromPage() {
     return new Promise((resolve) => {
-        console.log('Attempting to capture what-if analysis data...');
+        console.log('=== WHAT-IF CAPTURE DEBUG START ===');
+        console.log('whatIfDecisionData exists:', !!whatIfDecisionData);
+        console.log('whatIfDecisionData:', whatIfDecisionData);
+        
+        if (whatIfDecisionData) {
+            console.log('whatIfDecisionData.criteria exists:', !!whatIfDecisionData.criteria);
+            console.log('whatIfDecisionData.options exists:', !!whatIfDecisionData.options);
+            console.log('whatIfDecisionData.normalizedWeights exists:', !!whatIfDecisionData.normalizedWeights);
+            
+            if (whatIfDecisionData.criteria) {
+                console.log('Number of criteria:', whatIfDecisionData.criteria.length);
+                console.log('First criteria:', whatIfDecisionData.criteria[0]);
+            }
+            
+            if (whatIfDecisionData.normalizedWeights) {
+                console.log('Normalized weights:', whatIfDecisionData.normalizedWeights);
+            }
+        }
         
         // Try to get current decision data first
         if (!whatIfDecisionData || !whatIfDecisionData.criteria) {
-            console.log('No what-if data available, using fallback');
+            console.log('No what-if data available, trying to use main decisionData');
+            
+            // Fallback to main decisionData if whatIfDecisionData is not available
+            if (decisionData && decisionData.criteria) {
+                console.log('Using main decisionData as fallback');
+                try {
+                    // Create weight settings data from main decision data
+                    const weightSettingsData = [];
+                    decisionData.criteria.forEach(criteria => {
+                        const normalizedWeights = calculateNormalizedWeights();
+                        const currentWeight = Math.round(normalizedWeights[criteria.id] || 0);
+                        weightSettingsData.push({
+                            name: criteria.name,
+                            weight: currentWeight
+                        });
+                    });
+                    
+                    // Create rankings data by calculating current results
+                    const rankingsData = [];
+                    decisionData.options.forEach(option => {
+                        let totalScore = 0;
+                        const normalizedWeights = calculateNormalizedWeights();
+                        decisionData.criteria.forEach(criteria => {
+                            const rating = option.ratings[criteria.id] || 0;
+                            const weight = (normalizedWeights[criteria.id] || 0) / 100;
+                            totalScore += rating * weight;
+                        });
+                        rankingsData.push({
+                            name: option.name,
+                            score: totalScore
+                        });
+                    });
+                    
+                    // Sort rankings by score
+                    rankingsData.sort((a, b) => b.score - a.score);
+                    
+                    console.log('Successfully created fallback data:', { weightSettingsData, rankingsData });
+                    resolve({ weightSettingsData, rankingsData });
+                    return;
+                    
+                } catch (error) {
+                    console.warn('Error creating fallback data:', error);
+                }
+            }
+            
+            console.log('No usable data found, returning null');
             resolve(null);
             return;
         }
@@ -5188,18 +5253,16 @@ function captureWhatIfAnalysisFromPage() {
             rankingsData.sort((a, b) => b.score - a.score);
             
             console.log('Successfully captured what-if data:', { weightSettingsData, rankingsData });
+            console.log('=== WHAT-IF CAPTURE DEBUG END ===');
             resolve({ weightSettingsData, rankingsData });
             
         } catch (error) {
             console.warn('Error capturing what-if analysis:', error);
+            console.log('=== WHAT-IF CAPTURE DEBUG END (ERROR) ===');
             resolve(null);
         }
     });
 }
-
-
-
-
 
 
 
