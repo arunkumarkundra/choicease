@@ -3482,43 +3482,26 @@ function generateCanvasBasedPDF() {
             }
             
                 return captureWhatIfAnalysisFromPage();
-                }).then(whatIfData => {
-                    if (whatIfData && whatIfData.weightSettingsData && whatIfData.rankingsData) {
-                        console.log('Using captured what-if data for PDF');
-                        
-                        // Build weight settings HTML for left column
-                        let weightSettingsHtml = '';
-                        whatIfData.weightSettingsData.forEach(item => {
-                            weightSettingsHtml += `
-                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; margin-bottom: 8px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
-                                    <span style="font-weight: 600; color: #333; flex: 1;">${sanitizeInput(item.name)}</span>
-                                    <span style="font-weight: 600; color: #667eea; min-width: 50px; text-align: right;">${item.weight}%</span>
-                                </div>
-                            `;
-                        });
-                        
-                        // Build rankings HTML for right column
-                        let rankingsHtml = '';
-                        whatIfData.rankingsData.forEach((item, index) => {
-                            const rank = index + 1;
-                            const isWinner = rank === 1;
-                            rankingsHtml += `
-                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; margin-bottom: 8px; background: ${isWinner ? '#fff3cd' : '#f8f9fa'}; border-radius: 8px; border-left: 4px solid ${isWinner ? '#ffc107' : '#667eea'};">
-                                    <span style="font-weight: 600; color: #333; flex: 1;"><strong>#${rank}</strong> ${sanitizeInput(item.name)}</span>
-                                    <span style="font-weight: 600; color: #667eea; min-width: 60px; text-align: right;">${item.score.toFixed(2)}</span>
-                                </div>
-                            `;
-                        });
-                        
-                        // Inject into PDF containers
+                }).then(whatIfImage => {
+                    if (whatIfImage) {
+                        // Inject weight settings into left column - empty for now since we're using image
                         const weightPlaceholder = tempContainer.querySelector('#pdfWeightSettingsContainer');
                         if (weightPlaceholder) {
-                            weightPlaceholder.innerHTML = weightSettingsHtml;
+                            weightPlaceholder.innerHTML = `
+                                <div style="text-align: center;">
+                                    <p style="color: #666; margin: 0; font-style: italic;">See interactive analysis below</p>
+                                </div>
+                            `;
                         }
                         
+                        // Inject the screenshot into right column
                         const rankingsPlaceholder = tempContainer.querySelector('#pdfWhatIfContainer');
                         if (rankingsPlaceholder) {
-                            rankingsPlaceholder.innerHTML = rankingsHtml;
+                            rankingsPlaceholder.innerHTML = `
+                                <img src="${whatIfImage}" 
+                                     style="max-width: 100%; height: auto; border: 1px solid #dee2e6; border-radius: 8px;" 
+                                     alt="What-If Analysis Screenshot">
+                            `;
                         }
                         
                     } else {
@@ -5147,12 +5130,9 @@ function capturePieChartFromPage() {
 
 
 
-
-
-
 function captureWhatIfAnalysisFromPage() {
     return new Promise((resolve) => {
-        console.log('=== WHAT-IF HTML CAPTURE START ===');
+        console.log('Capturing what-if analysis via screenshot...');
         
         // Look for the what-if analysis section in the DOM
         const whatIfSection = document.getElementById('advancedWhatIf');
@@ -5163,88 +5143,29 @@ function captureWhatIfAnalysisFromPage() {
         }
         
         try {
-            console.log('Capturing from HTML elements...');
-            
-            // Capture weight settings from the actual display elements
-            const weightSettingsData = [];
-            const weightControls = whatIfSection.querySelectorAll('.weight-control');
-            
-            console.log(`Found ${weightControls.length} weight controls`);
-            
-            weightControls.forEach((control, index) => {
-                const label = control.querySelector('label');
-                const display = control.querySelector('[id^="weight-display-"]');
-                
-                if (label && display) {
-                    const name = label.textContent.trim();
-                    const weightText = display.textContent.trim();
-                    const weight = parseInt(weightText.replace('%', '')) || 0;
-                    
-                    weightSettingsData.push({
-                        name: name,
-                        weight: weight
-                    });
-                    
-                    console.log(`Weight ${index + 1}: ${name} = ${weight}%`);
-                } else {
-                    console.log(`Missing elements in weight control ${index + 1}`);
-                }
+            // Use html2canvas to capture the what-if section, just like pie chart
+            html2canvas(whatIfSection, {
+                backgroundColor: '#ffffff',
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                width: whatIfSection.offsetWidth,
+                height: whatIfSection.offsetHeight
+            }).then(canvas => {
+                const imageData = canvas.toDataURL('image/png', 1.0);
+                console.log('Successfully captured what-if analysis screenshot');
+                resolve(imageData);
+            }).catch(error => {
+                console.warn('Failed to capture what-if analysis screenshot:', error);
+                resolve(null);
             });
             
-            // Capture rankings from the actual rankings display
-            const rankingsData = [];
-            const rankingsContainer = whatIfSection.querySelector('#whatIfRankings');
-            
-            if (rankingsContainer) {
-                const rankingItems = rankingsContainer.querySelectorAll('div[style*="display: flex"]');
-                console.log(`Found ${rankingItems.length} ranking items`);
-                
-                rankingItems.forEach((item, index) => {
-                    // Look for the option name and score within the item
-                    const textContent = item.textContent;
-                    
-                    // Try to find the option name (usually after the rank number)
-                    const nameMatch = textContent.match(/#?\d+\s*(.+?)\s*Score:/);
-                    const name = nameMatch ? nameMatch[1].trim() : `Option ${index + 1}`;
-                    
-                    // Try to find the score (look for pattern like "Score: X.XX/5.0")
-                    const scoreMatch = textContent.match(/Score:\s*([\d.]+)/);
-                    const score = scoreMatch ? parseFloat(scoreMatch[1]) : 0;
-                    
-                    rankingsData.push({
-                        name: name,
-                        score: score
-                    });
-                    
-                    console.log(`Ranking ${index + 1}: ${name} = ${score}`);
-                });
-            } else {
-                console.log('Rankings container not found');
-            }
-            
-            // Sort rankings by score (should already be sorted, but just in case)
-            rankingsData.sort((a, b) => b.score - a.score);
-            
-            console.log('=== CAPTURED DATA ===');
-            console.log('Weight settings:', weightSettingsData);
-            console.log('Rankings:', rankingsData);
-            console.log('=== WHAT-IF HTML CAPTURE END ===');
-            
-            if (weightSettingsData.length > 0 && rankingsData.length > 0) {
-                resolve({ weightSettingsData, rankingsData });
-            } else {
-                console.log('Insufficient data captured, returning null');
-                resolve(null);
-            }
-            
         } catch (error) {
-            console.warn('Error capturing from HTML:', error);
-            console.log('Error details:', error.stack);
+            console.warn('Error capturing what-if analysis screenshot:', error);
             resolve(null);
         }
     });
 }
-
 
 
 
