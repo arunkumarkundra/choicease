@@ -1596,17 +1596,20 @@ function setupRatingStep() {
                                                         <div style="display: flex; align-items: start; gap: 12px;">
                                                             <div style="background: #17a2b8; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; flex-shrink: 0;">📅</div>
                                                             <div>
-                                                                <strong>Review Timeline</strong><br>
+                                                                <strong>When to Revisit This Decision</strong><br>
                                                                 <span style="color: #666; font-size: 0.9rem;">
                                                                     ${confidence.percentage >= 80 ? 
-                                                                        'Schedule annual reviews unless major changes occur.' :
+                                                                        '<strong>Rarely revisit:</strong> Only when major circumstances change or new options emerge.' :
                                                                         confidence.percentage >= 65 ?
-                                                                        'Plan quarterly reviews to validate assumptions.' :
+                                                                        '<strong>Periodic review:</strong> Check if assumptions remain valid and new alternatives have emerged.' :
                                                                         confidence.percentage >= 45 ?
-                                                                        'Review monthly initially, then quarterly as confidence improves.' :
-                                                                        'Weekly reviews recommended until confidence improves significantly.'
+                                                                        '<strong>Active monitoring:</strong> Watch for early signals that might change the calculus.' :
+                                                                        '<strong>Stay alert:</strong> Be ready to reassess as new information becomes available.'
                                                                     }
                                                                 </span>
+                                                                <div style="margin-top: 8px; padding: 8px; background: rgba(23, 162, 184, 0.1); border-radius: 4px; font-size: 0.85rem;">
+                                                                    <strong>Factors to watch:</strong> Changes in your priorities, new options becoming available, external circumstances shifting, or initial assumptions proving incorrect.
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
