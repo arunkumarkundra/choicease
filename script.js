@@ -2388,6 +2388,12 @@ function renderPerformanceHeatmap() {
                             `).join('')}
                         </div>
                         
+                        <div style="page-break-before: always; height: 1px; clear: both;"></div>
+                        <div class="tornado-chart" style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e9ecef;">
+                            <h4 style="color: #333; margin: 0 0 15px 0;">🌪️ Sensitivity Tornado Chart</h4>
+                            ${renderTornadoChart(flipPoints)}
+                        </div>
+                        
                         <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 0.9rem;">
                             <strong>Interpretation:</strong><br>
                             <span style="color: #dc3545;">●</span> <strong>Critical (Red):</strong> Small weight changes could flip the decision<br>
@@ -2471,6 +2477,35 @@ function renderPerformanceHeatmap() {
             });
         }
         
+        function renderTornadoChart(flipPoints) {
+            const maxImpact = Math.max(...flipPoints.map(fp => fp.impactMagnitude));
+            
+            return `
+                <div style="margin-top: 15px;">
+                    ${flipPoints.map(fp => {
+                        const barWidth = maxImpact > 0 ? (fp.impactMagnitude / maxImpact) * 100 : 0;
+                        return `
+                            <div style="margin-bottom: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                    <span style="font-size: 0.9rem; font-weight: 500;">${sanitizeInput(fp.criteriaName)}</span>
+                                    <span style="font-size: 0.8rem; color: #666;">${fp.changeNeeded}</span>
+                                </div>
+                                <div style="width: 100%; height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden;">
+                                    <div style="width: ${barWidth}%; height: 100%; background: ${
+                                        fp.criticality === 'critical' ? 'linear-gradient(135deg, #dc3545, #c82333)' : 
+                                        fp.criticality === 'moderate' ? 'linear-gradient(135deg, #ffc107, #fd7e14)' : 
+                                        'linear-gradient(135deg, #28a745, #20c997)'
+                                    }; border-radius: 10px; transition: width 0.8s ease;"></div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+
+
 
 
 
@@ -3696,6 +3731,29 @@ function generateReportHTML() {
             `).join('')}
         </div>
 
+        <div style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e9ecef; margin-top: 20px;">
+            <h4 style="color: #333; margin: 0 0 15px 0; font-size: 16px;">🌪️ Sensitivity Tornado Chart</h4>
+            <div style="margin-top: 15px;">
+                ${flipPoints.slice(0, 6).map(fp => {
+                    const barWidth = maxImpact > 0 ? ((safeNum(fp.impactMagnitude, 0) / maxImpact) * 100) : 0;
+                    return `
+                        <div style="margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span style="font-size: 13px; font-weight: 500;">${safeText(fp.criteriaName)}</span>
+                                <span style="font-size: 12px; color: #666;">${safeText(fp.changeNeeded)}</span>
+                            </div>
+                            <div style="width: 100%; height: 16px; background: #e9ecef; border-radius: 8px; overflow: hidden;">
+                                <div style="width: ${Math.max(barWidth, 5)}%; height: 100%; background: ${
+                                    fp.criticality === 'critical' ? 'linear-gradient(135deg, #dc3545, #c82333)' : 
+                                    fp.criticality === 'moderate' ? 'linear-gradient(135deg, #ffc107, #fd7e14)' : 
+                                    'linear-gradient(135deg, #28a745, #20c997)'
+                                }; border-radius: 8px; transition: width 0.8s ease;"></div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            
             <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 12px;">
                 <strong>Interpretation:</strong><br>
                 <span style="color: #dc3545;">●</span> <strong>Critical (Red):</strong> Small weight changes could flip the decision<br>
