@@ -5235,8 +5235,8 @@ function captureWhatIfAnalysisFromPage() {
                 
                 
                 // Create a clean table-style representation of weight controls
-                const controlsSection = whatIfSection.querySelector('.what-if-controls');
-                if (controlsSection) {
+                const controlsSectionWI = whatIfSection.querySelector('.what-if-controls');
+                if (controlsSectionWI) {
                     const weightsTable = document.createElement('div');
                     weightsTable.style.cssText = 'margin-bottom: 20px;';
                     
@@ -5246,7 +5246,7 @@ function captureWhatIfAnalysisFromPage() {
                     weightsTable.appendChild(title);
                     
                     // Get all weight controls
-                    const weightControls = controlsSection.querySelectorAll('.weight-control');
+                    const weightControls = controlsSectionWI.querySelectorAll('.weight-control');
                     weightControls.forEach(control => {
                         const label = control.querySelector('label');
                         const slider = control.querySelector('.what-if-slider');
