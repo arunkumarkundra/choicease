@@ -2493,9 +2493,13 @@ function renderPerformanceHeatmap() {
                     </p>
                     
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-                        <button id="resetWeightsBtn" class="btn btn-secondary" style="margin: 0;">
+                        <button id="resetWeightsBtn" class="btn btn-secondary" style="margin: 0; margin-right: 10px;">
                             🔄 Reset to Original Weights
                         </button>
+                        <button id="normalizeWeightsBtn" class="btn btn-secondary" style="margin: 0;">
+                            ⚖️ Balance Weights to 100%
+                        </button>
+
                         <div id="whatIfAlert" style="padding: 8px 15px; border-radius: 20px; font-weight: 600; display: none;">
                             <!-- Winner change alerts will appear here -->
                         </div>
@@ -2537,13 +2541,12 @@ function renderPerformanceHeatmap() {
             
             // Add event listener for reset button
             document.getElementById('resetWeightsBtn').addEventListener('click', resetToOriginalWeights);
+            document.getElementById('normalizeWeightsBtn').addEventListener('click', normalizeWeightsDisplay);
         }
         
         // ADD these supporting functions:
-
-
-        function normalizeWhatIfWeights() {
-            // Get all current weight values
+        function calculateNormalizedWeights() {
+            // Get all current weight values (what user set)
             const weights = {};
             let total = 0;
             
@@ -2556,53 +2559,69 @@ function renderPerformanceHeatmap() {
             // If total is 0, distribute equally
             if (total === 0) {
                 const equalWeight = 100 / whatIfDecisionData.criteria.length;
+                const normalizedWeights = {};
                 whatIfDecisionData.criteria.forEach(criteria => {
-                    whatIfDecisionData.normalizedWeights[criteria.id] = equalWeight;
+                    normalizedWeights[criteria.id] = equalWeight;
                 });
-                return;
+                return normalizedWeights;
             }
             
-            // Normalize to 100%
+            // Calculate normalized weights for calculations (but don't update display)
+            const normalizedWeights = {};
             whatIfDecisionData.criteria.forEach(criteria => {
-                whatIfDecisionData.normalizedWeights[criteria.id] = (weights[criteria.id] / total) * 100;
+                normalizedWeights[criteria.id] = (weights[criteria.id] / total) * 100;
             });
             
-            // Update all displays to show normalized values
+            return normalizedWeights;
+        }
+
+
+        function normalizeWeightsDisplay() {
+            // Calculate normalized weights
+            const normalizedWeights = calculateNormalizedWeights();
+            
+            // Update both stored values and display
             whatIfDecisionData.criteria.forEach(criteria => {
-                const normalizedWeight = Math.round(whatIfDecisionData.normalizedWeights[criteria.id]);
+                const normalizedWeight = Math.round(normalizedWeights[criteria.id]);
+                whatIfDecisionData.normalizedWeights[criteria.id] = normalizedWeight;
+                
                 const display = document.getElementById(`weight-display-${criteria.id}`);
                 const slider = document.getElementById(`weight-slider-${criteria.id}`);
                 
                 if (display) display.textContent = `${normalizedWeight}%`;
                 if (slider) slider.value = normalizedWeight;
             });
+            
+            // Recalculate results with new normalized weights
+            updateWhatIfResults();
         }
+
+
+
 
 
         // REPLACE the existing updateWhatIfWeight function with this optimized version:
         
         // Create debounced version for calculations
-        const debouncedUpdateWhatIfNormalized = debounce(function() {
-            // Normalize all weights to sum to 100%
-            normalizeWhatIfWeights();
-            
-            // Recalculate and update results with normalized weights
+        const debouncedUpdateWhatIfCalculation = debounce(function() {
+            // Just recalculate results (using normalized weights for calculation but keeping display as-is)
             updateWhatIfResults();
-        }, 250); // 250ms delay for normalization
-
+        }, 150); // 150ms delay for calculation only
 
 
 
         function updateWhatIfWeight(criteriaId, newWeight) {
-            // Update the weight immediately
+            // Update the stored weight (what user set)
             whatIfDecisionData.normalizedWeights[criteriaId] = parseFloat(newWeight);
             
-            // Immediate display update for responsiveness (show user input)
+            // Immediate display update (show exactly what user set)
             document.getElementById(`weight-display-${criteriaId}`).textContent = `${Math.round(newWeight)}%`;
             
-            // Debounced normalization and calculation update
-            debouncedUpdateWhatIfNormalized(criteriaId, newWeight);
-        }        
+            // Debounced calculation update (calculations use normalized weights internally)
+            debouncedUpdateWhatIfCalculation();
+        }
+
+
 
 
 
@@ -2670,7 +2689,8 @@ function renderPerformanceHeatmap() {
                 whatIfDecisionData.criteria.forEach(criteria => {
                     const ratingKey = `${option.id}-${criteria.id}`;
                     const rating = whatIfDecisionData.ratings[ratingKey] ?? DEFAULT_RATING;
-                    const weight = (whatIfDecisionData.normalizedWeights[criteria.id] || 0) / 100;
+                    const normalizedWeights = calculateNormalizedWeights();
+                    const weight = (normalizedWeights[criteria.id] || 0) / 100;
                     totalScore += rating * weight;
                 });
                 newResults.push({
