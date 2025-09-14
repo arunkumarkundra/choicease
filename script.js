@@ -2064,6 +2064,16 @@ function setupRatingStep() {
 
 
 
+
+
+
+
+
+
+
+
+
+
         function addCriteriaImpactToPDF(doc, yPos) {
             const impactData = calculateCriteriaImpact();
             const maxImpact = impactData.slice(0, 3);
