@@ -2351,13 +2351,13 @@ function renderPerformanceHeatmap() {
             container.innerHTML = `
                 <div style="padding: 20px;">
                     <p style="color: #666; margin-bottom: 20px;">
-                        Analysis of how sensitive your decision is to changes in criteria weights. Lower flip points indicate more critical criteria.
+                        Analysis of how sensitive your decision is to changes in criteria weights. 
                     </p>
                     
                     <div class="sensitivity-analysis">
                         <h4 style="color: #333; margin: 0 0 20px 0;">🎯 Flip Point Analysis</h4>
                         <p style="color: #666; font-size: 0.9rem; margin-bottom: 15px;">
-                            Minimum weight changes needed to change the winner:
+                            Lower flip points indicate more critical criteria. Minimum weight changes needed to change the winner:
                         </p>
                         
                         <div class="flip-points" style="margin-bottom: 25px;">
@@ -3666,7 +3666,7 @@ function generateReportHTML() {
         <div class="sensitivity-analysis">
             <h4 style="color: #333; margin: 0 0 15px 0; font-size: 16px;">🎯 Flip Point Analysis</h4>
             <p style="color: #666; font-size: 13px; margin-bottom: 15px;">
-                Minimum weight changes needed to change the winner:
+                Lower flip points indicate more critical criteria. Minimum weight changes needed to change the winner:
             </p>
             
             ${flipPoints.slice(0, 6).map(fp => `
@@ -3918,7 +3918,7 @@ function generateReportHTML() {
             <div class="pdf-section sensitivity-analysis" style="margin-bottom: 30px;">
                 <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">⚖️ Sensitivity Analysis</h3>
                 <p style="color: #666; margin-bottom: 20px;">
-                    How sensitive your decision is to changes in criteria weights. Lower flip points indicate more critical criteria.
+                    How sensitive your decision is to changes in criteria weights. 
                 </p>
                 ${flipPointsHtml}
             </div>
