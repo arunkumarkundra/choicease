@@ -1090,9 +1090,44 @@ function setupRatingStep() {
             return insights;
         }
 
-
-
-
+        function createEducationalTooltip(term, explanation, example = null) {
+            return `
+                <span class="educational-tooltip" style="position: relative; cursor: help; border-bottom: 1px dotted #667eea; color: #667eea;">
+                    ${term}
+                    <div class="tooltip-content" style="
+                        position: absolute;
+                        bottom: 125%;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: #2c3e50;
+                        color: white;
+                        padding: 12px;
+                        border-radius: 8px;
+                        font-size: 0.85rem;
+                        width: 280px;
+                        z-index: 1000;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                        display: none;
+                        line-height: 1.4;
+                    ">
+                        <strong style="color: #3498db;">${term}:</strong><br>
+                        ${explanation}
+                        ${example ? `<br><br><em style="color: #95a5a6;">Example: ${example}</em>` : ''}
+                        <div style="
+                            position: absolute;
+                            top: 100%;
+                            left: 50%;
+                            transform: translateX(-50%);
+                            width: 0;
+                            height: 0;
+                            border-left: 8px solid transparent;
+                            border-right: 8px solid transparent;
+                            border-top: 8px solid #2c3e50;
+                        "></div>
+                    </div>
+                </span>
+            `;
+        }
 
 
 
@@ -1288,86 +1323,298 @@ function setupRatingStep() {
                                     <em>${sanitizeInput(runnerUp.option.name)}</em> (${runnerUp.totalScore.toFixed(2)}/5.0)
                                 </div>
                             ` : ''}
-                            
                             ${confidence.details ? `
-                                <details style="margin-top: 15px;">
-                                    <summary style="cursor: pointer; font-weight: 600; color: #667eea; padding: 8px 0;">
-                                        📋 View Detailed Analysis
-                                    </summary>
-                                    <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-                                        
-                                        <!-- Stability Analysis -->
-                                        <div style="margin-bottom: 15px;">
-                                            <h5 style="color: #333; margin: 0 0 8px 0;">🎯 Decision Stability</h5>
-                                            <div style="background: white; padding: 12px; border-radius: 6px; border-left: 4px solid #28a745;">
-                                                <div style="font-weight: 600; margin-bottom: 4px;">Stability Score: ${confidence.details.stability.stabilityPercentage}%</div>
-                                                <div style="font-size: 0.9rem; color: #666;">${confidence.details.stability.interpretation}</div>
+                                    <details style="margin-top: 15px;">
+                                        <summary style="cursor: pointer; font-weight: 600; color: #667eea; padding: 8px 0;">
+                                            📊 Advanced Analytics Dashboard
+                                        </summary>
+                                        <div style="margin-top: 15px; padding: 20px; background: #f8f9fa; border-radius: 12px; border: 2px solid #e6f2ff;">
+                                            
+                                            <!-- Executive Insights Section -->
+                                            <div style="margin-bottom: 25px; padding: 20px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 12px;">
+                                                <h5 style="color: white; margin: 0 0 15px 0; font-size: 1.1rem;">🎯 Executive Insights</h5>
+                                                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px;">
+                                                    ${confidence.details.insights.map(insight => `
+                                                        <div style="margin-bottom: 8px; font-size: 0.95rem; line-height: 1.4;">
+                                                            ${insight}
+                                                        </div>
+                                                    `).join('')}
+                                                </div>
                                             </div>
-                                        </div>
-                                        
-                                        <!-- Confidence Components -->
-                                        <div style="margin-bottom: 15px;">
-                                            <h5 style="color: #333; margin: 0 0 8px 0;">⚖️ Confidence Components</h5>
-                                            <div style="display: grid; gap: 8px;">
-                                                <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: white; border-radius: 4px;">
-                                                    <span>Gap Analysis:</span>
-                                                    <span style="font-weight: 600; color: #667eea;">${confidence.details.components.gapConfidence}%</span>
+                                            
+                                            <!-- Statistical Foundation Section -->
+                                            <div style="margin-bottom: 25px;">
+                                                <h5 style="color: #333; margin: 0 0 15px 0; font-size: 1.1rem;">📈 Statistical Foundation</h5>
+                                                <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px; line-height: 1.5;">
+                                                    These metrics help us understand the mathematical rigor behind your decision confidence:
+                                                </p>
+                                                
+                                                <div class="advanced-metric-card">
+                                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                        <div>
+                                                            <strong>${createEducationalTooltip(
+                                                                'Effect Size',
+                                                                'Measures how meaningful the difference is between your top choices. Values above 1.5 indicate a substantial difference, while values below 0.5 suggest the options are quite similar.',
+                                                                'Effect Size of 2.1 means the winner is significantly better than runner-up, not just marginally ahead'
+                                                            )}</strong>
+                                                        </div>
+                                                        <div class="metric-value">${confidence.details.statistics.effectSize}</div>
+                                                    </div>
+                                                    <div class="metric-interpretation">
+                                                        ${parseFloat(confidence.details.statistics.effectSize) > 1.5 ? 
+                                                            '🔥 Large effect - winner is substantially better' :
+                                                            parseFloat(confidence.details.statistics.effectSize) > 0.8 ?
+                                                            '📊 Medium effect - clear difference exists' :
+                                                            '🤏 Small effect - options are quite similar'
+                                                        }
+                                                    </div>
                                                 </div>
-                                                <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: white; border-radius: 4px;">
-                                                    <span>Statistical Significance:</span>
-                                                    <span style="font-weight: 600; color: #667eea;">${confidence.details.components.statisticalConfidence}%</span>
+                                                
+                                                <div class="advanced-metric-card">
+                                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                        <div>
+                                                            <strong>${createEducationalTooltip(
+                                                                'Standard Deviation',
+                                                                'Shows how spread out your option scores are. Higher values mean your options vary widely in quality, lower values mean they\'re all fairly similar.',
+                                                                'SD of 0.8 with scores ranging 2.1-4.3 shows you have both great and poor options to choose from'
+                                                            )}</strong>
+                                                        </div>
+                                                        <div class="metric-value">${confidence.details.statistics.standardDeviation}</div>
+                                                    </div>
+                                                    <div class="metric-interpretation">
+                                                        ${parseFloat(confidence.details.statistics.standardDeviation) > 1.0 ? 
+                                                            '📏 Wide spread - you have distinctly different quality options' :
+                                                            parseFloat(confidence.details.statistics.standardDeviation) > 0.5 ?
+                                                            '📐 Moderate spread - options have noticeable differences' :
+                                                            '📌 Tight spread - all options are quite similar in quality'
+                                                        }
+                                                    </div>
                                                 </div>
-                                                <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: white; border-radius: 4px;">
-                                                    <span>Score Distribution:</span>
-                                                    <span style="font-weight: 600; color: #667eea;">${confidence.details.components.distributionConfidence}%</span>
+                                                
+                                                <div class="advanced-metric-card">
+                                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                        <div>
+                                                            <strong>${createEducationalTooltip(
+                                                                'Score Range',
+                                                                'The gap between your highest and lowest scoring options. A larger range means you\'re comparing options of very different quality levels.',
+                                                                'Range of 2.3 points means your best option scores 2.3 points higher than your worst option'
+                                                            )}</strong>
+                                                        </div>
+                                                        <div class="metric-value">${confidence.details.statistics.scoreSpread}</div>
+                                                    </div>
+                                                    <div class="metric-interpretation">
+                                                        ${parseFloat(confidence.details.statistics.scoreSpread) > 2.0 ? 
+                                                            '🎯 Large range - clear quality tiers among your options' :
+                                                            parseFloat(confidence.details.statistics.scoreSpread) > 1.0 ?
+                                                            '⚖️ Moderate range - some options clearly outperform others' :
+                                                            '🤝 Small range - all options perform at similar levels'
+                                                        }
+                                                    </div>
                                                 </div>
-                                                <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: white; border-radius: 4px;">
-                                                    <span>Sample Size Bonus:</span>
-                                                    <span style="font-weight: 600; color: #28a745;">+${confidence.details.components.sampleSizeBonus}%</span>
+                                            </div>
+                                            
+                                            <!-- Confidence Components Breakdown -->
+                                            <div style="margin-bottom: 25px;">
+                                                <h5 style="color: #333; margin: 0 0 15px 0; font-size: 1.1rem;">⚖️ Confidence Components Analysis</h5>
+                                                <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px; line-height: 1.5;">
+                                                    Your overall confidence is calculated by combining multiple analytical perspectives:
+                                                </p>
+                                                
+                                                <div class="advanced-metric-card">
+                                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                        <div>
+                                                            <strong>${createEducationalTooltip(
+                                                                'Gap Analysis',
+                                                                'How much better the winner is compared to the runner-up. This is the most intuitive component - larger gaps mean more confidence.',
+                                                                'Gap of 0.8 points with Gap Analysis of 65% means there\'s a solid lead, contributing strongly to overall confidence'
+                                                            )} (35% weight)</strong>
+                                                        </div>
+                                                        <div class="metric-value">${confidence.details.components.gapConfidence}%</div>
+                                                    </div>
+                                                    <div class="metric-interpretation">
+                                                        Primary confidence driver based on winner's lead margin
+                                                    </div>
                                                 </div>
+                                                
+                                                <div class="advanced-metric-card">
+                                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                        <div>
+                                                            <strong>${createEducationalTooltip(
+                                                                'Statistical Significance',
+                                                                'Whether the difference between options is mathematically meaningful or could just be due to random variation in your ratings.',
+                                                                'Statistical Significance of 78% means the winner\'s advantage is very unlikely to be just coincidence'
+                                                            )} (25% weight)</strong>
+                                                        </div>
+                                                        <div class="metric-value">${confidence.details.components.statisticalConfidence}%</div>
+                                                    </div>
+                                                    <div class="metric-interpretation">
+                                                        Mathematical rigor - is this difference real or just noise?
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="advanced-metric-card">
+                                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                        <div>
+                                                            <strong>${createEducationalTooltip(
+                                                                'Distribution Analysis',
+                                                                'How spread out all your option scores are. When options are very different in quality, we can be more confident in picking the best one.',
+                                                                'Distribution of 85% means your options vary widely in quality, making the best choice more obvious'
+                                                            )} (20% weight)</strong>
+                                                        </div>
+                                                        <div class="metric-value">${confidence.details.components.distributionConfidence}%</div>
+                                                    </div>
+                                                    <div class="metric-interpretation">
+                                                        Quality spread - are you choosing from distinctly different options?
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="advanced-metric-card">
+                                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                        <div>
+                                                            <strong>${createEducationalTooltip(
+                                                                'Sample Size Bonus',
+                                                                'Statistical confidence increases with more data points. Comparing more options gives us more confidence in identifying the true best choice.',
+                                                                'Bonus of +15% means you compared enough options to be statistically confident in the result'
+                                                            )} (Bonus)</strong>
+                                                        </div>
+                                                        <div class="metric-value" style="color: #28a745;">+${confidence.details.components.sampleSizeBonus}%</div>
+                                                    </div>
+                                                    <div class="metric-interpretation">
+                                                        Confidence boost from analyzing multiple alternatives
+                                                    </div>
+                                                </div>
+                                                
                                                 ${confidence.details.components.sensitivityPenalty > 0 ? `
-                                                    <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: white; border-radius: 4px;">
-                                                        <span>Sensitivity Penalty:</span>
-                                                        <span style="font-weight: 600; color: #dc3545;">-${confidence.details.components.sensitivityPenalty}%</span>
+                                                    <div class="advanced-metric-card" style="border-color: #dc3545;">
+                                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                            <div>
+                                                                <strong style="color: #dc3545;">${createEducationalTooltip(
+                                                                    'Sensitivity Penalty',
+                                                                    'Confidence reduction when the decision is fragile - small changes in criteria weights could flip the winner. This warns you when results aren\'t robust.',
+                                                                    'Penalty of -18% means your decision is sensitive to how you weight criteria - small priority changes could change the winner'
+                                                                )} (Penalty)</strong>
+                                                            </div>
+                                                            <div class="metric-value" style="color: #dc3545;">-${confidence.details.components.sensitivityPenalty}%</div>
+                                                        </div>
+                                                        <div class="metric-interpretation" style="color: #dc3545;">
+                                                            Confidence reduction due to decision fragility
+                                                        </div>
                                                     </div>
                                                 ` : ''}
                                             </div>
-                                        </div>
-                                        
-                                        <!-- Practical Insights -->
-                                        <div style="margin-bottom: 10px;">
-                                            <h5 style="color: #333; margin: 0 0 8px 0;">💡 Practical Insights</h5>
-                                            <div style="background: white; padding: 12px; border-radius: 6px;">
-                                                ${confidence.details.insights.map(insight => `
-                                                    <div style="margin-bottom: 6px; font-size: 0.9rem; padding: 4px 0;">
-                                                        ${insight}
+                                            
+                                            <!-- Monte Carlo Stability Analysis -->
+                                            <div style="margin-bottom: 25px;">
+                                                <h5 style="color: #333; margin: 0 0 15px 0; font-size: 1.1rem;">🔬 Monte Carlo Stability Analysis</h5>
+                                                <p style="font-size: 0.9rem; color: #666; margin-bottom: 15px; line-height: 1.5;">
+                                                    We ran 500 simulations with small random variations to your ratings to test decision robustness:
+                                                </p>
+                                                
+                                                <div style="background: white; padding: 20px; border-radius: 8px; border-left: 4px solid ${confidence.details.stability.stabilityPercentage > 90 ? '#28a745' : confidence.details.stability.stabilityPercentage > 70 ? '#ffc107' : '#dc3545'};">
+                                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                                        <div>
+                                                            <strong>${createEducationalTooltip(
+                                                                'Stability Score',
+                                                                'Percentage of simulations where the same option won despite small rating variations. Higher scores mean your decision is robust to uncertainty.',
+                                                                'Stability of 87% means even with small rating uncertainties, the same option wins 87 out of 100 times'
+                                                            )}</strong>
+                                                        </div>
+                                                        <div style="font-size: 1.5rem; font-weight: bold; color: ${confidence.details.stability.stabilityPercentage > 90 ? '#28a745' : confidence.details.stability.stabilityPercentage > 70 ? '#f57c00' : '#dc3545'};">
+                                                            ${confidence.details.stability.stabilityPercentage}%
+                                                        </div>
                                                     </div>
-                                                `).join('')}
+                                                    
+                                                    <div style="width: 100%; height: 12px; background: #e9ecef; border-radius: 6px; overflow: hidden; margin: 12px 0;">
+                                                        <div style="width: ${confidence.details.stability.stabilityPercentage}%; height: 100%; background: ${confidence.details.stability.stabilityPercentage > 90 ? 'linear-gradient(135deg, #28a745, #20c997)' : confidence.details.stability.stabilityPercentage > 70 ? 'linear-gradient(135deg, #ffc107, #fd7e14)' : 'linear-gradient(135deg, #dc3545, #c82333)'}; border-radius: 6px;"></div>
+                                                    </div>
+                                                    
+                                                    <div style="font-size: 0.95rem; color: #666; line-height: 1.4;">
+                                                        <strong>Interpretation:</strong> ${confidence.details.stability.interpretation}
+                                                    </div>
+                                                    
+                                                    <div style="margin-top: 12px; padding: 12px; background: rgba(102, 126, 234, 0.1); border-radius: 6px; font-size: 0.9rem;">
+                                                        <strong>What this means:</strong> 
+                                                        ${confidence.details.stability.stabilityPercentage > 90 ? 
+                                                            'Your decision is rock-solid. Even if you\'re slightly uncertain about some ratings, the winner remains the same.' :
+                                                            confidence.details.stability.stabilityPercentage > 70 ?
+                                                            'Your decision is reasonably stable, but double-check ratings for criteria you\'re unsure about.' :
+                                                            'Your decision is fragile. Small changes in how you rate options could change the winner. Consider gathering more information.'
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Professional Recommendations -->
+                                            <div>
+                                                <h5 style="color: #333; margin: 0 0 15px 0; font-size: 1.1rem;">🎯 Professional Recommendations</h5>
+                                                <div style="background: white; padding: 20px; border-radius: 8px; border: 2px solid #667eea;">
+                                                    <div style="display: grid; gap: 12px;">
+                                                        ${confidence.percentage >= 80 ? `
+                                                            <div style="display: flex; align-items: start; gap: 12px;">
+                                                                <div style="background: #28a745; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; flex-shrink: 0;">✓</div>
+                                                                <div>
+                                                                    <strong>Proceed with Implementation</strong><br>
+                                                                    <span style="color: #666; font-size: 0.9rem;">High confidence and stability scores support moving forward. Document your decision rationale for future reference.</span>
+                                                                </div>
+                                                            </div>
+                                                        ` : confidence.percentage >= 65 ? `
+                                                            <div style="display: flex; align-items: start; gap: 12px;">
+                                                                <div style="background: #28a745; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; flex-shrink: 0;">→</div>
+                                                                <div>
+                                                                    <strong>Move Forward with Monitoring</strong><br>
+                                                                    <span style="color: #666; font-size: 0.9rem;">Good confidence supports the decision. Plan checkpoints to validate assumptions and monitor outcomes.</span>
+                                                                </div>
+                                                            </div>
+                                                        ` : confidence.percentage >= 45 ? `
+                                                            <div style="display: flex; align-items: start; gap: 12px;">
+                                                                <div style="background: #ffc107; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; flex-shrink: 0;">⚠</div>
+                                                                <div>
+                                                                    <strong>Gather Additional Data</strong><br>
+                                                                    <span style="color: #666; font-size: 0.9rem;">Moderate confidence suggests collecting more information or consulting stakeholders before finalizing.</span>
+                                                                </div>
+                                                            </div>
+                                                        ` : `
+                                                            <div style="display: flex; align-items: start; gap: 12px;">
+                                                                <div style="background: #dc3545; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; flex-shrink: 0;">⏸</div>
+                                                                <div>
+                                                                    <strong>Pause and Reassess</strong><br>
+                                                                    <span style="color: #666; font-size: 0.9rem;">Low confidence indicates need for additional criteria, stakeholder input, or external perspective before deciding.</span>
+                                                                </div>
+                                                            </div>
+                                                        `}
+                                                        
+                                                        ${confidence.details.components.sensitivityPenalty > 15 ? `
+                                                            <div style="display: flex; align-items: start; gap: 12px;">
+                                                                <div style="background: #6f42c1; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; flex-shrink: 0;">⚖</div>
+                                                                <div>
+                                                                    <strong>Validate Criteria Weights</strong><br>
+                                                                    <span style="color: #666; font-size: 0.9rem;">High sensitivity detected. Double-check that your importance weightings truly reflect your priorities.</span>
+                                                                </div>
+                                                            </div>
+                                                        ` : ''}
+                                                        
+                                                        <div style="display: flex; align-items: start; gap: 12px;">
+                                                            <div style="background: #17a2b8; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: bold; flex-shrink: 0;">📅</div>
+                                                            <div>
+                                                                <strong>Review Timeline</strong><br>
+                                                                <span style="color: #666; font-size: 0.9rem;">
+                                                                    ${confidence.percentage >= 80 ? 
+                                                                        'Schedule annual reviews unless major changes occur.' :
+                                                                        confidence.percentage >= 65 ?
+                                                                        'Plan quarterly reviews to validate assumptions.' :
+                                                                        confidence.percentage >= 45 ?
+                                                                        'Review monthly initially, then quarterly as confidence improves.' :
+                                                                        'Weekly reviews recommended until confidence improves significantly.'
+                                                                    }
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                        
-                                        <!-- Statistical Details -->
-                                        <div>
-                                            <h5 style="color: #333; margin: 0 0 8px 0;">📈 Statistical Details</h5>
-                                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; font-size: 0.85rem;">
-                                                <div style="background: white; padding: 8px; border-radius: 4px; text-align: center;">
-                                                    <div style="font-weight: 600; color: #667eea;">${confidence.details.statistics.effectSize}</div>
-                                                    <div style="color: #666;">Effect Size</div>
-                                                </div>
-                                                <div style="background: white; padding: 8px; border-radius: 4px; text-align: center;">
-                                                    <div style="font-weight: 600; color: #667eea;">${confidence.details.statistics.scoreSpread}</div>
-                                                    <div style="color: #666;">Score Range</div>
-                                                </div>
-                                                <div style="background: white; padding: 8px; border-radius: 4px; text-align: center;">
-                                                    <div style="font-weight: 600; color: #667eea;">${confidence.details.statistics.standardDeviation}</div>
-                                                    <div style="color: #666;">Std Deviation</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                    </div>
-                                </details>
-                            ` : ''}
+                                    </details>
+                                ` : ''}
                         </div>
         
                     <!-- Top Contributing Criteria -->
