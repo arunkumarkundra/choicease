@@ -808,6 +808,10 @@ body {
 
 
 /* Enhanced confidence bar colors */
+.confidence-fill.very-high {
+    background: linear-gradient(135deg, #155724, #28a745);
+}
+
 .confidence-fill.high {
    background: linear-gradient(135deg, #28a745, #20c997);
 }
@@ -819,6 +823,12 @@ body {
 .confidence-fill.low {
    background: linear-gradient(135deg, #dc3545, #c82333);
 }
+
+.confidence-fill.very-low {
+    background: linear-gradient(135deg, #721c24, #dc3545);
+}
+
+
 
 /* Tornado chart enhancements */
 .tornado-bar {
