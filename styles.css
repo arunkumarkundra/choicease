@@ -879,15 +879,6 @@ body {
 
 
 
-/* Tornado chart enhancements */
-.tornado-bar {
-   transition: all 0.3s ease;
-}
-
-.tornado-bar:hover {
-   opacity: 0.8;
-   transform: translateX(2px);
-}
 
 /* Enhanced executive summary styles */
 .enhanced-executive-summary {
@@ -918,10 +909,6 @@ body {
        padding: 20px !important;
    }
    
-   .tornado-chart {
-       padding: 15px !important;
-   }
-}
 
 
 /* Risk analysis */
@@ -1094,15 +1081,6 @@ body {
     .sensitivity-item > div:last-child {
         align-self: flex-end !important;
         text-align: right !important;
-    }
-    
-    /* Tornado chart mobile adjustments */
-    .tornado-chart {
-        padding: 15px !important;
-    }
-    
-    .tornado-chart > div > div {
-        margin-bottom: 15px !important;
     }
     
     /* Enhanced results mobile layout */
