@@ -3484,30 +3484,56 @@ function generateCanvasBasedPDF() {
             return captureWhatIfAnalysisFromPage();
         }).then(whatIfImage => {
             if (whatIfImage) {
-                const placeholder = tempContainer.querySelector('#pdfWhatIfContainer');
-                if (placeholder) {
-                    placeholder.innerHTML = `
-                        <img src="${whatIfImage}" 
-                             style="max-width: 100%; height: auto; border: 1px solid #dee2e6; border-radius: 8px; margin: 15px auto; display: block;" 
-                             alt="What-If Analysis">
-                        <p style="font-size: 12px; color: #666; margin-top: 10px; text-align: center;">
-                            Criteria weight adjustment study with updated rankings
-                        </p>
-                    `;
-                }
-            } else {
-                const placeholder = tempContainer.querySelector('#pdfWhatIfContainer');
-                if (placeholder) {
-                    placeholder.innerHTML = `
-                        <div style="margin: 20px auto; padding: 30px; background: #f8f9fa; border-radius: 12px; text-align: center;">
-                            <p style="color: #666; font-style: italic; margin: 0;">
-                                What-if analysis capture failed.<br>
-                                This section shows interactive weight adjustments when advanced analytics are active.
-                            </p>
+
+                // Inject weight settings into left column
+                const weightPlaceholder = tempContainer.querySelector('#pdfWeightSettingsContainer');
+                if (weightPlaceholder && weightsTable.children.length > 0) {
+                    weightPlaceholder.appendChild(weightsTable.cloneNode(true));
+                } else if (weightPlaceholder) {
+                    weightPlaceholder.innerHTML = `
+                        <div style="padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center;">
+                            <p style="color: #666; margin: 0; font-style: italic;">Weight settings not available</p>
                         </div>
                     `;
                 }
-            }
+                
+                // Inject rankings into right column
+                const rankingsPlaceholder = tempContainer.querySelector('#pdfWhatIfContainer');
+                if (rankingsPlaceholder && rankingsTable.children.length > 0) {
+                    rankingsPlaceholder.appendChild(rankingsTable.cloneNode(true));
+                } else if (rankingsPlaceholder) {
+                    rankingsPlaceholder.innerHTML = `
+                        <div style="padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center;">
+                            <p style="color: #666; margin: 0; font-style: italic;">Updated rankings not available</p>
+                        </div>
+                    `;
+                }
+
+
+                    
+                } else {
+                    // Fallback for weight settings
+                    const weightPlaceholder = tempContainer.querySelector('#pdfWeightSettingsContainer');
+                    if (weightPlaceholder) {
+                        weightPlaceholder.innerHTML = `
+                            <div style="padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center;">
+                                <p style="color: #666; margin: 0; font-style: italic;">Interactive weight controls available in live application</p>
+                            </div>
+                        `;
+                    }
+                    
+                    // Fallback for rankings
+                    const rankingsPlaceholder = tempContainer.querySelector('#pdfWhatIfContainer');
+                    if (rankingsPlaceholder) {
+                        rankingsPlaceholder.innerHTML = `
+                            <div style="padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center;">
+                                <p style="color: #666; margin: 0; font-style: italic;">Dynamic rankings update when weights are adjusted</p>
+                            </div>
+                        `;
+                    }
+                }
+                    
+
 
             // Wait for logo to load, then start multi-section PDF generation
             const logoImg = new Image();
@@ -4602,18 +4628,35 @@ function generateReportHTML() {
                 ${flipPointsHtml}
             </div>
 
-            <!-- What-If Analysis Section -->
-            <div class="pdf-section what-if-analysis" style="margin-bottom: 30px;">
-                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🎛️ What-If Analysis</h3>
-                <p style="color: #666; margin-bottom: 20px;">
-                    Comprehensive study of how changes in criteria weights affect the final ranking. This analysis helps validate decision robustness by showing which weight adjustments would change the winner, providing confidence in the stability of your choice.
-                </p>
-                
-                <!-- What-If Analysis Image Placeholder -->
-                <div id="pdfWhatIfContainer" style="text-align: center; margin-bottom: 20px;">
-                    <!-- What-if analysis will be injected here programmatically -->
+
+                <!-- What-If Analysis Section -->
+                <div class="pdf-section what-if-analysis" style="margin-bottom: 30px;">
+                    <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🎛️ What-If Analysis</h3>
+                    <p style="color: #666; margin-bottom: 20px;">
+                        Comprehensive study of how changes in criteria weights affect the final ranking. This analysis helps validate decision robustness by showing which weight adjustments would change the winner, providing confidence in the stability of your choice.
+                    </p>
+                    
+                    <!-- Two-Column Layout for What-If Analysis -->
+                    <div style="display: flex; gap: 20px; align-items: flex-start;">
+                        <!-- Left Column: Weight Settings -->
+                        <div style="flex: 1; min-width: 0;">
+                            <h4 style="color: #333; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Weight Settings for Analysis</h4>
+                            <div id="pdfWeightSettingsContainer">
+                                <!-- Weight settings will be injected here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Right Column: Updated Rankings -->
+                        <div style="flex: 1; min-width: 0;">
+                            <h4 style="color: #333; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Updated Rankings</h4>
+                            <div id="pdfWhatIfContainer">
+                                <!-- Rankings table will be injected here -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+
+            
 
             <!-- Risk Analysis Section -->
             <div class="pdf-section risk-analysis" style="margin-bottom: 30px;">
@@ -5103,6 +5146,91 @@ function captureWhatIfAnalysisFromPage() {
             try {
                 // Create a temporary container with just the parts we want
                 const tempCapture = document.createElement('div');
+
+                // Create weight settings table for left column
+                const weightsTable = document.createElement('div');
+                weightsTable.style.cssText = 'margin-bottom: 20px;';
+                
+                // Get all weight controls
+                const controlsSection = whatIfSection.querySelector('.what-if-controls');
+                if (controlsSection) {
+                    const weightControls = controlsSection.querySelectorAll('.weight-control');
+                    weightControls.forEach(control => {
+                        const label = control.querySelector('label');
+                        const display = control.querySelector('[id^="weight-display-"]');
+                        
+                        if (label && display) {
+                            const row = document.createElement('div');
+                            row.style.cssText = `
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                padding: 10px 15px;
+                                margin-bottom: 8px;
+                                background: #f8f9fa;
+                                border-radius: 8px;
+                                border-left: 4px solid #667eea;
+                            `;
+                            
+                            const criteriaName = document.createElement('span');
+                            criteriaName.textContent = label.textContent.trim();
+                            criteriaName.style.cssText = 'font-weight: 600; color: #333; flex: 1;';
+                            
+                            const weightValue = document.createElement('span');
+                            weightValue.textContent = display.textContent.trim();
+                            weightValue.style.cssText = 'font-weight: 600; color: #667eea; min-width: 50px; text-align: right;';
+                            
+                            row.appendChild(criteriaName);
+                            row.appendChild(weightValue);
+                            weightsTable.appendChild(row);
+                        }
+                    });
+                }
+                
+                // Create rankings table for right column
+                const rankingsTable = document.createElement('div');
+                const resultsContainer = whatIfSection.querySelector('#whatIfResults');
+                if (resultsContainer) {
+                    const resultItems = resultsContainer.querySelectorAll('.result-item, [style*="display: flex"]');
+                    resultItems.forEach((item, index) => {
+                        const rank = index + 1;
+                        const nameElement = item.querySelector('.option-name, span:first-child');
+                        const scoreElement = item.querySelector('.total-score, span:last-child');
+                        
+                        if (nameElement && scoreElement) {
+                            const row = document.createElement('div');
+                            row.style.cssText = `
+                                display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                padding: 12px 15px;
+                                margin-bottom: 8px;
+                                background: ${rank === 1 ? '#fff3cd' : '#f8f9fa'};
+                                border-radius: 8px;
+                                border-left: 4px solid ${rank === 1 ? '#ffc107' : '#667eea'};
+                            `;
+                            
+                            const rankAndName = document.createElement('span');
+                            rankAndName.innerHTML = `<strong>#${rank}</strong> ${nameElement.textContent.trim()}`;
+                            rankAndName.style.cssText = 'font-weight: 600; color: #333; flex: 1;';
+                            
+                            const score = document.createElement('span');
+                            score.textContent = scoreElement.textContent.trim();
+                            score.style.cssText = 'font-weight: 600; color: #667eea; min-width: 60px; text-align: right;';
+                            
+                            row.appendChild(rankAndName);
+                            row.appendChild(score);
+                            rankingsTable.appendChild(row);
+                        }
+                    });
+                }
+
+                    
+                    
+
+                    
+
+                    
                 tempCapture.style.cssText = 'background: white; padding: 20px; font-family: Arial, sans-serif;';
                 
                 
