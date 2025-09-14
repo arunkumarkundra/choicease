@@ -776,6 +776,24 @@ body {
 }
 
 
+/* Satisficers Analysis Styling */
+#satisficersAnalysis {
+    margin: 20px 0;
+}
+
+@media (max-width: 768px) {
+    #satisficersAnalysis .grid-4-cols {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    
+    #satisficersAnalysis .flex-between {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+    }
+}
+
+
 /* Sensitivity analysis */
 .sensitivity-item {
     display: flex;
