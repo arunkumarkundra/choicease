@@ -1881,6 +1881,58 @@ function setupRatingStep() {
                                 ${weakAreas.length > 0 ? `<div style="font-size: 12px; color: #dc3545; font-style: italic; line-height: 1.3;">${weakAreas.slice(0, 3).join(', ')}${weakAreas.length > 3 ? '...' : ''}</div>` : '<div style="font-size: 12px; color: #999; font-style: italic;">None</div>'}
                             </div>
 
+
+                <!-- Supporting Analysis Section -->
+                <div style="margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 12px; border-left: 4px solid #667eea;">
+                    <h5 style="color: #333; margin: 0 0 15px 0; font-size: 16px;">🔍 Supporting Analysis</h5>
+                    
+                    <!-- Performance Distribution -->
+                    <div style="margin-bottom: 15px;">
+                        <h6 style="color: #666; margin: 0 0 8px 0; font-size: 14px;">Performance Distribution for ${winner.option.name}:</h6>
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            ${winnerContributions.map(contrib => `
+                                <span style="padding: 4px 8px; border-radius: 12px; font-size: 12px; background: ${
+                                    contrib.rating >= 4 ? '#d4edda' : contrib.rating >= 3 ? '#fff3cd' : contrib.rating >= 2 ? '#ffeaa7' : '#f8d7da'
+                                }; color: ${
+                                    contrib.rating >= 4 ? '#155724' : contrib.rating >= 3 ? '#856404' : contrib.rating >= 2 ? '#856404' : '#721c24'
+                                };">
+                                    ${contrib.name}: ${contrib.rating}/5
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- Statistical Summary -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; font-size: 13px; margin-bottom: 15px;">
+                        <div><strong>Score Gap:</strong> ${confidence.gap} points</div>
+                        <div><strong>Effect Size:</strong> ${confidence.details.statistics.effectSize}</div>
+                        <div><strong>Decision Margin:</strong> ${((confidence.gap / 5) * 100).toFixed(1)}%</div>
+                        <div><strong>Robustness:</strong> ${robustnessData.score}/100</div>
+                    </div>
+                    
+                    <!-- Stability Factors -->
+                    ${stabilityData.factors.length > 0 ? `
+                        <div style="margin-bottom: 15px;">
+                            <h6 style="color: #666; margin: 0 0 8px 0; font-size: 14px;">Stability Factors:</h6>
+                            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #666;">
+                                ${stabilityData.factors.map(factor => `<li>${factor}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Recommendation -->
+                    <div style="padding: 12px; background: white; border-radius: 8px; border-left: 3px solid ${
+                        stabilityData.level === 'High' ? '#28a745' : 
+                        stabilityData.level === 'Medium' ? '#ffc107' : '#dc3545'
+                    };">
+                        <div style="font-size: 14px; color: #333;">
+                            <strong>Recommendation:</strong> ${stabilityData.recommendation}
+                        </div>
+                    </div>
+                </div>
+
+
+                        
                             <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
                                 <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${decisionData.criteria.length}</div>
                                 <div style="font-size: 0.9rem; color: #666;">Total Criteria</div>
