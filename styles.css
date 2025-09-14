@@ -755,6 +755,20 @@ body {
     height: 300px;
 }
 
+
+/* Criteria Impact Analysis Styling */
+#criteriaImpactAnalysis {
+    margin: 20px 0;
+}
+
+@media (max-width: 768px) {
+    #criteriaImpactAnalysis > div {
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+}
+
+
 /* Sensitivity analysis */
 .sensitivity-item {
     display: flex;
