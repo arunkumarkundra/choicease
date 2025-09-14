@@ -800,6 +800,11 @@ function setupRatingStep() {
                             <div class="section-title">🔥 Performance Heatmap</div>
                             <div id="advancedHeatmap"></div>
                         </div>
+
+                        <div class="section">
+                            <div class="section-title">✅ Satisficers Analysis</div>
+                            <div id="satisficersAnalysis"></div>
+                        </div>
                         
                         <div class="section">
                             <div class="section-title">⚖️ Sensitivity Analysis</div>
@@ -863,7 +868,15 @@ function setupRatingStep() {
                     console.error('Error rendering heatmap:', error);
                     document.getElementById('advancedHeatmap').innerHTML = '<p style="color: #dc3545;">Error loading performance heatmap</p>';
                 }
-                
+
+                try {
+                    renderSatisficersAnalysis();
+                } catch (error) {
+                    console.error('Error rendering satisficers analysis:', error);
+                    document.getElementById('satisficersAnalysis').innerHTML = '<p style="color: #dc3545;">Error loading satisficers analysis</p>';
+                }
+                    
+                    
                 try {
                     renderAdvancedSensitivity();
                 } catch (error) {
@@ -2057,6 +2070,156 @@ function setupRatingStep() {
         }
 
 
+
+
+
+        // ===============================
+        // SATISFICERS ANALYSIS FUNCTIONS
+        // ===============================
+        
+        // Main identification function
+        function identifySatisficers(threshold = 3.0) {
+            const satisficers = [];
+            
+            // Get full results with rankings for context
+            const fullResults = advancedAnalytics.results || [];
+            
+            fullResults.forEach((result, originalRank) => {
+                const option = result.option;
+                let qualifiesAsSatisficer = true;
+                let minRating = 5.0;
+                let strengthCount = 0;
+                let concernCount = 0;
+                
+                // Check all criteria ratings
+                decisionData.criteria.forEach(criteria => {
+                    const ratingKey = `${option.id}-${criteria.id}`;
+                    const rating = decisionData.ratings[ratingKey] || DEFAULT_RATING;
+                    
+                    if (rating < threshold) {
+                        qualifiesAsSatisficer = false;
+                    }
+                    
+                    minRating = Math.min(minRating, rating);
+                    
+                    if (rating >= 4.0) strengthCount++;
+                    if (rating < 3.5) concernCount++;
+                });
+                
+                if (qualifiesAsSatisficer) {
+                    satisficers.push({
+                        option: option,
+                        originalRank: originalRank + 1, // 1-based ranking
+                        totalScore: result.totalScore,
+                        minRating: minRating,
+                        strengthCount: strengthCount,
+                        concernCount: concernCount,
+                        threshold: threshold
+                    });
+                }
+            });
+            
+            // Sort by original ranking (best performing satisficers first)
+            satisficers.sort((a, b) => a.originalRank - b.originalRank);
+            
+            // Add satisficer rank
+            satisficers.forEach((satisficer, index) => {
+                satisficer.satisficerRank = index + 1;
+            });
+            
+            return satisficers;
+        }
+        
+        // Web UI rendering function
+        function renderSatisficersAnalysis() {
+            const container = document.getElementById('satisficersAnalysis');
+            if (!container) return;
+            
+            let satisficers = identifySatisficers(3.0);
+            let threshold = 3.0;
+            
+            // Adaptive threshold if no satisficers found
+            if (satisficers.length === 0) {
+                satisficers = identifySatisficers(2.5);
+                threshold = 2.5;
+            }
+            if (satisficers.length === 0) {
+                satisficers = identifySatisficers(2.0);
+                threshold = 2.0;
+            }
+            
+            let html = `
+                <div style="padding: 20px;">
+                    <h4 style="color: #333; margin: 0 0 15px 0;">✅ Satisficers - 'Good Enough' Options</h4>
+                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 20px;">
+                        Options that meet acceptable standards on all criteria (≥${threshold} rating)
+                    </p>
+                    <div style="margin-bottom: 20px;">
+                        <strong>${satisficers.length} out of ${decisionData.options.length} options qualify as satisficers</strong>
+                        ${threshold < 3.0 ? `<div style="color: #856404; font-size: 0.9rem; margin-top: 5px;">Note: Threshold lowered to ${threshold} as no options met the 3.0 standard</div>` : ''}
+                    </div>
+            `;
+            
+            if (satisficers.length === 0) {
+                html += `
+                    <div style="text-align: center; padding: 30px; background: #fff3cd; border-radius: 12px; border: 2px solid #ffc107;">
+                        <h4 style="color: #856404; margin: 0 0 10px 0;">⚠️ No Satisficers Found</h4>
+                        <p style="color: #856404; margin: 0;">None of your options meet even the minimum acceptable standards (≥2.0 on all criteria).</p>
+                    </div>
+                `;
+            } else {
+                satisficers.forEach(satisficer => {
+                    const option = satisficer.option;
+                    const label = satisficer.strengthCount >= 3 ? 'Well-Rounded' : 
+                                 satisficer.concernCount === 0 ? 'Safe Choice' : 'Balanced Option';
+                    
+                    html += `
+                        <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 20px; margin-bottom: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
+                                <div>
+                                    <h5 style="color: #333; margin: 0 0 5px 0; font-weight: 600;">${sanitizeInput(option.name)}</h5>
+                                    ${option.description ? `<p style="color: #666; font-size: 0.9rem; margin: 0 0 10px 0;">${sanitizeInput(option.description)}</p>` : ''}
+                                </div>
+                                <div style="background: #28a745; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold;">
+                                    #${satisficer.originalRank} Overall
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 15px;">
+                                <div style="text-align: center; padding: 8px; background: white; border-radius: 6px;">
+                                    <div style="font-weight: bold; color: #667eea;">${satisficer.totalScore.toFixed(2)}</div>
+                                    <div style="font-size: 0.8rem; color: #666;">Score (Rank #${satisficer.satisficerRank})</div>
+                                </div>
+                                <div style="text-align: center; padding: 8px; background: white; border-radius: 6px;">
+                                    <div style="font-weight: bold; color: #28a745;">${satisficer.minRating.toFixed(1)}/5.0</div>
+                                    <div style="font-size: 0.8rem; color: #666;">Min Rating</div>
+                                </div>
+                                <div style="text-align: center; padding: 8px; background: white; border-radius: 6px;">
+                                    <div style="font-weight: bold; color: #28a745;">${satisficer.strengthCount}</div>
+                                    <div style="font-size: 0.8rem; color: #666;">Strong Areas (≥4.0)</div>
+                                </div>
+                                <div style="text-align: center; padding: 8px; background: white; border-radius: 6px;">
+                                    <div style="font-weight: bold; color: ${satisficer.concernCount > 0 ? '#dc3545' : '#28a745'};">${satisficer.concernCount}</div>
+                                    <div style="font-size: 0.8rem; color: #666;">Watch Areas (<3.5)</div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="background: #e3f2fd; color: #1565c0; padding: 6px 12px; border-radius: 15px; font-size: 0.9rem; font-weight: 600;">
+                                    🏷 ${label}
+                                </div>
+                                <div style="font-size: 0.85rem; color: #666; font-style: italic;">
+                                    💡 This option won't disappoint - meets good standards across all criteria
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
 
 
 
@@ -3430,6 +3593,7 @@ function generateCanvasBasedPDF() {
                         selector: '.performance-matrix', 
                         name: 'Performance Matrix' 
                     },
+                    { name: 'Satisficers Analysis', selector: '.satisficers-analysis' },    
                     { 
                         selector: '.sensitivity-analysis', 
                         name: 'Sensitivity Analysis' 
@@ -4075,6 +4239,89 @@ function generateReportHTML() {
         </table>
     `;
 
+
+
+        // Satisficers Analysis HTML generation
+        let satisficersPdf = identifySatisficers(3.0);
+        let satisficersThreshold = 3.0;
+        
+        // Adaptive threshold if no satisficers found
+        if (satisficersPdf.length === 0) {
+            satisficersPdf = identifySatisficers(2.5);
+            satisficersThreshold = 2.5;
+        }
+        if (satisficersPdf.length === 0) {
+            satisficersPdf = identifySatisficers(2.0);
+            satisficersThreshold = 2.0;
+        }
+        
+        const satisficersHtml = `
+            <div style="padding: 20px;">
+                <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
+                    Options that meet acceptable standards on all criteria (≥${satisficersThreshold} rating)
+                </p>
+                <div style="margin-bottom: 20px;">
+                    <strong>${satisficersPdf.length} out of ${decisionData.options.length} options qualify as satisficers</strong>
+                    ${satisficersThreshold < 3.0 ? `<div style="color: #856404; font-size: 12px; margin-top: 5px;">Note: Threshold lowered to ${satisficersThreshold} as no options met the 3.0 standard</div>` : ''}
+                </div>
+                
+                ${satisficersPdf.length === 0 ? `
+                    <div style="text-align: center; padding: 20px; background: #fff3cd; border-radius: 8px; border: 1px solid #ffc107;">
+                        <h4 style="color: #856404; margin: 0 0 10px 0;">⚠️ No Satisficers Found</h4>
+                        <p style="color: #856404; margin: 0; font-size: 12px;">None of your options meet even the minimum acceptable standards (≥2.0 on all criteria).</p>
+                    </div>
+                ` : satisficersPdf.map(satisficer => {
+                    const option = satisficer.option;
+                    const label = satisficer.strengthCount >= 3 ? 'Well-Rounded' : 
+                                 satisficer.concernCount === 0 ? 'Safe Choice' : 'Balanced Option';
+                    
+                    return `
+                        <div style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; padding: 15px; margin-bottom: 15px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                                <div style="flex: 1;">
+                                    <h5 style="color: #333; margin: 0 0 5px 0; font-weight: 600; font-size: 14px;">${safeText(option.name)}</h5>
+                                    ${option.description ? `<p style="color: #666; font-size: 11px; margin: 0 0 8px 0;">${safeText(option.description.substring(0, 100))}${option.description.length > 100 ? '...' : ''}</p>` : ''}
+                                </div>
+                                <div style="background: #28a745; color: white; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; margin-left: 10px;">
+                                    #${satisficer.originalRank} Overall
+                                </div>
+                            </div>
+                            
+                            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px;">
+                                <div style="text-align: center; padding: 6px; background: white; border-radius: 4px;">
+                                    <div style="font-weight: bold; color: #667eea; font-size: 12px;">${satisficer.totalScore.toFixed(2)}</div>
+                                    <div style="font-size: 9px; color: #666;">Score (#${satisficer.satisficerRank})</div>
+                                </div>
+                                <div style="text-align: center; padding: 6px; background: white; border-radius: 4px;">
+                                    <div style="font-weight: bold; color: #28a745; font-size: 12px;">${satisficer.minRating.toFixed(1)}/5.0</div>
+                                    <div style="font-size: 9px; color: #666;">Min Rating</div>
+                                </div>
+                                <div style="text-align: center; padding: 6px; background: white; border-radius: 4px;">
+                                    <div style="font-weight: bold; color: #28a745; font-size: 12px;">${satisficer.strengthCount}</div>
+                                    <div style="font-size: 9px; color: #666;">Strong (≥4.0)</div>
+                                </div>
+                                <div style="text-align: center; padding: 6px; background: white; border-radius: 4px;">
+                                    <div style="font-weight: bold; color: ${satisficer.concernCount > 0 ? '#dc3545' : '#28a745'}; font-size: 12px;">${satisficer.concernCount}</div>
+                                    <div style="font-size: 9px; color: #666;">Watch (<3.5)</div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div style="background: #e3f2fd; color: #1565c0; padding: 4px 8px; border-radius: 12px; font-size: 10px; font-weight: 600;">
+                                    🏷 ${label}
+                                </div>
+                                <div style="font-size: 9px; color: #666; font-style: italic;">
+                                    Won't disappoint - meets good standards
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+        
+
+        
     // Sensitivity analysis (flip points) with safe Math.max
     const maxImpact = flipPoints.length ? Math.max(...flipPoints.map(f => safeNum(f.impactMagnitude, 1))) : 0;
     const flipPointsHtml = `
@@ -4336,6 +4583,14 @@ function generateReportHTML() {
                     <p style="color: #666; margin-bottom: 20px;">Analysis of which criteria have the most and least discriminating power in your decision:</p>
                     ${criteriaImpactHtml}
                 </div>
+
+
+                <!-- Satisficers Analysis Section -->
+                <div class="pdf-section satisficers-analysis" style="background: #f8f9fa; border-radius: 15px; padding: 25px; margin-bottom: 30px;">
+                    <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">✅ Satisficers - 'Good Enough' Options</h3>
+                    ${satisficersHtml}
+                </div>
+
 
 
             <!-- Sensitivity Analysis Section -->
