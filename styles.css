@@ -761,6 +761,13 @@ body {
     margin: 20px 0;
 }
 
+#criteriaImpactAnalysis .impact-column {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+
 @media (max-width: 768px) {
     #criteriaImpactAnalysis > div {
         grid-template-columns: 1fr !important;
