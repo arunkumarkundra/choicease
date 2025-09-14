@@ -3481,58 +3481,69 @@ function generateCanvasBasedPDF() {
                 }
             }
             
-            return captureWhatIfAnalysisFromPage();
-        }).then(whatIfImage => {
-            if (whatIfImage) {
-
-                // Inject weight settings into left column
-                const weightPlaceholder = tempContainer.querySelector('#pdfWeightSettingsContainer');
-                if (weightPlaceholder && weightsTable.children.length > 0) {
-                    weightPlaceholder.appendChild(weightsTable.cloneNode(true));
-                } else if (weightPlaceholder) {
-                    weightPlaceholder.innerHTML = `
-                        <div style="padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center;">
-                            <p style="color: #666; margin: 0; font-style: italic;">Weight settings not available</p>
-                        </div>
-                    `;
-                }
-                
-                // Inject rankings into right column
-                const rankingsPlaceholder = tempContainer.querySelector('#pdfWhatIfContainer');
-                if (rankingsPlaceholder && rankingsTable.children.length > 0) {
-                    rankingsPlaceholder.appendChild(rankingsTable.cloneNode(true));
-                } else if (rankingsPlaceholder) {
-                    rankingsPlaceholder.innerHTML = `
-                        <div style="padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center;">
-                            <p style="color: #666; margin: 0; font-style: italic;">Updated rankings not available</p>
-                        </div>
-                    `;
-                }
-
-
-                    
-                } else {
-                    // Fallback for weight settings
-                    const weightPlaceholder = tempContainer.querySelector('#pdfWeightSettingsContainer');
-                    if (weightPlaceholder) {
-                        weightPlaceholder.innerHTML = `
-                            <div style="padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center;">
-                                <p style="color: #666; margin: 0; font-style: italic;">Interactive weight controls available in live application</p>
-                            </div>
-                        `;
-                    }
-                    
-                    // Fallback for rankings
-                    const rankingsPlaceholder = tempContainer.querySelector('#pdfWhatIfContainer');
-                    if (rankingsPlaceholder) {
-                        rankingsPlaceholder.innerHTML = `
-                            <div style="padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center;">
-                                <p style="color: #666; margin: 0; font-style: italic;">Dynamic rankings update when weights are adjusted</p>
-                            </div>
-                        `;
-                    }
-                }
-                    
+                return captureWhatIfAnalysisFromPage();
+                }).then(whatIfData => {
+                    if (whatIfData && whatIfData.weightSettingsData && whatIfData.rankingsData) {
+                        console.log('Using captured what-if data for PDF');
+                        
+                        // Build weight settings HTML for left column
+                        let weightSettingsHtml = '';
+                        whatIfData.weightSettingsData.forEach(item => {
+                            weightSettingsHtml += `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; margin-bottom: 8px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
+                                    <span style="font-weight: 600; color: #333; flex: 1;">${sanitizeInput(item.name)}</span>
+                                    <span style="font-weight: 600; color: #667eea; min-width: 50px; text-align: right;">${item.weight}%</span>
+                                </div>
+                            `;
+                        });
+                        
+                        // Build rankings HTML for right column
+                        let rankingsHtml = '';
+                        whatIfData.rankingsData.forEach((item, index) => {
+                            const rank = index + 1;
+                            const isWinner = rank === 1;
+                            rankingsHtml += `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; margin-bottom: 8px; background: ${isWinner ? '#fff3cd' : '#f8f9fa'}; border-radius: 8px; border-left: 4px solid ${isWinner ? '#ffc107' : '#667eea'};">
+                                    <span style="font-weight: 600; color: #333; flex: 1;"><strong>#${rank}</strong> ${sanitizeInput(item.name)}</span>
+                                    <span style="font-weight: 600; color: #667eea; min-width: 60px; text-align: right;">${item.score.toFixed(2)}</span>
+                                </div>
+                            `;
+                        });
+                        
+                        // Inject into PDF containers
+                        const weightPlaceholder = tempContainer.querySelector('#pdfWeightSettingsContainer');
+                        if (weightPlaceholder) {
+                            weightPlaceholder.innerHTML = weightSettingsHtml;
+                        }
+                        
+                        const rankingsPlaceholder = tempContainer.querySelector('#pdfWhatIfContainer');
+                        if (rankingsPlaceholder) {
+                            rankingsPlaceholder.innerHTML = rankingsHtml;
+                        }
+                        
+                    } else {
+                        console.log('No what-if data available, using fallbacks');
+                        
+                        // Fallback for weight settings
+                        const weightPlaceholder = tempContainer.querySelector('#pdfWeightSettingsContainer');
+                        if (weightPlaceholder) {
+                            weightPlaceholder.innerHTML = `
+                                <div style="padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center;">
+                                    <p style="color: #666; margin: 0; font-style: italic;">Weight settings available in interactive mode</p>
+                                </div>
+                            `;
+                        }
+                        
+                        // Fallback for rankings
+                        const rankingsPlaceholder = tempContainer.querySelector('#pdfWhatIfContainer');
+                        if (rankingsPlaceholder) {
+                            rankingsPlaceholder.innerHTML = `
+                                <div style="padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center;">
+                                    <p style="color: #666; margin: 0; font-style: italic;">Updated rankings shown when weights are adjusted</p>
+                                </div>
+                            `;
+                        }
+                    }                    
 
 
             // Wait for logo to load, then start multi-section PDF generation
@@ -5138,205 +5149,49 @@ function capturePieChartFromPage() {
 
 function captureWhatIfAnalysisFromPage() {
     return new Promise((resolve) => {
-        // Look for existing what-if analysis section on the page
-        const whatIfSection = document.getElementById('advancedWhatIf');
+        console.log('Attempting to capture what-if analysis data...');
         
-        if (whatIfSection && !whatIfSection.classList.contains('hidden')) {
-            console.log('Found what-if analysis section, capturing specific parts...');
-            try {
-                // Create a temporary container with just the parts we want
-                const tempCapture = document.createElement('div');
-
-                // Create weight settings table for left column
-                const weightsTable = document.createElement('div');
-                weightsTable.style.cssText = 'margin-bottom: 20px;';
-                
-                // Get all weight controls
-                const controlsSection = whatIfSection.querySelector('.what-if-controls');
-                if (controlsSection) {
-                    const weightControls = controlsSection.querySelectorAll('.weight-control');
-                    weightControls.forEach(control => {
-                        const label = control.querySelector('label');
-                        const display = control.querySelector('[id^="weight-display-"]');
-                        
-                        if (label && display) {
-                            const row = document.createElement('div');
-                            row.style.cssText = `
-                                display: flex;
-                                justify-content: space-between;
-                                align-items: center;
-                                padding: 10px 15px;
-                                margin-bottom: 8px;
-                                background: #f8f9fa;
-                                border-radius: 8px;
-                                border-left: 4px solid #667eea;
-                            `;
-                            
-                            const criteriaName = document.createElement('span');
-                            criteriaName.textContent = label.textContent.trim();
-                            criteriaName.style.cssText = 'font-weight: 600; color: #333; flex: 1;';
-                            
-                            const weightValue = document.createElement('span');
-                            weightValue.textContent = display.textContent.trim();
-                            weightValue.style.cssText = 'font-weight: 600; color: #667eea; min-width: 50px; text-align: right;';
-                            
-                            row.appendChild(criteriaName);
-                            row.appendChild(weightValue);
-                            weightsTable.appendChild(row);
-                        }
-                    });
-                }
-                
-                // Create rankings table for right column
-                const rankingsTable = document.createElement('div');
-                const resultsContainer = whatIfSection.querySelector('#whatIfResults');
-                if (resultsContainer) {
-                    const resultItems = resultsContainer.querySelectorAll('.result-item, [style*="display: flex"]');
-                    resultItems.forEach((item, index) => {
-                        const rank = index + 1;
-                        const nameElement = item.querySelector('.option-name, span:first-child');
-                        const scoreElement = item.querySelector('.total-score, span:last-child');
-                        
-                        if (nameElement && scoreElement) {
-                            const row = document.createElement('div');
-                            row.style.cssText = `
-                                display: flex;
-                                justify-content: space-between;
-                                align-items: center;
-                                padding: 12px 15px;
-                                margin-bottom: 8px;
-                                background: ${rank === 1 ? '#fff3cd' : '#f8f9fa'};
-                                border-radius: 8px;
-                                border-left: 4px solid ${rank === 1 ? '#ffc107' : '#667eea'};
-                            `;
-                            
-                            const rankAndName = document.createElement('span');
-                            rankAndName.innerHTML = `<strong>#${rank}</strong> ${nameElement.textContent.trim()}`;
-                            rankAndName.style.cssText = 'font-weight: 600; color: #333; flex: 1;';
-                            
-                            const score = document.createElement('span');
-                            score.textContent = scoreElement.textContent.trim();
-                            score.style.cssText = 'font-weight: 600; color: #667eea; min-width: 60px; text-align: right;';
-                            
-                            row.appendChild(rankAndName);
-                            row.appendChild(score);
-                            rankingsTable.appendChild(row);
-                        }
-                    });
-                }
-
-                    
-                    
-
-                    
-
-                    
-                tempCapture.style.cssText = 'background: white; padding: 20px; font-family: Arial, sans-serif;';
-                
-                
-                // Create a clean table-style representation of weight controls
-                const controlsSectionWI = whatIfSection.querySelector('.what-if-controls');
-                if (controlsSectionWI) {
-                    const weightsTable = document.createElement('div');
-                    weightsTable.style.cssText = 'margin-bottom: 20px;';
-                    
-                    const title = document.createElement('h4');
-                    title.textContent = 'Weight Settings for Analysis';
-                    title.style.cssText = 'margin-bottom: 15px; color: #333; font-size: 16px;';
-                    weightsTable.appendChild(title);
-                    
-                    // Get all weight controls
-                    const weightControls = controlsSectionWI.querySelectorAll('.weight-control');
-                    weightControls.forEach(control => {
-                        const label = control.querySelector('label');
-                        const slider = control.querySelector('.what-if-slider');
-                        const display = control.querySelector('[id^="weight-display-"]');
-                        
-                        if (label && slider && display) {
-                            const row = document.createElement('div');
-                            row.style.cssText = `
-                                display: flex;
-                                align-items: center;
-                                justify-content: space-between;
-                                padding: 12px;
-                                margin: 8px 0;
-                                background: #f8f9fa;
-                                border-radius: 8px;
-                                border-left: 4px solid #667eea;
-                            `;
-                            
-                            const nameDiv = document.createElement('div');
-                            nameDiv.textContent = label.textContent;
-                            nameDiv.style.cssText = 'font-weight: 600; color: #333; flex: 1;';
-                            
-                            const valueDiv = document.createElement('div');
-                            valueDiv.textContent = display.textContent;
-                            valueDiv.style.cssText = 'font-weight: bold; color: #667eea; font-size: 16px;';
-                            
-                            // Visual weight bar
-                            const barContainer = document.createElement('div');
-                            barContainer.style.cssText = 'width: 120px; height: 8px; background: #e9ecef; border-radius: 4px; margin: 0 15px; overflow: hidden;';
-                            
-                            const barFill = document.createElement('div');
-                            const percentage = parseInt(display.textContent) || 0;
-                            barFill.style.cssText = `width: ${percentage}%; height: 100%; background: #667eea; border-radius: 4px;`;
-                            
-                            barContainer.appendChild(barFill);
-                            row.appendChild(nameDiv);
-                            row.appendChild(barContainer);
-                            row.appendChild(valueDiv);
-                            weightsTable.appendChild(row);
-                        }
-                    });
-                    
-                    tempCapture.appendChild(weightsTable);
-                }
-
-
-                    
-                // Add spacing
-                const spacer = document.createElement('div');
-                spacer.style.height = '20px';
-                tempCapture.appendChild(spacer);
-                
-                // Capture updated rankings
-                const resultsSection = whatIfSection.querySelector('#whatIfResults');
-                if (resultsSection) {
-                    const resultsClone = resultsSection.cloneNode(true);
-                    tempCapture.appendChild(resultsClone);
-                }
-                
-                // Temporarily add to page for capture
-                tempCapture.style.position = 'absolute';
-                tempCapture.style.left = '-9999px';
-                tempCapture.style.top = '-9999px';
-                document.body.appendChild(tempCapture);
-                
-                // Use html2canvas to capture the clean version
-                html2canvas(tempCapture, {
-                    backgroundColor: '#ffffff',
-                    scale: 1.5,
-                    useCORS: true,
-                    allowTaint: true
-                }).then(canvas => {
-                    // Cleanup
-                    document.body.removeChild(tempCapture);
-                    
-                    const imageData = canvas.toDataURL('image/png', 1.0);
-                    console.log('Successfully captured what-if analysis components');
-                    resolve(imageData);
-                }).catch(error => {
-                    document.body.removeChild(tempCapture);
-                    console.warn('Failed to capture what-if analysis:', error);
-                    resolve(null);
+        // Try to get current decision data first
+        if (!whatIfDecisionData || !whatIfDecisionData.criteria) {
+            console.log('No what-if data available, using fallback');
+            resolve(null);
+            return;
+        }
+        
+        try {
+            // Create weight settings data
+            const weightSettingsData = [];
+            whatIfDecisionData.criteria.forEach(criteria => {
+                const currentWeight = Math.round(whatIfDecisionData.normalizedWeights[criteria.id] || 0);
+                weightSettingsData.push({
+                    name: criteria.name,
+                    weight: currentWeight
                 });
-                
-            } catch (error) {
-                console.warn('Error capturing what-if analysis:', error);
-                resolve(null);
-            }
-        } else {
-            console.log('No what-if analysis found or not visible');
+            });
+            
+            // Create rankings data by calculating current results
+            const rankingsData = [];
+            whatIfDecisionData.options.forEach(option => {
+                let totalScore = 0;
+                whatIfDecisionData.criteria.forEach(criteria => {
+                    const rating = option.ratings[criteria.id] || 0;
+                    const weight = (whatIfDecisionData.normalizedWeights[criteria.id] || 0) / 100;
+                    totalScore += rating * weight;
+                });
+                rankingsData.push({
+                    name: option.name,
+                    score: totalScore
+                });
+            });
+            
+            // Sort rankings by score
+            rankingsData.sort((a, b) => b.score - a.score);
+            
+            console.log('Successfully captured what-if data:', { weightSettingsData, rankingsData });
+            resolve({ weightSettingsData, rankingsData });
+            
+        } catch (error) {
+            console.warn('Error capturing what-if analysis:', error);
             resolve(null);
         }
     });
