@@ -1881,58 +1881,6 @@ function setupRatingStep() {
                                 ${weakAreas.length > 0 ? `<div style="font-size: 12px; color: #dc3545; font-style: italic; line-height: 1.3;">${weakAreas.slice(0, 3).join(', ')}${weakAreas.length > 3 ? '...' : ''}</div>` : '<div style="font-size: 12px; color: #999; font-style: italic;">None</div>'}
                             </div>
 
-
-                <!-- Supporting Analysis Section -->
-                <div style="margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 12px; border-left: 4px solid #667eea;">
-                    <h5 style="color: #333; margin: 0 0 15px 0; font-size: 16px;">🔍 Supporting Analysis</h5>
-                    
-                    <!-- Performance Distribution -->
-                    <div style="margin-bottom: 15px;">
-                        <h6 style="color: #666; margin: 0 0 8px 0; font-size: 14px;">Performance Distribution for ${winner.option.name}:</h6>
-                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                            ${winnerContributions.map(contrib => `
-                                <span style="padding: 4px 8px; border-radius: 12px; font-size: 12px; background: ${
-                                    contrib.rating >= 4 ? '#d4edda' : contrib.rating >= 3 ? '#fff3cd' : contrib.rating >= 2 ? '#ffeaa7' : '#f8d7da'
-                                }; color: ${
-                                    contrib.rating >= 4 ? '#155724' : contrib.rating >= 3 ? '#856404' : contrib.rating >= 2 ? '#856404' : '#721c24'
-                                };">
-                                    ${contrib.name}: ${contrib.rating}/5
-                                </span>
-                            `).join('')}
-                        </div>
-                    </div>
-                    
-                    <!-- Statistical Summary -->
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; font-size: 13px; margin-bottom: 15px;">
-                        <div><strong>Score Gap:</strong> ${confidence.gap} points</div>
-                        <div><strong>Effect Size:</strong> ${confidence.details.statistics.effectSize}</div>
-                        <div><strong>Decision Margin:</strong> ${((confidence.gap / 5) * 100).toFixed(1)}%</div>
-                        <div><strong>Robustness:</strong> ${robustnessData.score}/100</div>
-                    </div>
-                    
-                    <!-- Stability Factors -->
-                    ${stabilityData.factors.length > 0 ? `
-                        <div style="margin-bottom: 15px;">
-                            <h6 style="color: #666; margin: 0 0 8px 0; font-size: 14px;">Stability Factors:</h6>
-                            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #666;">
-                                ${stabilityData.factors.map(factor => `<li>${factor}</li>`).join('')}
-                            </ul>
-                        </div>
-                    ` : ''}
-                    
-                    <!-- Recommendation -->
-                    <div style="padding: 12px; background: white; border-radius: 8px; border-left: 3px solid ${
-                        stabilityData.level === 'High' ? '#28a745' : 
-                        stabilityData.level === 'Medium' ? '#ffc107' : '#dc3545'
-                    };">
-                        <div style="font-size: 14px; color: #333;">
-                            <strong>Recommendation:</strong> ${stabilityData.recommendation}
-                        </div>
-                    </div>
-                </div>
-
-
-                        
                             <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
                                 <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${decisionData.criteria.length}</div>
                                 <div style="font-size: 0.9rem; color: #666;">Total Criteria</div>
@@ -2440,12 +2388,6 @@ function renderPerformanceHeatmap() {
                             `).join('')}
                         </div>
                         
-                        <div style="page-break-before: always; height: 1px; clear: both;"></div>
-                        <div class="tornado-chart" style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e9ecef;">
-                            <h4 style="color: #333; margin: 0 0 15px 0;">🌪️ Sensitivity Tornado Chart</h4>
-                            ${renderTornadoChart(flipPoints)}
-                        </div>
-                        
                         <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 0.9rem;">
                             <strong>Interpretation:</strong><br>
                             <span style="color: #dc3545;">●</span> <strong>Critical (Red):</strong> Small weight changes could flip the decision<br>
@@ -2529,35 +2471,6 @@ function renderPerformanceHeatmap() {
             });
         }
         
-        function renderTornadoChart(flipPoints) {
-            const maxImpact = Math.max(...flipPoints.map(fp => fp.impactMagnitude));
-            
-            return `
-                <div style="margin-top: 15px;">
-                    ${flipPoints.map(fp => {
-                        const barWidth = maxImpact > 0 ? (fp.impactMagnitude / maxImpact) * 100 : 0;
-                        return `
-                            <div style="margin-bottom: 12px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                    <span style="font-size: 0.9rem; font-weight: 500;">${sanitizeInput(fp.criteriaName)}</span>
-                                    <span style="font-size: 0.8rem; color: #666;">${fp.changeNeeded}</span>
-                                </div>
-                                <div style="width: 100%; height: 20px; background: #e9ecef; border-radius: 10px; overflow: hidden;">
-                                    <div style="width: ${barWidth}%; height: 100%; background: ${
-                                        fp.criticality === 'critical' ? 'linear-gradient(135deg, #dc3545, #c82333)' : 
-                                        fp.criticality === 'moderate' ? 'linear-gradient(135deg, #ffc107, #fd7e14)' : 
-                                        'linear-gradient(135deg, #28a745, #20c997)'
-                                    }; border-radius: 10px; transition: width 0.8s ease;"></div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            `;
-        }
-
-
-
 
 
 
@@ -3783,29 +3696,6 @@ function generateReportHTML() {
             `).join('')}
         </div>
 
-        <div style="background: white; border-radius: 12px; padding: 20px; border: 1px solid #e9ecef; margin-top: 20px;">
-            <h4 style="color: #333; margin: 0 0 15px 0; font-size: 16px;">🌪️ Sensitivity Tornado Chart</h4>
-            <div style="margin-top: 15px;">
-                ${flipPoints.slice(0, 6).map(fp => {
-                    const barWidth = maxImpact > 0 ? ((safeNum(fp.impactMagnitude, 0) / maxImpact) * 100) : 0;
-                    return `
-                        <div style="margin-bottom: 12px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                                <span style="font-size: 13px; font-weight: 500;">${safeText(fp.criteriaName)}</span>
-                                <span style="font-size: 12px; color: #666;">${safeText(fp.changeNeeded)}</span>
-                            </div>
-                            <div style="width: 100%; height: 16px; background: #e9ecef; border-radius: 8px; overflow: hidden;">
-                                <div style="width: ${Math.max(barWidth, 5)}%; height: 100%; background: ${
-                                    fp.criticality === 'critical' ? 'linear-gradient(135deg, #dc3545, #c82333)' : 
-                                    fp.criticality === 'moderate' ? 'linear-gradient(135deg, #ffc107, #fd7e14)' : 
-                                    'linear-gradient(135deg, #28a745, #20c997)'
-                                }; border-radius: 8px; transition: width 0.8s ease;"></div>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-            
             <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 12px;">
                 <strong>Interpretation:</strong><br>
                 <span style="color: #dc3545;">●</span> <strong>Critical (Red):</strong> Small weight changes could flip the decision<br>
