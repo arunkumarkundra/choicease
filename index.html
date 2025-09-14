@@ -193,18 +193,19 @@
                 
                 <!-- Import options section -->
                 <div class="import-section">
+                    <!-- Import from QR code image -->
+                    <label for="importQR" class="btn btn-secondary" style="cursor: pointer; display: inline-block;">
+                        📷 Import from a QR Code
+                    </label>
+                    <input type="file" id="importQR" accept="image/*" style="display: none;">
+ 
                     <!-- Import from JSON file -->
                     <label for="importFile" class="btn btn-secondary" style="cursor: pointer; display: inline-block;">
                         📁 Import a Saved Decision JSON
                     </label>
                     <input type="file" id="importFile" accept=".json" style="display: none;">
                     
-                    <!-- Import from QR code image -->
-                    <label for="importQR" class="btn btn-secondary" style="cursor: pointer; display: inline-block;">
-                        📷 Import from a QR Code
-                    </label>
-                    <input type="file" id="importQR" accept="image/*" style="display: none;">
-                    
+                   
                     <!-- Link to Reddit community for inspiration -->
                     <p style="margin-top: 8px; font-size: 0.9rem; color: #666;">
                         Bring back a saved decision, or check out cool ones shared as QR codes by our Reddit community on <a href="https://www.reddit.com/r/choicease/" target="_blank" rel="noopener"><strong>r/choicease</strong></a>!
