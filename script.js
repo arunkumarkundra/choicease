@@ -4340,7 +4340,7 @@ function generateReportHTML() {
 
             <!-- Sensitivity Analysis Section -->
             <div class="pdf-section sensitivity-analysis" style="margin-bottom: 30px;">
-                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">⚖️ nalysis</h3>
+                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">⚖️ Sensitivity analysis</h3>
                 <p style="color: #666; margin-bottom: 20px;">
                     How sensitive your decision is to changes in criteria weights. 
                 </p>
@@ -4380,7 +4380,7 @@ function generateReportHTML() {
                         <li>Final scores = Σ(rating × normalized_weight) for each option</li>
                         <li>Options with identical scores receive the same rank</li>
                         <li>Higher scores indicate better alignment with your priorities</li>
-                        <li>nalysis shows how weight changes affect rankings</li>
+                        <li>Sensitivity analysis shows how weight changes affect rankings</li>
                         <li>Risk analysis identifies potential weaknesses in the top choice</li>
                     </ul>
                 </div>
@@ -4414,7 +4414,7 @@ function generateReportHTML() {
                             <li>✓ All criteria weights sum to 100%</li>
                             <li>✓ All options rated on all criteria</li>
                             <li>✓ Rating scale consistently applied (1-5)</li>
-                            <li>✓ nalysis performed for robustness</li>
+                            <li>✓ Sensitivity analysis performed for robustness</li>
                             <li>✓ Risk assessment completed for top choice</li>
                             ${differentiators.length > 0 ? '<li>✓ Key differentiating factors identified</li>' : ''}
                             <li>✓ Decision stability assessed</li>
