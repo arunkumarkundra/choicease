@@ -5150,7 +5150,6 @@ function capturePieChartFromPage() {
 
 
 
-
 function captureWhatIfAnalysisFromPage() {
     return new Promise((resolve) => {
         console.log('=== WHAT-IF CAPTURE DEBUG START ===');
@@ -5165,6 +5164,7 @@ function captureWhatIfAnalysisFromPage() {
         
         try {
             console.log('Processing what-if data...');
+            console.log('Full whatIfDecisionData structure:', whatIfDecisionData);
             
             // Create weight settings data
             const weightSettingsData = [];
@@ -5177,24 +5177,71 @@ function captureWhatIfAnalysisFromPage() {
                 console.log(`Added weight: ${criteria.name} = ${currentWeight}%`);
             });
             
+            console.log('=== RATINGS ANALYSIS ===');
+            
             // Create rankings data by calculating current results
             const rankingsData = [];
-            whatIfDecisionData.options.forEach(option => {
-                console.log(`Processing option: ${option.name}`);
-                console.log('Option ratings object:', option.ratings);
+            whatIfDecisionData.options.forEach((option, optionIndex) => {
+                console.log(`\n--- Processing option ${optionIndex + 1}: ${option.name} ---`);
+                console.log('Full option object:', option);
+                console.log('Option ratings:', option.ratings);
+                console.log('Type of option.ratings:', typeof option.ratings);
+                console.log('Is option.ratings an object?', option.ratings && typeof option.ratings === 'object');
+                
+                if (option.ratings) {
+                    console.log('Available rating keys:', Object.keys(option.ratings));
+                    console.log('Rating values:', Object.values(option.ratings));
+                }
                 
                 let totalScore = 0;
-                whatIfDecisionData.criteria.forEach(criteria => {
-                    // More defensive approach to get rating
+                whatIfDecisionData.criteria.forEach((criteria, criteriaIndex) => {
+                    console.log(`\n  Criteria ${criteriaIndex + 1}: ${criteria.name} (ID: ${criteria.id})`);
+                    
+                    // Try multiple ways to get the rating
                     let rating = 0;
+                    
                     if (option.ratings && typeof option.ratings === 'object') {
-                        rating = option.ratings[criteria.id] || 0;
+                        // Method 1: Direct ID lookup
+                        rating = option.ratings[criteria.id];
+                        console.log(`    Method 1 (direct ID): ${rating}`);
+                        
+                        // Method 2: String ID lookup
+                        if (rating === undefined) {
+                            rating = option.ratings[String(criteria.id)];
+                            console.log(`    Method 2 (string ID): ${rating}`);
+                        }
+                        
+                        // Method 3: Look for any numerical key
+                        if (rating === undefined) {
+                            const keys = Object.keys(option.ratings);
+                            console.log(`    Available keys: [${keys.join(', ')}]`);
+                            const numericKeys = keys.filter(k => !isNaN(k));
+                            console.log(`    Numeric keys: [${numericKeys.join(', ')}]`);
+                            
+                            if (numericKeys.length > criteriaIndex) {
+                                rating = option.ratings[numericKeys[criteriaIndex]];
+                                console.log(`    Method 3 (by index): ${rating}`);
+                            }
+                        }
+                        
+                        // Method 4: Try the raw criteria object property
+                        if (rating === undefined && option.ratings[criteria.name]) {
+                            rating = option.ratings[criteria.name];
+                            console.log(`    Method 4 (by name): ${rating}`);
+                        }
+                    }
+                    
+                    // Default to 0 if still undefined
+                    if (rating === undefined || rating === null) {
+                        rating = 0;
+                        console.log(`    Using default rating: 0`);
                     }
                     
                     const weight = (whatIfDecisionData.normalizedWeights[criteria.id] || 0) / 100;
-                    totalScore += rating * weight;
+                    const contribution = rating * weight;
+                    totalScore += contribution;
                     
-                    console.log(`  ${criteria.name}: rating=${rating}, weight=${weight}, contribution=${rating * weight}`);
+                    console.log(`    Final: rating=${rating}, weight=${weight}, contribution=${contribution}`);
                 });
                 
                 rankingsData.push({
@@ -5202,13 +5249,13 @@ function captureWhatIfAnalysisFromPage() {
                     score: totalScore
                 });
                 
-                console.log(`Final score for ${option.name}: ${totalScore}`);
+                console.log(`\n🎯 Final score for ${option.name}: ${totalScore}`);
             });
             
             // Sort rankings by score
             rankingsData.sort((a, b) => b.score - a.score);
             
-            console.log('Successfully captured what-if data:');
+            console.log('\n=== FINAL RESULTS ===');
             console.log('Weight settings:', weightSettingsData);
             console.log('Rankings:', rankingsData);
             console.log('=== WHAT-IF CAPTURE DEBUG END ===');
@@ -5223,8 +5270,6 @@ function captureWhatIfAnalysisFromPage() {
         }
     });
 }
-
-
 
 
 
