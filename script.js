@@ -1267,7 +1267,7 @@ function setupRatingStep() {
         
                     <!-- Confidence Analysis -->
                     <div class="confidence-analysis" style="background: linear-gradient(135deg, #f8f9ff, #ffffff); border: 2px solid #e6f2ff; border-radius: 15px; padding: 25px; margin-bottom: 25px;">
-                            <h4 style="color: #667eea; margin: 0 0 15px 0;">📊 Enhanced Decision Confidence Analysis</h4>
+                            <h4 style="color: #667eea; margin: 0 0 15px 0;">📊 Decision Confidence Analysis</h4>
                             
                             <div class="confidence-meter" style="margin: 15px 0;">
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -2853,7 +2853,7 @@ function generateReportHTML() {
             <h4 style="color: #667eea; margin: 0 0 15px 0;">📊 Decision Confidence Analysis</h4>
             <div style="margin: 15px 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-weight: 600;">Confidence Level: ${confidence.level.toUpperCase()}</span>
+                    <span style="font-weight: 600;">Confidence Level: ${confidence.level.replace('-', ' ').toUpperCase()}</span>
                     <span style="font-weight: bold; color: #667eea;">${confidence.percentage}%</span>
                 </div>
                 <div style="width: 100%; height: 12px; background: #e9ecef; border-radius: 6px; overflow: hidden;">
