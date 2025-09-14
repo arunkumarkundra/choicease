@@ -1182,36 +1182,225 @@ function setupRatingStep() {
         // Risk analysis computation
         // Update risk severity classification
         function computeRiskAnalysis(results) {
-            const risks = [];
             const winner = results[0];
+            const risks = {
+                vulnerability: [],
+                dependency: [],
+                opportunity: [],
+                summary: {
+                    totalRisks: 0,
+                    highestSeverity: 'low',
+                    primaryConcern: null
+                }
+            };
+            
+            // 1. VULNERABILITY RISKS - Performance weak spots
+            risks.vulnerability = identifyVulnerabilityRisks(winner);
+            
+            // 2. DEPENDENCY RISKS - Over-concentration risks
+            risks.dependency = identifyDependencyRisks(winner);
+            
+            // 3. OPPORTUNITY RISKS - What you're giving up
+            if (results.length > 1) {
+                risks.opportunity = identifyOpportunityRisks(winner, results.slice(1));
+            }
+            
+            // Calculate summary
+            risks.summary = calculateRiskSummary(risks);
+            
+            return risks;
+        }        
+
+// Risk Analysis Helper Functions
+        function identifyVulnerabilityRisks(winner) {
+            const vulnerabilities = [];
             
             decisionData.criteria.forEach(criteria => {
                 const ratingKey = `${winner.option.id}-${criteria.id}`;
                 const rating = decisionData.ratings[ratingKey] ?? DEFAULT_RATING;
                 const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
                 
-                if (rating <= 1) {
-                    let severity, description;
-                    if (rating === 0) {
-                        severity = 'critical';
-                        description = `Unacceptable performance (${rating.toFixed(1)}/5) with ${weight}% importance - serious concern`;
-                    } else { // rating === 1
-                        severity = 'high';
-                        description = `Poor performance (${rating.toFixed(1)}/5) with ${weight}% importance`;
-                    }
+                // Risk Score = (Performance Gap) × (Importance Weight)
+                const performanceGap = Math.max(0, 3 - rating) / 3; // How far below "Good" (3.0)
+                const riskScore = performanceGap * (weight / 100);
+                
+                // Flag significant vulnerabilities
+                if (riskScore > 0.15 || (rating <= 2 && weight >= 20)) {
+                    let severity = 'low';
+                    if (riskScore >= 0.3 || (rating <= 1 && weight >= 15)) severity = 'critical';
+                    else if (riskScore >= 0.2 || (rating <= 1.5 && weight >= 25)) severity = 'high';
+                    else if (riskScore >= 0.15 || (rating <= 2 && weight >= 20)) severity = 'moderate';
                     
-                    risks.push({
+                    vulnerabilities.push({
+                        type: 'performance_gap',
                         criteriaName: criteria.name,
                         rating: rating,
                         weight: weight,
+                        riskScore: riskScore,
                         severity: severity,
-                        description: description
+                        description: generateVulnerabilityDescription(criteria.name, rating, weight),
+                        impact: generateVulnerabilityImpact(rating, weight),
+                        mitigation: generateVulnerabilityMitigation(criteria.name, rating)
                     });
                 }
             });
             
-            return risks;
+            return vulnerabilities.sort((a, b) => b.riskScore - a.riskScore);
         }
+        
+        function identifyDependencyRisks(winner) {
+            const dependencies = [];
+            
+            decisionData.criteria.forEach(criteria => {
+                const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
+                const ratingKey = `${winner.option.id}-${criteria.id}`;
+                const rating = decisionData.ratings[ratingKey] ?? DEFAULT_RATING;
+                
+                // High dependency risk - over-reliance on single criteria
+                if (weight >= 35) {
+                    dependencies.push({
+                        type: 'over_concentration',
+                        criteriaName: criteria.name,
+                        weight: weight,
+                        rating: rating,
+                        severity: weight >= 50 ? 'high' : 'moderate',
+                        description: `Heavy dependence on ${criteria.name} (${weight}% of total decision weight)`,
+                        impact: rating >= 4 ? 'Low risk due to strong performance' : 'High risk if this area underperforms',
+                        mitigation: `Ensure ${criteria.name} capabilities are robust and have backup plans`
+                    });
+                }
+                
+                // Critical dependency risk - high weight + mediocre performance
+                if (weight >= 25 && rating < 3.5) {
+                    dependencies.push({
+                        type: 'critical_dependency',
+                        criteriaName: criteria.name,
+                        weight: weight,
+                        rating: rating,
+                        severity: rating < 2.5 ? 'high' : 'moderate',
+                        description: `Important ${criteria.name} (${weight}% weight) shows only ${rating}/5 performance`,
+                        impact: 'Could significantly undermine overall success',
+                        mitigation: `Strengthen ${criteria.name} capabilities before implementation`
+                    });
+                }
+            });
+            
+            return dependencies.sort((a, b) => b.weight - a.weight);
+        }
+        
+        function identifyOpportunityRisks(winner, alternatives) {
+            const opportunities = [];
+            
+            decisionData.criteria.forEach(criteria => {
+                const winnerRatingKey = `${winner.option.id}-${criteria.id}`;
+                const winnerRating = decisionData.ratings[winnerRatingKey] ?? DEFAULT_RATING;
+                const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
+                
+                // Find best alternative performance on this criterion
+                let bestAlternative = null;
+                let bestRating = 0;
+                
+                alternatives.forEach(alt => {
+                    const altRatingKey = `${alt.option.id}-${criteria.id}`;
+                    const altRating = decisionData.ratings[altRatingKey] ?? DEFAULT_RATING;
+                    if (altRating > bestRating) {
+                        bestRating = altRating;
+                        bestAlternative = alt;
+                    }
+                });
+                
+                const performanceGap = bestRating - winnerRating;
+                const opportunityCost = (performanceGap / 5) * (weight / 100) * 100;
+                
+                // Significant opportunity cost
+                if (performanceGap >= 1.5 && weight >= 15 && opportunityCost >= 5) {
+                    let severity = 'low';
+                    if (opportunityCost >= 15) severity = 'high';
+                    else if (opportunityCost >= 10) severity = 'moderate';
+                    
+                    opportunities.push({
+                        type: 'superior_alternative',
+                        criteriaName: criteria.name,
+                        winnerRating: winnerRating,
+                        alternativeRating: bestRating,
+                        alternativeName: bestAlternative.option.name,
+                        performanceGap: performanceGap,
+                        weight: weight,
+                        opportunityCost: opportunityCost,
+                        severity: severity,
+                        description: `${bestAlternative.option.name} offers ${performanceGap.toFixed(1)} points better ${criteria.name} performance`,
+                        impact: `Missing ${opportunityCost.toFixed(1)}% potential value in ${criteria.name}`,
+                        consideration: weight >= 25 ? 'Consider if this trade-off is acceptable' : 'Minor trade-off given low importance'
+                    });
+                }
+            });
+            
+            return opportunities.sort((a, b) => b.opportunityCost - a.opportunityCost).slice(0, 5);
+        }
+        
+        function calculateRiskSummary(risks) {
+            const allRisks = [...risks.vulnerability, ...risks.dependency, ...risks.opportunity];
+            const severityOrder = { 'critical': 4, 'high': 3, 'moderate': 2, 'low': 1 };
+            
+            let highestSeverity = 'low';
+            let primaryConcern = null;
+            
+            allRisks.forEach(risk => {
+                if (severityOrder[risk.severity] > severityOrder[highestSeverity]) {
+                    highestSeverity = risk.severity;
+                    primaryConcern = risk;
+                }
+            });
+            
+            return {
+                totalRisks: allRisks.length,
+                highestSeverity: highestSeverity,
+                primaryConcern: primaryConcern,
+                vulnerabilityCount: risks.vulnerability.length,
+                dependencyCount: risks.dependency.length,
+                opportunityCount: risks.opportunity.length
+            };
+        }
+        
+        function generateVulnerabilityDescription(criteriaName, rating, weight) {
+            if (rating <= 1) {
+                return `Poor ${criteriaName} performance (${rating}/5) with ${weight}% importance`;
+            } else if (rating <= 2) {
+                return `Below-average ${criteriaName} (${rating}/5) carries risk given ${weight}% importance`;
+            } else {
+                return `Moderate ${criteriaName} performance (${rating}/5) may be concerning with ${weight}% weight`;
+            }
+        }
+        
+        function generateVulnerabilityImpact(rating, weight) {
+            if (rating <= 1 && weight >= 25) {
+                return 'High risk of operational issues or user dissatisfaction';
+            } else if (rating <= 2 && weight >= 20) {
+                return 'Moderate risk of performance shortfalls';
+            } else {
+                return 'May limit overall effectiveness';
+            }
+        }
+        
+        function generateVulnerabilityMitigation(criteriaName, rating) {
+            if (rating <= 1) {
+                return `Critical: Address ${criteriaName} weaknesses before implementation`;
+            } else if (rating <= 2) {
+                return `Important: Develop plan to strengthen ${criteriaName} capabilities`;
+            } else {
+                return `Monitor ${criteriaName} performance and have improvement plan ready`;
+            }
+        }
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2512,38 +2701,205 @@ function renderPerformanceHeatmap() {
 
 
 
-        // Render risk analysis
+         // Render risk analysis
         function renderAdvancedRisks() {
             const container = document.getElementById('advancedRisks');
             if (!container || !advancedAnalytics.risks) return;
             
-            let html = '<div style="padding: 20px;">';
+            const risks = advancedAnalytics.risks;
+            const summary = risks.summary;
+            const winner = advancedAnalytics.results[0];
             
-            if (advancedAnalytics.risks.length === 0) {
-                html += `
+            if (summary.totalRisks === 0) {
+                container.innerHTML = `
                     <div style="text-align: center; padding: 30px; background: #d4edda; border-radius: 12px; border: 2px solid #28a745;">
-                        <h4 style="color: #155724; margin: 0 0 10px 0;">✅ No Major Weaknesses Identified</h4>
-                        <p style="color: #155724; margin: 0;">Your top choice performs well across all criteria.</p>
+                        <h4 style="color: #155724; margin: 0 0 10px 0;">✅ Low Risk Profile</h4>
+                        <p style="color: #155724; margin: 0;">Your choice shows strong performance with minimal implementation risks.</p>
                     </div>
                 `;
-            } else {
-                html += `<p style="color: #666; margin-bottom: 20px;">Areas where <strong>${sanitizeInput(advancedAnalytics.results[0].option.name)}</strong> could be vulnerable:</p>`;
-                
-                advancedAnalytics.risks.forEach(risk => {
-                    html += `
-                        <div class="risk-item ${risk.severity}">
-                            <div class="risk-header">
-                                ${risk.severity === 'high' ? '🔴' : '🟡'} ${sanitizeInput(risk.criteriaName)}
-                            </div>
-                            <div class="risk-details">${risk.description}</div>
-                        </div>
-                    `;
-                });
+                return;
             }
+            
+            let html = `
+                <div style="padding: 20px;">
+                    <!-- Risk Summary Dashboard -->
+                    <div style="background: #f8f9fa; border-radius: 12px; padding: 20px; margin-bottom: 25px;">
+                        <h4 style="color: #333; margin: 0 0 15px 0;">📊 Risk Assessment Summary</h4>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                            <div style="text-align: center; padding: 12px; background: white; border-radius: 8px; border-left: 4px solid ${getSeverityColor(summary.highestSeverity)};">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: ${getSeverityColor(summary.highestSeverity)};">${summary.totalRisks}</div>
+                                <div style="font-size: 0.9rem; color: #666;">Total Risks</div>
+                            </div>
+                            <div style="text-align: center; padding: 12px; background: white; border-radius: 8px;">
+                                <div style="font-size: 1.1rem; font-weight: bold; color: ${getSeverityColor(summary.highestSeverity)}; text-transform: uppercase;">${summary.highestSeverity}</div>
+                                <div style="font-size: 0.9rem; color: #666;">Severity</div>
+                            </div>
+                            <div style="text-align: center; padding: 12px; background: white; border-radius: 8px;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #dc3545;">${summary.vulnerabilityCount}</div>
+                                <div style="font-size: 0.9rem; color: #666;">Vulnerabilities</div>
+                            </div>
+                            <div style="text-align: center; padding: 12px; background: white; border-radius: 8px;">
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #ffc107;">${summary.opportunityCount}</div>
+                                <div style="font-size: 0.9rem; color: #666;">Trade-offs</div>
+                            </div>
+                        </div>
+                        
+                        ${summary.primaryConcern ? `
+                            <div style="background: ${getSeverityBackground(summary.primaryConcern.severity)}; border: 1px solid ${getSeverityColor(summary.primaryConcern.severity)}; border-radius: 8px; padding: 12px;">
+                                <strong style="color: ${getSeverityColor(summary.primaryConcern.severity)};">Primary Concern:</strong>
+                                <span style="color: #333; margin-left: 8px;">${summary.primaryConcern.description}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+            `;
+            
+            // Vulnerability Risks Section
+            if (risks.vulnerability.length > 0) {
+                html += renderRiskCategory('🎯 Performance Vulnerabilities', risks.vulnerability, 'vulnerability');
+            }
+            
+            // Dependency Risks Section  
+            if (risks.dependency.length > 0) {
+                html += renderRiskCategory('⚖️ Dependency Risks', risks.dependency, 'dependency');
+            }
+            
+            // Opportunity Costs Section
+            if (risks.opportunity.length > 0) {
+                html += renderRiskCategory('💰 Opportunity Costs', risks.opportunity, 'opportunity');
+            }
+            
+            // Risk Mitigation Section
+            html += generateRiskMitigationSection(risks, winner);
             
             html += '</div>';
             container.innerHTML = html;
         }
+        
+        function renderRiskCategory(title, riskList, categoryType) {
+            let html = `
+                <div style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #e9ecef;">
+                    <h4 style="color: #333; margin: 0 0 15px 0;">${title}</h4>
+            `;
+            
+            riskList.forEach(risk => {
+                const severityColor = getSeverityColor(risk.severity);
+                const severityIcon = getSeverityIcon(risk.severity);
+                
+                html += `
+                    <div style="background: ${getSeverityBackground(risk.severity)}; border-left: 4px solid ${severityColor}; border-radius: 8px; padding: 15px; margin-bottom: 12px;">
+                        <div style="display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 600; color: #333; margin-bottom: 4px;">
+                                    ${severityIcon} ${sanitizeInput(risk.criteriaName)}
+                                    ${categoryType === 'opportunity' ? ` vs ${sanitizeInput(risk.alternativeName)}` : ''}
+                                </div>
+                                <div style="font-size: 0.9rem; color: #555; margin-bottom: 6px;">
+                                    ${risk.description}
+                                </div>
+                                <div style="font-size: 0.85rem; color: #666; font-style: italic;">
+                                    ${risk.impact || risk.consideration || ''}
+                                </div>
+                            </div>
+                            <div style="text-align: right; margin-left: 15px;">
+                                ${categoryType === 'vulnerability' && risk.riskScore ? `
+                                    <div style="font-size: 0.8rem; color: ${severityColor}; font-weight: 600;">
+                                        Risk: ${(risk.riskScore * 100).toFixed(0)}%
+                                    </div>
+                                ` : ''}
+                                ${categoryType === 'opportunity' && risk.opportunityCost ? `
+                                    <div style="font-size: 0.8rem; color: ${severityColor}; font-weight: 600;">
+                                        Cost: ${risk.opportunityCost.toFixed(1)}%
+                                    </div>
+                                ` : ''}
+                                <div style="background: ${severityColor}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; margin-top: 4px;">
+                                    ${risk.severity}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        ${risk.mitigation ? `
+                            <div style="border-top: 1px solid #eee; padding-top: 8px; margin-top: 8px;">
+                                <div style="font-size: 0.85rem; color: #0066cc;">
+                                    <strong>💡 Mitigation:</strong> ${risk.mitigation}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            return html;
+        }
+        
+        function generateRiskMitigationSection(risks, winner) {
+            const allRisks = [...risks.vulnerability, ...risks.dependency, ...risks.opportunity];
+            const criticalRisks = allRisks.filter(r => r.severity === 'critical');
+            const highRisks = allRisks.filter(r => r.severity === 'high');
+            
+            let html = `
+                <div style="background: #e7f3ff; border: 2px solid #b3d7ff; border-radius: 12px; padding: 20px; margin-top: 20px;">
+                    <h4 style="color: #0056b3; margin: 0 0 15px 0;">🛡️ Risk Management Strategy</h4>
+            `;
+            
+            if (criticalRisks.length > 0) {
+                html += `
+                    <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 12px; margin-bottom: 15px;">
+                        <strong style="color: #856404;">⚠️ Immediate Action Required:</strong>
+                        <ul style="margin: 8px 0 0 20px; color: #856404;">
+                            ${criticalRisks.map(risk => `<li style="margin-bottom: 4px;">${risk.mitigation || `Address ${risk.criteriaName} concerns`}</li>`).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+            
+            html += `
+                <div style="background: white; border-radius: 8px; padding: 15px;">
+                    <h5 style="color: #333; margin: 0 0 10px 0;">📋 General Recommendations:</h5>
+                    <ul style="margin: 0; padding-left: 20px; color: #555; line-height: 1.6;">
+                        <li>Monitor performance in identified vulnerability areas</li>
+                        <li>Develop contingency plans for high-dependency criteria</li>
+                        ${risks.opportunity.length > 0 ? '<li>Consider if opportunity costs are acceptable given your priorities</li>' : ''}
+                        <li>Regular review of ${sanitizeInput(winner.option.name)} performance against these risk factors</li>
+                        ${highRisks.length > 0 ? '<li>Create specific action plans for high-severity risks</li>' : ''}
+                    </ul>
+                </div>
+            `;
+            
+            html += '</div>';
+            return html;
+        }
+        
+        function getSeverityColor(severity) {
+            const colors = {
+                'critical': '#dc3545',
+                'high': '#fd7e14', 
+                'moderate': '#ffc107',
+                'low': '#28a745'
+            };
+            return colors[severity] || '#6c757d';
+        }
+        
+        function getSeverityBackground(severity) {
+            const backgrounds = {
+                'critical': '#f8d7da',
+                'high': '#fff3cd',
+                'moderate': '#fff3cd', 
+                'low': '#d4edda'
+            };
+            return backgrounds[severity] || '#f8f9fa';
+        }
+        
+        function getSeverityIcon(severity) {
+            const icons = {
+                'critical': '🚫',
+                'high': '🔴',
+                'moderate': '🟡',
+                'low': '🟢'
+            };
+            return icons[severity] || '⚪';
+        }
+
 
 
 
