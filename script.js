@@ -899,32 +899,206 @@ function setupRatingStep() {
                 return {
                     percentage: 50,
                     level: 'medium',
-                    explanation: 'Insufficient options for confidence analysis'
+                    explanation: 'Need at least 2 options for meaningful confidence analysis',
+                    gap: '0.00',
+                    details: null
                 };
             }
             
-            const winner = results[0];
-            const runnerUp = results[1];
-            const gap = winner.totalScore - runnerUp.totalScore;
-            const normalizedGap = Math.min(gap / 4, 1); // Max gap is 4 (5.0 - 1.0)
+            const scores = results.map(r => r.totalScore).sort((a, b) => b - a);
+            const winner = scores[0];
+            const runnerUp = scores[1];
+            const gap = winner - runnerUp;
             
-            const confidencePercent = Math.round(normalizedGap * 100);
+            // 1. STATISTICAL FOUNDATION
+            const mean = scores.reduce((a, b) => a + b) / scores.length;
+            const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
+            const stdDev = Math.sqrt(variance);
             
-            let level, explanation;
-            if (confidencePercent >= 70) {
-                level = 'high';
-                explanation = 'Clear winner with significant margin';
-            } else if (confidencePercent >= 40) {
-                level = 'medium';
-                explanation = 'Moderate confidence - decent margin';
-            } else {
-                level = 'low';
-                explanation = 'Low confidence - very close scores';
+            // Effect size (Cohen's d equivalent)
+            const effectSize = stdDev > 0.01 ? gap / stdDev : gap * 20;
+            
+            // 2. MULTIPLE CONFIDENCE DIMENSIONS
+            
+            // A. Raw Gap Confidence (original approach, refined)
+            const maxPossibleGap = 5.0; // theoretical maximum
+            const gapConfidence = Math.min(gap / (maxPossibleGap * 0.4), 1) * 100;
+            
+            // B. Statistical Significance Confidence
+            const statisticalConfidence = Math.min(Math.abs(effectSize) / 1.5, 1) * 100;
+            
+            // C. Distribution Confidence (how spread out are the scores)
+            const scoreRange = scores[0] - scores[scores.length - 1];
+            const distributionConfidence = Math.min(scoreRange / 2.0, 1) * 100;
+            
+            // D. Sample Size Confidence (more options = more confidence)
+            const sampleSizeBonus = Math.min((scores.length - 2) * 5, 15);
+            
+            // E. Sensitivity Penalty (if decision is fragile)
+            let sensitivityPenalty = 0;
+            if (advancedAnalytics.sensitivity) {
+                const criticalCount = advancedAnalytics.sensitivity.filter(s => s.criticality === 'critical').length;
+                const moderateCount = advancedAnalytics.sensitivity.filter(s => s.criticality === 'moderate').length;
+                sensitivityPenalty = criticalCount * 12 + moderateCount * 6;
             }
             
-            return { percentage: confidencePercent, level, explanation, gap: gap.toFixed(2) };
+            // 3. WEIGHTED COMBINATION
+            const baseConfidence = (
+                gapConfidence * 0.35 +           // Core gap metric
+                statisticalConfidence * 0.25 +   // Statistical rigor
+                distributionConfidence * 0.20 +  // Overall spread
+                sampleSizeBonus                  // More data bonus
+            ) - sensitivityPenalty;              // Fragility penalty
+            
+            // 4. BOUNDED AND CALIBRATED RESULT
+            const finalConfidence = Math.max(5, Math.min(95, Math.round(baseConfidence)));
+            
+            // 5. CONTEXTUAL INTERPRETATION
+            const level = getConfidenceLevel(finalConfidence);
+            const explanation = generateConfidenceExplanation(finalConfidence, gap, effectSize, scores.length);
+            
+            // 6. CONFIDENCE INTERVAL ESTIMATION
+            const confidenceInterval = estimateWinnerStability(results);
+            
+            // 7. PRACTICAL INSIGHTS
+            const insights = generatePracticalInsights(finalConfidence, gap, effectSize, sensitivityPenalty);
+            
+            return {
+                percentage: finalConfidence,
+                level: level,
+                explanation: explanation,
+                gap: gap.toFixed(2),
+                details: {
+                    components: {
+                        gapConfidence: Math.round(gapConfidence),
+                        statisticalConfidence: Math.round(statisticalConfidence),
+                        distributionConfidence: Math.round(distributionConfidence),
+                        sampleSizeBonus: Math.round(sampleSizeBonus),
+                        sensitivityPenalty: Math.round(sensitivityPenalty)
+                    },
+                    statistics: {
+                        effectSize: effectSize.toFixed(2),
+                        scoreSpread: scoreRange.toFixed(2),
+                        meanScore: mean.toFixed(2),
+                        standardDeviation: stdDev.toFixed(2)
+                    },
+                    stability: confidenceInterval,
+                    insights: insights
+                }
+            };
+        }
+
+
+        // Confidence Analysis  HELPER FUNCTIONS
+        function getConfidenceLevel(confidence) {
+            if (confidence >= 80) return 'very-high';
+            if (confidence >= 65) return 'high';
+            if (confidence >= 45) return 'medium';
+            if (confidence >= 25) return 'low';
+            return 'very-low';
         }
         
+        function generateConfidenceExplanation(confidence, gap, effectSize, sampleSize) {
+            const explanations = [];
+            
+            // Primary confidence assessment
+            if (confidence >= 80) {
+                explanations.push("Very strong evidence for this choice");
+            } else if (confidence >= 65) {
+                explanations.push("Good evidence favoring this option");
+            } else if (confidence >= 45) {
+                explanations.push("Moderate preference detected");
+            } else if (confidence >= 25) {
+                explanations.push("Weak preference - results are close");
+            } else {
+                explanations.push("Essentially tied - consider qualitative factors");
+            }
+            
+            // Add context about the gap
+            if (gap > 1.2) {
+                explanations.push("large performance gap supports decision");
+            } else if (gap < 0.3) {
+                explanations.push("very small margin warrants careful consideration");
+            }
+            
+            // Statistical significance context
+            if (Math.abs(effectSize) > 1.5) {
+                explanations.push("difference is statistically meaningful");
+            } else if (Math.abs(effectSize) < 0.5) {
+                explanations.push("difference may not be practically significant");
+            }
+            
+            return explanations.join(", ");
+        }
+        
+        function estimateWinnerStability(results) {
+            // Monte Carlo simulation to estimate decision stability
+            const iterations = 500;
+            let winnerChanges = 0;
+            const originalWinner = results[0].option.name;
+            
+            for (let i = 0; i < iterations; i++) {
+                // Add small random noise to simulate rating uncertainty
+                const noisyResults = results.map(result => ({
+                    ...result,
+                    totalScore: result.totalScore + (Math.random() - 0.5) * 0.4 // ±0.2 noise
+                })).sort((a, b) => b.totalScore - a.totalScore);
+                
+                if (noisyResults[0].option.name !== originalWinner) {
+                    winnerChanges++;
+                }
+            }
+            
+            const stabilityPercentage = ((iterations - winnerChanges) / iterations * 100).toFixed(1);
+            
+            return {
+                stabilityPercentage: stabilityPercentage,
+                interpretation: stabilityPercentage > 90 ? 
+                    "Decision is very stable to small rating changes" :
+                    stabilityPercentage > 70 ?
+                    "Decision is reasonably stable" :
+                    "Decision could change with small rating adjustments - review carefully"
+            };
+        }
+        
+        function generatePracticalInsights(confidence, gap, effectSize, sensitivityPenalty) {
+            const insights = [];
+            
+            if (confidence >= 75) {
+                insights.push("✓ You can proceed with high confidence");
+                insights.push("✓ Clear winner identified across multiple measures");
+            } else if (confidence >= 50) {
+                insights.push("⚠ Consider the runner-up as a backup option");
+                insights.push("⚠ Review criteria weights to ensure they reflect your priorities");
+            } else {
+                insights.push("⚠ Results are very close - consider external factors not captured in this analysis");
+                insights.push("⚠ You may want to gather more information or add additional criteria");
+            }
+            
+            if (sensitivityPenalty > 20) {
+                insights.push("⚠ Decision is sensitive to criteria weights - small changes could alter the outcome");
+            }
+            
+            if (gap < 0.2) {
+                insights.push("⚠ Margin is extremely small - consider it a tie and use qualitative judgment");
+            }
+            
+            if (effectSize > 2.0) {
+                insights.push("✓ The difference is not just numerical but likely meaningful in practice");
+            }
+            
+            return insights;
+        }
+
+
+
+
+
+
+
+
+
+
         // Sensitivity analysis computation
         function computeSensitivityAnalysis() {
             const sensitivity = [];
@@ -1093,28 +1267,108 @@ function setupRatingStep() {
         
                     <!-- Confidence Analysis -->
                     <div class="confidence-analysis" style="background: linear-gradient(135deg, #f8f9ff, #ffffff); border: 2px solid #e6f2ff; border-radius: 15px; padding: 25px; margin-bottom: 25px;">
-                        <h4 style="color: #667eea; margin: 0 0 15px 0;">📊 Decision Confidence Analysis</h4>
+                            <h4 style="color: #667eea; margin: 0 0 15px 0;">📊 Enhanced Decision Confidence Analysis</h4>
+                            
+                            <div class="confidence-meter" style="margin: 15px 0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <span style="font-weight: 600;">Confidence Level: ${confidence.level.replace('-', ' ').toUpperCase()}</span>
+                                    <span style="font-weight: bold; color: #667eea;">${confidence.percentage}%</span>
+                                </div>
+                                <div class="confidence-bar" style="width: 100%; height: 12px; background: #e9ecef; border-radius: 6px; overflow: hidden;">
+                                    <div class="confidence-fill ${confidence.level}" style="width: ${confidence.percentage}%; height: 100%; border-radius: 6px; transition: width 0.8s ease-out;"></div>
+                                </div>
+                                <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">
+                                    ${confidence.explanation}
+                                </p>
+                            </div>
                         
-                        <div class="confidence-meter" style="margin: 15px 0;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <span style="font-weight: 600;">Confidence Level: ${confidence.level.toUpperCase()}</span>
-                                <span style="font-weight: bold; color: #667eea;">${confidence.percentage}%</span>
-                            </div>
-                            <div class="confidence-bar" style="width: 100%; height: 12px; background: #e9ecef; border-radius: 6px; overflow: hidden;">
-                                <div class="confidence-fill ${confidence.level}" style="width: ${confidence.percentage}%; height: 100%; border-radius: 6px; transition: width 0.8s ease-out;"></div>
-                            </div>
-                            <p style="margin: 10px 0 0 0; font-size: 0.9rem; color: #666;">
-                                ${confidence.explanation}
-                            </p>
+                            ${runnerUp ? `
+                                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                                    <strong>Margin Analysis:</strong> ${confidence.gap} points ahead of 
+                                    <em>${sanitizeInput(runnerUp.option.name)}</em> (${runnerUp.totalScore.toFixed(2)}/5.0)
+                                </div>
+                            ` : ''}
+                            
+                            ${confidence.details ? `
+                                <details style="margin-top: 15px;">
+                                    <summary style="cursor: pointer; font-weight: 600; color: #667eea; padding: 8px 0;">
+                                        📋 View Detailed Analysis
+                                    </summary>
+                                    <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                                        
+                                        <!-- Stability Analysis -->
+                                        <div style="margin-bottom: 15px;">
+                                            <h5 style="color: #333; margin: 0 0 8px 0;">🎯 Decision Stability</h5>
+                                            <div style="background: white; padding: 12px; border-radius: 6px; border-left: 4px solid #28a745;">
+                                                <div style="font-weight: 600; margin-bottom: 4px;">Stability Score: ${confidence.details.stability.stabilityPercentage}%</div>
+                                                <div style="font-size: 0.9rem; color: #666;">${confidence.details.stability.interpretation}</div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Confidence Components -->
+                                        <div style="margin-bottom: 15px;">
+                                            <h5 style="color: #333; margin: 0 0 8px 0;">⚖️ Confidence Components</h5>
+                                            <div style="display: grid; gap: 8px;">
+                                                <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: white; border-radius: 4px;">
+                                                    <span>Gap Analysis:</span>
+                                                    <span style="font-weight: 600; color: #667eea;">${confidence.details.components.gapConfidence}%</span>
+                                                </div>
+                                                <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: white; border-radius: 4px;">
+                                                    <span>Statistical Significance:</span>
+                                                    <span style="font-weight: 600; color: #667eea;">${confidence.details.components.statisticalConfidence}%</span>
+                                                </div>
+                                                <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: white; border-radius: 4px;">
+                                                    <span>Score Distribution:</span>
+                                                    <span style="font-weight: 600; color: #667eea;">${confidence.details.components.distributionConfidence}%</span>
+                                                </div>
+                                                <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: white; border-radius: 4px;">
+                                                    <span>Sample Size Bonus:</span>
+                                                    <span style="font-weight: 600; color: #28a745;">+${confidence.details.components.sampleSizeBonus}%</span>
+                                                </div>
+                                                ${confidence.details.components.sensitivityPenalty > 0 ? `
+                                                    <div style="display: flex; justify-content: space-between; padding: 8px 12px; background: white; border-radius: 4px;">
+                                                        <span>Sensitivity Penalty:</span>
+                                                        <span style="font-weight: 600; color: #dc3545;">-${confidence.details.components.sensitivityPenalty}%</span>
+                                                    </div>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Practical Insights -->
+                                        <div style="margin-bottom: 10px;">
+                                            <h5 style="color: #333; margin: 0 0 8px 0;">💡 Practical Insights</h5>
+                                            <div style="background: white; padding: 12px; border-radius: 6px;">
+                                                ${confidence.details.insights.map(insight => `
+                                                    <div style="margin-bottom: 6px; font-size: 0.9rem; padding: 4px 0;">
+                                                        ${insight}
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Statistical Details -->
+                                        <div>
+                                            <h5 style="color: #333; margin: 0 0 8px 0;">📈 Statistical Details</h5>
+                                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; font-size: 0.85rem;">
+                                                <div style="background: white; padding: 8px; border-radius: 4px; text-align: center;">
+                                                    <div style="font-weight: 600; color: #667eea;">${confidence.details.statistics.effectSize}</div>
+                                                    <div style="color: #666;">Effect Size</div>
+                                                </div>
+                                                <div style="background: white; padding: 8px; border-radius: 4px; text-align: center;">
+                                                    <div style="font-weight: 600; color: #667eea;">${confidence.details.statistics.scoreSpread}</div>
+                                                    <div style="color: #666;">Score Range</div>
+                                                </div>
+                                                <div style="background: white; padding: 8px; border-radius: 4px; text-align: center;">
+                                                    <div style="font-weight: 600; color: #667eea;">${confidence.details.statistics.standardDeviation}</div>
+                                                    <div style="color: #666;">Std Deviation</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                    </div>
+                                </details>
+                            ` : ''}
                         </div>
-        
-                        ${runnerUp ? `
-                            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-top: 15px;">
-                                <strong>Margin Analysis:</strong> ${confidence.gap} points ahead of 
-                                <em>${sanitizeInput(runnerUp.option.name)}</em> (${runnerUp.totalScore.toFixed(2)}/5.0)
-                            </div>
-                        ` : ''}
-                    </div>
         
                     <!-- Top Contributing Criteria -->
                     <div class="top-contributors" style="background: #f8f9fa; border-radius: 12px; padding: 20px; margin-bottom: 25px;">
