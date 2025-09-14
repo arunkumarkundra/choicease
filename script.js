@@ -1456,18 +1456,19 @@ function setupRatingStep() {
             }
             
             // Decision stability assessment
-            const lowPerformanceCount = winnerContributions.filter(c => c.rating <= 2).length;
-            const highPerformanceCount = winnerContributions.filter(c => c.rating >= 4).length;
-            let stabilityLevel = 'High';
-            let stabilityText = 'Strong performance across multiple criteria';
-            
-            if (confidence.percentage < 40) {
-                stabilityLevel = 'Low';
-                stabilityText = 'Close decision - small changes could affect outcome';
-            } else if (lowPerformanceCount > 0 || confidence.percentage < 70) {
-                stabilityLevel = 'Medium';
-                stabilityText = 'Generally solid choice with some areas of concern';
-            }
+
+                // Enhanced decision stability assessment
+                const lowPerformanceCount = winnerContributions.filter(c => c.rating <= 2).length;
+                const highPerformanceCount = winnerContributions.filter(c => c.rating >= 4).length;
+                const stabilityData = calculateStabilityLevel(winner, confidence, winnerContributions);
+                const robustnessData = calculateDecisionRobustness(advancedAnalytics.results, confidence);
+                const strongAreas = winnerContributions.filter(c => c.rating >= 4).map(c => c.name);
+                const weakAreas = winnerContributions.filter(c => c.rating <= 2).map(c => c.name);
+                
+                // Keep backward compatibility
+                let stabilityLevel = stabilityData.level;
+                let stabilityText = stabilityData.recommendation;                
+                
             
             container.innerHTML = `
                 <div class="enhanced-executive-summary">
@@ -1869,14 +1870,69 @@ function setupRatingStep() {
                         <p style="color: #666; margin: 10px 0 15px 0;">${stabilityText}</p>
                         
                         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 15px;">
-                            <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
-                                <div style="font-size: 1.5rem; font-weight: bold; color: #28a745;">${highPerformanceCount}</div>
-                                <div style="font-size: 0.9rem; color: #666;">Strong Areas (4-5)</div>
+                            <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                                <div style="font-size: 24px; font-weight: bold; color: #28a745; margin-bottom: 5px;">${highPerformanceCount}</div>
+                                <div style="font-size: 14px; color: #666; margin-bottom: 8px;">Strong Areas (4-5)</div>
+                                ${strongAreas.length > 0 ? `<div style="font-size: 12px; color: #28a745; font-style: italic; line-height: 1.3;">${strongAreas.slice(0, 3).join(', ')}${strongAreas.length > 3 ? '...' : ''}</div>` : '<div style="font-size: 12px; color: #999; font-style: italic;">None</div>'}
                             </div>
-                            <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
-                                <div style="font-size: 1.5rem; font-weight: bold; color: ${lowPerformanceCount > 0 ? '#dc3545' : '#28a745'};">${lowPerformanceCount}</div>
-                                <div style="font-size: 0.9rem; color: #666;">Weak Areas (1-2)</div>
+                            <div style="text-align: center; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                                <div style="font-size: 24px; font-weight: bold; color: ${lowPerformanceCount > 0 ? '#dc3545' : '#28a745'}; margin-bottom: 5px;">${lowPerformanceCount}</div>
+                                <div style="font-size: 14px; color: #666; margin-bottom: 8px;">Weak Areas (1-2)</div>
+                                ${weakAreas.length > 0 ? `<div style="font-size: 12px; color: #dc3545; font-style: italic; line-height: 1.3;">${weakAreas.slice(0, 3).join(', ')}${weakAreas.length > 3 ? '...' : ''}</div>` : '<div style="font-size: 12px; color: #999; font-style: italic;">None</div>'}
                             </div>
+
+
+                <!-- Supporting Analysis Section -->
+                <div style="margin-top: 25px; padding: 20px; background: #f8f9fa; border-radius: 12px; border-left: 4px solid #667eea;">
+                    <h5 style="color: #333; margin: 0 0 15px 0; font-size: 16px;">🔍 Supporting Analysis</h5>
+                    
+                    <!-- Performance Distribution -->
+                    <div style="margin-bottom: 15px;">
+                        <h6 style="color: #666; margin: 0 0 8px 0; font-size: 14px;">Performance Distribution for ${winner.option.name}:</h6>
+                        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                            ${winnerContributions.map(contrib => `
+                                <span style="padding: 4px 8px; border-radius: 12px; font-size: 12px; background: ${
+                                    contrib.rating >= 4 ? '#d4edda' : contrib.rating >= 3 ? '#fff3cd' : contrib.rating >= 2 ? '#ffeaa7' : '#f8d7da'
+                                }; color: ${
+                                    contrib.rating >= 4 ? '#155724' : contrib.rating >= 3 ? '#856404' : contrib.rating >= 2 ? '#856404' : '#721c24'
+                                };">
+                                    ${contrib.name}: ${contrib.rating}/5
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <!-- Statistical Summary -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; font-size: 13px; margin-bottom: 15px;">
+                        <div><strong>Score Gap:</strong> ${confidence.gap} points</div>
+                        <div><strong>Effect Size:</strong> ${confidence.details.statistics.effectSize}</div>
+                        <div><strong>Decision Margin:</strong> ${((confidence.gap / 5) * 100).toFixed(1)}%</div>
+                        <div><strong>Robustness:</strong> ${robustnessData.score}/100</div>
+                    </div>
+                    
+                    <!-- Stability Factors -->
+                    ${stabilityData.factors.length > 0 ? `
+                        <div style="margin-bottom: 15px;">
+                            <h6 style="color: #666; margin: 0 0 8px 0; font-size: 14px;">Stability Factors:</h6>
+                            <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: #666;">
+                                ${stabilityData.factors.map(factor => `<li>${factor}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                    
+                    <!-- Recommendation -->
+                    <div style="padding: 12px; background: white; border-radius: 8px; border-left: 3px solid ${
+                        stabilityData.level === 'High' ? '#28a745' : 
+                        stabilityData.level === 'Medium' ? '#ffc107' : '#dc3545'
+                    };">
+                        <div style="font-size: 14px; color: #333;">
+                            <strong>Recommendation:</strong> ${stabilityData.recommendation}
+                        </div>
+                    </div>
+                </div>
+
+
+                        
                             <div style="text-align: center; padding: 10px; background: #f8f9fa; border-radius: 8px;">
                                 <div style="font-size: 1.5rem; font-weight: bold; color: #667eea;">${decisionData.criteria.length}</div>
                                 <div style="font-size: 0.9rem; color: #666;">Total Criteria</div>
@@ -3622,6 +3678,7 @@ function generateReportHTML() {
         stabilityText = 'Generally solid choice with some areas of concern';
     }
 
+        
     // Criteria weights distribution
     const criteriaHtml = decisionData.criteria.map((criteria, index) => {
         const weight = Math.round(safeNum(decisionData.normalizedWeights && decisionData.normalizedWeights[criteria.id], 0));
@@ -4067,8 +4124,92 @@ function generateReportHTML() {
 
 
 
-
-
+        // Decision Stability Related functions
+        // Enhanced stability calculation function
+        function calculateStabilityLevel(winner, confidence, winnerContributions) {
+            let stabilityFactors = [];
+            let stabilityScore = 100;
+            
+            // Factor 1: Overall confidence
+            if (confidence.percentage < 40) {
+                stabilityScore -= 30;
+                stabilityFactors.push('Low statistical confidence');
+            } else if (confidence.percentage < 70) {
+                stabilityScore -= 15;
+                stabilityFactors.push('Moderate confidence level');
+            }
+            
+            // Factor 2: Performance consistency
+            const lowPerformanceCount = winnerContributions.filter(c => c.rating <= 2).length;
+            const criticalLowCount = winnerContributions.filter(c => c.rating <= 1 && c.weight >= 15).length;
+            
+            if (criticalLowCount > 0) {
+                stabilityScore -= 25;
+                stabilityFactors.push(`${criticalLowCount} critical weakness(es) in important criteria`);
+            } else if (lowPerformanceCount > 0) {
+                stabilityScore -= 10;
+                stabilityFactors.push(`${lowPerformanceCount} area(s) of concern`);
+            }
+            
+            // Factor 3: Decision margin
+            if (confidence.gap < 0.3) {
+                stabilityScore -= 20;
+                stabilityFactors.push('Very close race with runner-up');
+            } else if (confidence.gap < 0.7) {
+                stabilityScore -= 10;
+                stabilityFactors.push('Moderate lead over runner-up');
+            }
+            
+            // Factor 4: Weight sensitivity
+            if (confidence.details.components.sensitivityPenalty > 15) {
+                stabilityScore -= 15;
+                stabilityFactors.push('Sensitive to criteria weighting changes');
+            }
+            
+            // Determine level
+            let level, recommendation;
+            if (stabilityScore >= 80) {
+                level = 'High';
+                recommendation = 'Decision is robust - proceed with confidence';
+            } else if (stabilityScore >= 60) {
+                level = 'Medium';
+                recommendation = 'Generally solid choice - monitor identified concerns';
+            } else {
+                level = 'Low';
+                recommendation = 'High uncertainty - consider gathering more information';
+            }
+            
+            return {
+                level: level,
+                score: Math.max(0, stabilityScore),
+                factors: stabilityFactors,
+                recommendation: recommendation
+            };
+        }
+        
+        // Decision robustness calculation function
+        function calculateDecisionRobustness(results, confidence) {
+            const monteCarloScore = confidence.details.stability.stabilityPercentage;
+            const confidenceScore = confidence.percentage;
+            const gapScore = Math.min(confidence.gap * 20, 100);
+            
+            const robustnessScore = (
+                monteCarloScore * 0.4 +
+                confidenceScore * 0.35 +
+                gapScore * 0.25
+            );
+            
+            return {
+                score: Math.round(robustnessScore),
+                level: robustnessScore >= 80 ? 'Very Robust' : 
+                       robustnessScore >= 65 ? 'Robust' : 
+                       robustnessScore >= 50 ? 'Moderately Robust' : 'Fragile',
+                interpretation: robustnessScore >= 80 ? 'Decision is highly stable to changes' :
+                               robustnessScore >= 65 ? 'Decision is reasonably stable' :
+                               robustnessScore >= 50 ? 'Decision has moderate stability' :
+                               'Decision is sensitive to small changes'
+            };
+        }
 
 
 
