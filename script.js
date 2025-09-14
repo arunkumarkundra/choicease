@@ -5015,8 +5015,12 @@ function shareToReddit() {
     // Create the Reddit post body
     let postBody = '';
     if (decisionDescription) {
-        postBody = `${decisionDescription}\n\n`;
+        postBody = `**Decision:** ${decisionDescription}\n\n`;
     }
+    // Add decision metrics for context
+    postBody += `**Options:** ${decisionData.options.length} choices\n`;
+    postBody += `**Criteria:** ${decisionData.criteria.length} factors analyzed\n\n`;
+        
     postBody += '\n\n---\n\n*The attached QR can be imported and analyzed on [choicease.com](http://choicease.com)*';
     postBody = `🚨 NOTE (delete this line before posting): To add your QR image, go to the "Link" or "Images & Video" tab and upload it there.\n\n` + postBody;
     
