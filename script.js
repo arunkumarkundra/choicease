@@ -3481,53 +3481,33 @@ function generateCanvasBasedPDF() {
                 }
             }
             
-                return captureWhatIfAnalysisFromPage();
-                }).then(whatIfImage => {
-                    if (whatIfImage) {
-                        // Inject weight settings into left column - empty for now since we're using image
-                        const weightPlaceholder = tempContainer.querySelector('#pdfWeightSettingsContainer');
-                        if (weightPlaceholder) {
-                            weightPlaceholder.innerHTML = `
-                                <div style="text-align: center;">
-                                    <p style="color: #666; margin: 0; font-style: italic;">See interactive analysis below</p>
-                                </div>
-                            `;
-                        }
-                        
-                        // Inject the screenshot into right column
-                        const rankingsPlaceholder = tempContainer.querySelector('#pdfWhatIfContainer');
-                        if (rankingsPlaceholder) {
-                            rankingsPlaceholder.innerHTML = `
-                                <img src="${whatIfImage}" 
-                                     style="max-width: 100%; height: auto; border: 1px solid #dee2e6; border-radius: 8px;" 
-                                     alt="What-If Analysis Screenshot">
-                            `;
-                        }
-                        
-                    } else {
-                        console.log('No what-if data available, using fallbacks');
-                        
-                        // Fallback for weight settings
-                        const weightPlaceholder = tempContainer.querySelector('#pdfWeightSettingsContainer');
-                        if (weightPlaceholder) {
-                            weightPlaceholder.innerHTML = `
-                                <div style="padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center;">
-                                    <p style="color: #666; margin: 0; font-style: italic;">Weight settings available in interactive mode</p>
-                                </div>
-                            `;
-                        }
-                        
-                        // Fallback for rankings
-                        const rankingsPlaceholder = tempContainer.querySelector('#pdfWhatIfContainer');
-                        if (rankingsPlaceholder) {
-                            rankingsPlaceholder.innerHTML = `
-                                <div style="padding: 20px; background: #f8f9fa; border-radius: 8px; text-align: center;">
-                                    <p style="color: #666; margin: 0; font-style: italic;">Updated rankings shown when weights are adjusted</p>
-                                </div>
-                            `;
-                        }
-                    }                    
-
+            return captureWhatIfAnalysisFromPage();
+        }).then(whatIfImage => {
+            if (whatIfImage) {
+                const placeholder = tempContainer.querySelector('#pdfWhatIfContainer');
+                if (placeholder) {
+                    placeholder.innerHTML = `
+                        <img src="${whatIfImage}" 
+                             style="max-width: 100%; height: auto; border: 1px solid #dee2e6; border-radius: 8px; margin: 15px auto; display: block;" 
+                             alt="What-If Analysis">
+                        <p style="font-size: 12px; color: #666; margin-top: 10px; text-align: center;">
+                            Criteria weight adjustment study with updated rankings
+                        </p>
+                    `;
+                }
+            } else {
+                const placeholder = tempContainer.querySelector('#pdfWhatIfContainer');
+                if (placeholder) {
+                    placeholder.innerHTML = `
+                        <div style="margin: 20px auto; padding: 30px; background: #f8f9fa; border-radius: 12px; text-align: center;">
+                            <p style="color: #666; font-style: italic; margin: 0;">
+                                What-if analysis capture failed.<br>
+                                This section shows interactive weight adjustments when advanced analytics are active.
+                            </p>
+                        </div>
+                    `;
+                }
+            }
 
             // Wait for logo to load, then start multi-section PDF generation
             const logoImg = new Image();
@@ -4622,35 +4602,18 @@ function generateReportHTML() {
                 ${flipPointsHtml}
             </div>
 
-
-                <!-- What-If Analysis Section -->
-                <div class="pdf-section what-if-analysis" style="margin-bottom: 30px;">
-                    <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🎛️ What-If Analysis</h3>
-                    <p style="color: #666; margin-bottom: 20px;">
-                        Comprehensive study of how changes in criteria weights affect the final ranking. This analysis helps validate decision robustness by showing which weight adjustments would change the winner, providing confidence in the stability of your choice.
-                    </p>
-                    
-                    <!-- Two-Column Layout for What-If Analysis -->
-                    <div style="display: flex; gap: 20px; align-items: flex-start;">
-                        <!-- Left Column: Weight Settings -->
-                        <div style="flex: 1; min-width: 0;">
-                            <h4 style="color: #333; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Weight Settings for Analysis</h4>
-                            <div id="pdfWeightSettingsContainer">
-                                <!-- Weight settings will be injected here -->
-                            </div>
-                        </div>
-                        
-                        <!-- Right Column: Updated Rankings -->
-                        <div style="flex: 1; min-width: 0;">
-                            <h4 style="color: #333; margin: 0 0 15px 0; font-size: 16px; font-weight: 600;">Updated Rankings</h4>
-                            <div id="pdfWhatIfContainer">
-                                <!-- Rankings table will be injected here -->
-                            </div>
-                        </div>
-                    </div>
+            <!-- What-If Analysis Section -->
+            <div class="pdf-section what-if-analysis" style="margin-bottom: 30px;">
+                <h3 style="color: #667eea; margin: 0 0 20px 0; font-size: 20px;">🎛️ What-If Analysis</h3>
+                <p style="color: #666; margin-bottom: 20px;">
+                    Comprehensive study of how changes in criteria weights affect the final ranking. This analysis helps validate decision robustness by showing which weight adjustments would change the winner, providing confidence in the stability of your choice.
+                </p>
+                
+                <!-- What-If Analysis Image Placeholder -->
+                <div id="pdfWhatIfContainer" style="text-align: center; margin-bottom: 20px;">
+                    <!-- What-if analysis will be injected here programmatically -->
                 </div>
-
-            
+            </div>
 
             <!-- Risk Analysis Section -->
             <div class="pdf-section risk-analysis" style="margin-bottom: 30px;">
@@ -5132,40 +5095,129 @@ function capturePieChartFromPage() {
 
 function captureWhatIfAnalysisFromPage() {
     return new Promise((resolve) => {
-        console.log('Capturing what-if analysis via screenshot...');
-        
-        // Look for the what-if analysis section in the DOM
+        // Look for existing what-if analysis section on the page
         const whatIfSection = document.getElementById('advancedWhatIf');
-        if (!whatIfSection || whatIfSection.classList.contains('hidden')) {
-            console.log('What-if analysis section not found or hidden');
-            resolve(null);
-            return;
-        }
         
-        try {
-            // Use html2canvas to capture the what-if section, just like pie chart
-            html2canvas(whatIfSection, {
-                backgroundColor: '#ffffff',
-                scale: 2,
-                useCORS: true,
-                allowTaint: true,
-                width: whatIfSection.offsetWidth,
-                height: whatIfSection.offsetHeight
-            }).then(canvas => {
-                const imageData = canvas.toDataURL('image/png', 1.0);
-                console.log('Successfully captured what-if analysis screenshot');
-                resolve(imageData);
-            }).catch(error => {
-                console.warn('Failed to capture what-if analysis screenshot:', error);
+        if (whatIfSection && !whatIfSection.classList.contains('hidden')) {
+            console.log('Found what-if analysis section, capturing specific parts...');
+            try {
+                // Create a temporary container with just the parts we want
+                const tempCapture = document.createElement('div');
+                tempCapture.style.cssText = 'background: white; padding: 20px; font-family: Arial, sans-serif;';
+                
+                
+                // Create a clean table-style representation of weight controls
+                const controlsSection = whatIfSection.querySelector('.what-if-controls');
+                if (controlsSection) {
+                    const weightsTable = document.createElement('div');
+                    weightsTable.style.cssText = 'margin-bottom: 20px;';
+                    
+                    const title = document.createElement('h4');
+                    title.textContent = 'Weight Settings for Analysis';
+                    title.style.cssText = 'margin-bottom: 15px; color: #333; font-size: 16px;';
+                    weightsTable.appendChild(title);
+                    
+                    // Get all weight controls
+                    const weightControls = controlsSection.querySelectorAll('.weight-control');
+                    weightControls.forEach(control => {
+                        const label = control.querySelector('label');
+                        const slider = control.querySelector('.what-if-slider');
+                        const display = control.querySelector('[id^="weight-display-"]');
+                        
+                        if (label && slider && display) {
+                            const row = document.createElement('div');
+                            row.style.cssText = `
+                                display: flex;
+                                align-items: center;
+                                justify-content: space-between;
+                                padding: 12px;
+                                margin: 8px 0;
+                                background: #f8f9fa;
+                                border-radius: 8px;
+                                border-left: 4px solid #667eea;
+                            `;
+                            
+                            const nameDiv = document.createElement('div');
+                            nameDiv.textContent = label.textContent;
+                            nameDiv.style.cssText = 'font-weight: 600; color: #333; flex: 1;';
+                            
+                            const valueDiv = document.createElement('div');
+                            valueDiv.textContent = display.textContent;
+                            valueDiv.style.cssText = 'font-weight: bold; color: #667eea; font-size: 16px;';
+                            
+                            // Visual weight bar
+                            const barContainer = document.createElement('div');
+                            barContainer.style.cssText = 'width: 120px; height: 8px; background: #e9ecef; border-radius: 4px; margin: 0 15px; overflow: hidden;';
+                            
+                            const barFill = document.createElement('div');
+                            const percentage = parseInt(display.textContent) || 0;
+                            barFill.style.cssText = `width: ${percentage}%; height: 100%; background: #667eea; border-radius: 4px;`;
+                            
+                            barContainer.appendChild(barFill);
+                            row.appendChild(nameDiv);
+                            row.appendChild(barContainer);
+                            row.appendChild(valueDiv);
+                            weightsTable.appendChild(row);
+                        }
+                    });
+                    
+                    tempCapture.appendChild(weightsTable);
+                }
+
+
+                    
+                // Add spacing
+                const spacer = document.createElement('div');
+                spacer.style.height = '20px';
+                tempCapture.appendChild(spacer);
+                
+                // Capture updated rankings
+                const resultsSection = whatIfSection.querySelector('#whatIfResults');
+                if (resultsSection) {
+                    const resultsClone = resultsSection.cloneNode(true);
+                    tempCapture.appendChild(resultsClone);
+                }
+                
+                // Temporarily add to page for capture
+                tempCapture.style.position = 'absolute';
+                tempCapture.style.left = '-9999px';
+                tempCapture.style.top = '-9999px';
+                document.body.appendChild(tempCapture);
+                
+                // Use html2canvas to capture the clean version
+                html2canvas(tempCapture, {
+                    backgroundColor: '#ffffff',
+                    scale: 1.5,
+                    useCORS: true,
+                    allowTaint: true
+                }).then(canvas => {
+                    // Cleanup
+                    document.body.removeChild(tempCapture);
+                    
+                    const imageData = canvas.toDataURL('image/png', 1.0);
+                    console.log('Successfully captured what-if analysis components');
+                    resolve(imageData);
+                }).catch(error => {
+                    document.body.removeChild(tempCapture);
+                    console.warn('Failed to capture what-if analysis:', error);
+                    resolve(null);
+                });
+                
+            } catch (error) {
+                console.warn('Error capturing what-if analysis:', error);
                 resolve(null);
-            });
-            
-        } catch (error) {
-            console.warn('Error capturing what-if analysis screenshot:', error);
+            }
+        } else {
+            console.log('No what-if analysis found or not visible');
             resolve(null);
         }
     });
 }
+
+
+
+
+
 
 
 
