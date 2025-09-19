@@ -619,7 +619,7 @@ function setupRatingStep() {
                         <input type="range" min="0" max="5" step="0.5" value="${currentRating}" 
                                class="slider" role="slider" aria-label="Rating for ${option.name} on ${criteria.name}"
                                aria-valuemin="0" aria-valuemax="5" aria-valuenow="${currentRating}"
-                               oninput="updateRating('${ratingKey}', this.value)" onchange="updateRating('${ratingKey}', this.value)">
+                               oninput="updateRating('${ratingKey}', this.value, 'slider')" onchange="updateRating('${ratingKey}', this.value, 'slider')">
                         <span style="font-size: 0.9rem; color: #666;">[5]</span>
                         <input type="number" 
                                id="rating-input-${ratingKey}" 
@@ -651,7 +651,7 @@ function setupRatingStep() {
                     if (input) {
                         // Handle input changes (real-time)
                         input.addEventListener('input', function() {
-                            updateRating(ratingKey, this.value);
+                            updateRating(ratingKey, this.value, 'input');
                         });
                         
                         // Handle blur (when user clicks away) - format to 1 decimal
@@ -659,7 +659,7 @@ function setupRatingStep() {
                             const numValue = parseFloat(this.value) || 0;
                             const clampedValue = Math.max(0, Math.min(5, numValue));
                             this.value = clampedValue.toFixed(1);
-                            updateRating(ratingKey, clampedValue);
+                            updateRating(ratingKey, clampedValue, 'input');
                         });
                     }
                 });
@@ -667,31 +667,55 @@ function setupRatingStep() {
         }, 100);        
 }
 
-        function updateRating(key, value) {
+
+        function updateRating(key, value, source = 'auto') {
             // Validate and format the value
             let numValue = parseFloat(value);
             if (isNaN(numValue) || numValue < 0) numValue = 0;
             if (numValue > 5) numValue = 5;
-            numValue = Math.round(numValue * 10) / 10; // Round to 1 decimal place
+            
+            // Round to 1 decimal place for storage
+            numValue = Math.round(numValue * 10) / 10;
             
             // Update the data
             decisionData.ratings[key] = numValue;
             
-            // Update both slider and input to stay in sync
+            // Update UI elements
             const slider = document.querySelector(`input[onchange*="${key}"]`);
             const input = document.getElementById(`rating-input-${key}`);
             
-            if (slider) slider.value = numValue;
+            // Update slider to closest 0.5 value (for UI consistency)
+            if (slider) {
+                const sliderValue = Math.round(numValue * 2) / 2;
+                slider.value = sliderValue;
+            }
+            
+            // Always show precise value in number input
             if (input) input.value = numValue.toFixed(1);
         }
+
+
+
 
         function captureAllRatings() {
             decisionData.options.forEach(option => {
                 decisionData.criteria.forEach(criteria => {
                     const ratingKey = `${option.id}-${criteria.id}`;
+                    
+                    // First try to get value from number input (more precise)
+                    const numberInput = document.getElementById(`rating-input-${ratingKey}`);
                     const sliderElement = document.querySelector(`input[onchange*="${ratingKey}"]`);
-                    if (sliderElement) {
-                        const currentValue = sliderElement.value;
+                    
+                    let currentValue;
+                    if (numberInput && numberInput.value) {
+                        // Use number input value (supports 0.1 precision)
+                        currentValue = numberInput.value;
+                    } else if (sliderElement) {
+                        // Fallback to slider value
+                        currentValue = sliderElement.value;
+                    }
+                    
+                    if (currentValue !== undefined) {
                         updateRating(ratingKey, currentValue);
                     }
                 });
