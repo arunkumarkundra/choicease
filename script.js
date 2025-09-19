@@ -619,7 +619,7 @@ function setupRatingStep() {
                         <input type="range" min="0" max="5" step="0.5" value="${currentRating}" 
                                class="slider" role="slider" aria-label="Rating for ${option.name} on ${criteria.name}"
                                aria-valuemin="0" aria-valuemax="5" aria-valuenow="${currentRating}"
-                               onchange="updateRating('${ratingKey}', this.value)">
+                               oninput="updateRating('${ratingKey}', this.value)" onchange="updateRating('${ratingKey}', this.value)">
                         <span style="font-size: 0.9rem; color: #666;">[5]</span>
                         <input type="number" 
                                id="rating-input-${ratingKey}" 
