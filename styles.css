@@ -361,6 +361,45 @@ body {
     flex-shrink: 0; /* Prevent shrinking on desktop */
 }
 
+/* Rating input boxes styling */
+.rating-input {
+    width: 65px !important;
+    padding: 4px 6px !important;
+    border: 2px solid #e0e0e0 !important;
+    border-radius: 6px !important;
+    text-align: center !important;
+    font-weight: bold !important;
+    color: #667eea !important;
+    background: white !important;
+    font-size: 0.9rem !important;
+    transition: all 0.3s ease !important;
+    outline: none !important;
+}
+
+.rating-input:focus {
+    border-color: #667eea !important;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2) !important;
+}
+
+.rating-input:hover {
+    border-color: #9ca3f3 !important;
+}
+
+/* Mobile responsiveness for rating inputs */
+@media (max-width: 768px) {
+    .rating-input {
+        width: 55px !important;
+        font-size: 0.85rem !important;
+        padding: 6px 4px !important;
+        min-height: 32px !important; /* Better touch target */
+    }
+    
+    .rating-controls {
+        gap: 8px !important;
+    }
+}
+
+
 .option-name {
     font-weight: 600;
     margin-right: 15px;
