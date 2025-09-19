@@ -621,7 +621,15 @@ function setupRatingStep() {
                                aria-valuemin="0" aria-valuemax="5" aria-valuenow="${currentRating}"
                                onchange="updateRating('${ratingKey}', this.value)">
                         <span style="font-size: 0.9rem; color: #666;">[5]</span>
-                        <span id="rating-${ratingKey}" style="font-weight: bold; color: #667eea; min-width: 20px;">${currentRating}</span>
+                        <input type="number" 
+                               id="rating-input-${ratingKey}" 
+                               class="rating-input"
+                               min="0" 
+                               max="5" 
+                               step="0.1" 
+                               value="${currentRating}"
+                               data-rating-key="${ratingKey}"
+                               style="width: 65px; padding: 4px 6px; border: 2px solid #e0e0e0; border-radius: 6px; text-align: center; font-weight: bold; color: #667eea; background: white;">
                     </div>
                 </div>
             `;
@@ -632,11 +640,49 @@ function setupRatingStep() {
         `;
     });
     container.innerHTML = html;
+
+        // Add event listeners for input boxes
+        setTimeout(() => {
+            decisionData.options.forEach(option => {
+                decisionData.criteria.forEach(criteria => {
+                    const ratingKey = `${option.id}-${criteria.id}`;
+                    const input = document.getElementById(`rating-input-${ratingKey}`);
+                    
+                    if (input) {
+                        // Handle input changes (real-time)
+                        input.addEventListener('input', function() {
+                            updateRating(ratingKey, this.value);
+                        });
+                        
+                        // Handle blur (when user clicks away) - format to 1 decimal
+                        input.addEventListener('blur', function() {
+                            const numValue = parseFloat(this.value) || 0;
+                            const clampedValue = Math.max(0, Math.min(5, numValue));
+                            this.value = clampedValue.toFixed(1);
+                            updateRating(ratingKey, clampedValue);
+                        });
+                    }
+                });
+            });
+        }, 100);        
 }
 
         function updateRating(key, value) {
-            decisionData.ratings[key] = parseFloat(value);
-            document.getElementById(`rating-${key}`).textContent = value;
+            // Validate and format the value
+            let numValue = parseFloat(value);
+            if (isNaN(numValue) || numValue < 0) numValue = 0;
+            if (numValue > 5) numValue = 5;
+            numValue = Math.round(numValue * 10) / 10; // Round to 1 decimal place
+            
+            // Update the data
+            decisionData.ratings[key] = numValue;
+            
+            // Update both slider and input to stay in sync
+            const slider = document.querySelector(`input[onchange*="${key}"]`);
+            const input = document.getElementById(`rating-input-${key}`);
+            
+            if (slider) slider.value = numValue;
+            if (input) input.value = numValue.toFixed(1);
         }
 
         function captureAllRatings() {
