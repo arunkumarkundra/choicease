@@ -649,22 +649,49 @@ function setupRatingStep() {
                     const input = document.getElementById(`rating-input-${ratingKey}`);
                     
                     if (input) {
-                        // Handle input changes (real-time)
-                        input.addEventListener('input', function() {
-                            updateRating(ratingKey, this.value, 'input');
+                        // Store original value on focus
+                        input.addEventListener('focus', function() {
+                            this.setAttribute('data-original-value', this.value);
+                            // Select all text on focus for easier editing
+                            this.select();
                         });
                         
-                        // Handle blur (when user clicks away) - format to 1 decimal
+                        // Only validate range while typing, don't reformat
+                        input.addEventListener('input', function() {
+                            let value = parseFloat(this.value);
+                            if (value > 5) {
+                                this.value = '5';
+                            } else if (value < 0) {
+                                this.value = '0';
+                            }
+                            // Don't call updateRating here - let user finish typing
+                        });
+                        
+                        // Only update and reformat when user is done editing
                         input.addEventListener('blur', function() {
                             const numValue = parseFloat(this.value) || 0;
                             const clampedValue = Math.max(0, Math.min(5, numValue));
-                            this.value = clampedValue.toFixed(1);
-                            updateRating(ratingKey, clampedValue, 'input');
+                            
+                            // Only update if value actually changed
+                            const originalValue = parseFloat(this.getAttribute('data-original-value')) || 0;
+                            if (clampedValue !== originalValue) {
+                                updateRating(ratingKey, clampedValue, 'input');
+                            } else {
+                                // Just format display without triggering update
+                                this.value = clampedValue.toFixed(1);
+                            }
+                        });
+                        
+                        // Handle Enter key to finish editing
+                        input.addEventListener('keydown', function(e) {
+                            if (e.key === 'Enter') {
+                                this.blur(); // Trigger blur event
+                            }
                         });
                     }
                 });
             });
-        }, 100);        
+        }, 100);
 }
 
 
@@ -684,15 +711,20 @@ function setupRatingStep() {
             const slider = document.querySelector(`input[onchange*="${key}"]`);
             const input = document.getElementById(`rating-input-${key}`);
             
-            // Update slider to closest 0.5 value (for UI consistency)
+            // Update slider to closest 0.5 value
             if (slider) {
                 const sliderValue = Math.round(numValue * 2) / 2;
                 slider.value = sliderValue;
             }
             
-            // Always show precise value in number input
-            if (input) input.value = numValue.toFixed(1);
+            // Only update input display if it's not currently focused (being edited)
+            if (input && document.activeElement !== input) {
+                input.value = numValue.toFixed(1);
+            }
         }
+
+
+
 
 
 
