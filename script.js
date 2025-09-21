@@ -5277,7 +5277,7 @@ function captureWhatIfAnalysisFromPage() {
 const twoColumnContainer = document.createElement('div');
 twoColumnContainer.className = 'two-column-section';
 
-// LEFT COLUMN: Weights Table
+// LEFT COLUMN: Weights Table (from existing visual weights)
 const weightsColumn = document.createElement('div');
 weightsColumn.className = 'col';
 
@@ -5286,34 +5286,44 @@ weightsTitle.textContent = 'Criteria Weights';
 weightsTitle.style.cssText = 'margin: 0 0 12px 0; color: #667eea; font-size: 15px; text-align: center;';
 weightsColumn.appendChild(weightsTitle);
 
-const weightsTableEl = document.createElement('table');
-weightsTableEl.style.cssText = 'width: 100%; border-collapse: collapse;';
-
-// Add weights table header
-const weightsHeader = document.createElement('thead');
-weightsHeader.innerHTML = `
-    <tr style="background: #f8f9fa;">
-        <th style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">Criteria</th>
-        <th style="padding: 8px; border: 1px solid #dee2e6; text-align: right; width: 80px;">Weight</th>
-    </tr>
-`;
-weightsTableEl.appendChild(weightsHeader);
-
-// Add weights table body
-const weightsBody = document.createElement('tbody');
-whatIfDecisionData.criteria.forEach(criteria => {
-    const weight = Math.round(whatIfDecisionData.normalizedWeights[criteria.id] || 0);
-    const row = document.createElement('tr');
-    row.innerHTML = `
-        <td style="padding: 8px; border: 1px solid #dee2e6;">${criteria.name}</td>
-        <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right; font-weight: 600; color: #667eea;">${weight}%</td>
+// Clone the existing weights table we already captured
+const existingWeightsTable = tempCapture.querySelector('div[style*="margin-bottom: 20px"]');
+if (existingWeightsTable) {
+    const weightsTableEl = document.createElement('table');
+    weightsTableEl.style.cssText = 'width: 100%; border-collapse: collapse; font-size: 11px;';
+    
+    const weightsHeader = document.createElement('thead');
+    weightsHeader.innerHTML = `
+        <tr style="background: #f8f9fa;">
+            <th style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">Criteria</th>
+            <th style="padding: 8px; border: 1px solid #dee2e6; text-align: right; width: 80px;">Weight</th>
+        </tr>
     `;
-    weightsBody.appendChild(row);
-});
-weightsTableEl.appendChild(weightsBody);
-weightsColumn.appendChild(weightsTableEl);
+    weightsTableEl.appendChild(weightsHeader);
+    
+    const weightsBody = document.createElement('tbody');
+    
+    // Extract weight data from the already captured weights
+    const weightRows = existingWeightsTable.querySelectorAll('div[style*="display: flex"]');
+    weightRows.forEach(row => {
+        const nameDiv = row.querySelector('div:first-child');
+        const valueDiv = row.querySelector('div:last-child');
+        
+        if (nameDiv && valueDiv) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="padding: 8px; border: 1px solid #dee2e6;">${nameDiv.textContent}</td>
+                <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right; font-weight: 600; color: #667eea;">${valueDiv.textContent}</td>
+            `;
+            weightsBody.appendChild(tr);
+        }
+    });
+    
+    weightsTableEl.appendChild(weightsBody);
+    weightsColumn.appendChild(weightsTableEl);
+}
 
-// RIGHT COLUMN: Rankings Table
+// RIGHT COLUMN: Rankings Table (from existing results)
 const rankingsColumn = document.createElement('div');
 rankingsColumn.className = 'col';
 
@@ -5322,45 +5332,63 @@ rankingsTitle.textContent = 'Updated Rankings';
 rankingsTitle.style.cssText = 'margin: 0 0 12px 0; color: #667eea; font-size: 15px; text-align: center;';
 rankingsColumn.appendChild(rankingsTitle);
 
-const rankingsTableEl = document.createElement('table');
-rankingsTableEl.style.cssText = 'width: 100%; border-collapse: collapse;';
-
-// Add rankings table header
-const rankingsHeader = document.createElement('thead');
-rankingsHeader.innerHTML = `
-    <tr style="background: #f8f9fa;">
-        <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center; width: 50px;">Rank</th>
-        <th style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">Option</th>
-        <th style="padding: 8px; border: 1px solid #dee2e6; text-align: right; width: 70px;">Score</th>
-    </tr>
-`;
-rankingsTableEl.appendChild(rankingsHeader);
-
-// Calculate and add rankings
-const whatIfResults = calculateWhatIfResults();
-const whatIfRanked = assignRanksWithTies(whatIfResults);
-
-const rankingsBody = document.createElement('tbody');
-whatIfRanked.forEach((result) => {
-    const row = document.createElement('tr');
-    const isWinner = result.rank === 1;
-    const bgColor = isWinner ? '#d4edda' : 'white';
+// Get rankings from the whatIfResults section
+const resultsSection = whatIfSection.querySelector('#whatIfResults');
+if (resultsSection) {
+    const rankingsTableEl = document.createElement('table');
+    rankingsTableEl.style.cssText = 'width: 100%; border-collapse: collapse; font-size: 11px;';
     
-    row.innerHTML = `
-        <td style="padding: 8px; border: 1px solid #dee2e6; text-align: center; background: ${bgColor}; font-weight: ${isWinner ? '700' : '400'};">#${result.rank}</td>
-        <td style="padding: 8px; border: 1px solid #dee2e6; background: ${bgColor}; font-weight: ${isWinner ? '600' : '400'};">${result.name}</td>
-        <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right; background: ${bgColor}; font-weight: ${isWinner ? '700' : '400'};">${result.totalScore.toFixed(2)}</td>
+    const rankingsHeader = document.createElement('thead');
+    rankingsHeader.innerHTML = `
+        <tr style="background: #f8f9fa;">
+            <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center; width: 50px;">Rank</th>
+            <th style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">Option</th>
+            <th style="padding: 8px; border: 1px solid #dee2e6; text-align: right; width: 70px;">Score</th>
+        </tr>
     `;
-    rankingsBody.appendChild(row);
-});
-rankingsTableEl.appendChild(rankingsBody);
-rankingsColumn.appendChild(rankingsTableEl);
+    rankingsTableEl.appendChild(rankingsHeader);
+    
+    const rankingsBody = document.createElement('tbody');
+    
+    // Extract ranking data from existing results display
+    const resultItems = resultsSection.querySelectorAll('div[style*="padding: 15px"]');
+    resultItems.forEach((item, index) => {
+        const nameDiv = item.querySelector('div[style*="font-weight: 600"]');
+        const scoreDiv = item.querySelector('div[style*="font-size: 0.9rem"]');
+        
+        if (nameDiv && scoreDiv) {
+            const row = document.createElement('tr');
+            const isWinner = index === 0;
+            const bgColor = isWinner ? '#d4edda' : 'white';
+            
+            // Extract score from text like "Score: 3.45/5.0"
+            const scoreText = scoreDiv.textContent.match(/[\d.]+/g);
+            const score = scoreText ? scoreText[0] : '';
+            
+            row.innerHTML = `
+                <td style="padding: 8px; border: 1px solid #dee2e6; text-align: center; background: ${bgColor}; font-weight: ${isWinner ? '700' : '400'};">#${index + 1}</td>
+                <td style="padding: 8px; border: 1px solid #dee2e6; background: ${bgColor}; font-weight: ${isWinner ? '600' : '400'};">${nameDiv.textContent}</td>
+                <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right; background: ${bgColor}; font-weight: ${isWinner ? '700' : '400'};">${score}</td>
+            `;
+            rankingsBody.appendChild(row);
+        }
+    });
+    
+    rankingsTableEl.appendChild(rankingsBody);
+    rankingsColumn.appendChild(rankingsTableEl);
+}
+
+// Remove the old weights display from tempCapture (we'll use the two-column version instead)
+if (existingWeightsTable) {
+    existingWeightsTable.remove();
+}
 
 // Assemble the two columns
 twoColumnContainer.appendChild(weightsColumn);
 twoColumnContainer.appendChild(rankingsColumn);
-tempCapture.append
-                
+tempCapture.appendChild(twoColumnContainer);
+
+                    
                 // Temporarily add to page for capture
                 tempCapture.style.position = 'absolute';
                 tempCapture.style.left = '-9999px';
