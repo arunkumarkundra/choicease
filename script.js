@@ -5126,7 +5126,8 @@ function shareToReddit() {
     postBody += '\n\n---\n\n*The attached QR can be imported and analyzed on [choicease.com](http://choicease.com)*';
     postBody = `🚨 NOTE (delete this line before posting): To add your QR image, go to the "Link" or "Images & Video" tab and upload it there.\n\n` + postBody;
     
-    const redditUrl = 'https://old.reddit.com/r/choicease/submit/?' + 
+//    const redditUrl = 'https://old.reddit.com/r/choicease/submit/?' + 
+    const redditUrl = 'https://www.reddit.com/r/choicease/submit/?' +     
         'title=' + encodeURIComponent(postTitle) + 
         '&text=' + encodeURIComponent(postBody) + '&type=IMAGE';
     
