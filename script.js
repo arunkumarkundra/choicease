@@ -5205,7 +5205,14 @@ function captureWhatIfAnalysisFromPage() {
             try {
                 // Create a temporary container with just the parts we want
                 const tempCapture = document.createElement('div');
-                tempCapture.style.cssText = 'background: white; padding: 20px; font-family: Arial, sans-serif;';
+                tempCapture.style.cssText = `
+                  background: white;
+                  padding: 20px;
+                  font-family: Arial, sans-serif;
+                  width: 900px;              /* fixed capture width - adjust (800-1000) to match your PDF layout */
+                  box-sizing: border-box;
+                  color: #333;
+                `;
                 
                 
                 // Create a clean table-style representation of weight controls
