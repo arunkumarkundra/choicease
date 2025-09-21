@@ -5273,12 +5273,93 @@ function captureWhatIfAnalysisFromPage() {
                 spacer.style.height = '20px';
                 tempCapture.appendChild(spacer);
                 
-                // Capture updated rankings
-                const resultsSection = whatIfSection.querySelector('#whatIfResults');
-                if (resultsSection) {
-                    const resultsClone = resultsSection.cloneNode(true);
-                    tempCapture.appendChild(resultsClone);
-                }
+// Create two-column container for weights and rankings
+const twoColumnContainer = document.createElement('div');
+twoColumnContainer.className = 'two-column-section';
+
+// LEFT COLUMN: Weights Table
+const weightsColumn = document.createElement('div');
+weightsColumn.className = 'col';
+
+const weightsTitle = document.createElement('h4');
+weightsTitle.textContent = 'Criteria Weights';
+weightsTitle.style.cssText = 'margin: 0 0 12px 0; color: #667eea; font-size: 15px; text-align: center;';
+weightsColumn.appendChild(weightsTitle);
+
+const weightsTableEl = document.createElement('table');
+weightsTableEl.style.cssText = 'width: 100%; border-collapse: collapse;';
+
+// Add weights table header
+const weightsHeader = document.createElement('thead');
+weightsHeader.innerHTML = `
+    <tr style="background: #f8f9fa;">
+        <th style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">Criteria</th>
+        <th style="padding: 8px; border: 1px solid #dee2e6; text-align: right; width: 80px;">Weight</th>
+    </tr>
+`;
+weightsTableEl.appendChild(weightsHeader);
+
+// Add weights table body
+const weightsBody = document.createElement('tbody');
+whatIfDecisionData.criteria.forEach(criteria => {
+    const weight = Math.round(whatIfDecisionData.normalizedWeights[criteria.id] || 0);
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td style="padding: 8px; border: 1px solid #dee2e6;">${criteria.name}</td>
+        <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right; font-weight: 600; color: #667eea;">${weight}%</td>
+    `;
+    weightsBody.appendChild(row);
+});
+weightsTableEl.appendChild(weightsBody);
+weightsColumn.appendChild(weightsTableEl);
+
+// RIGHT COLUMN: Rankings Table
+const rankingsColumn = document.createElement('div');
+rankingsColumn.className = 'col';
+
+const rankingsTitle = document.createElement('h4');
+rankingsTitle.textContent = 'Updated Rankings';
+rankingsTitle.style.cssText = 'margin: 0 0 12px 0; color: #667eea; font-size: 15px; text-align: center;';
+rankingsColumn.appendChild(rankingsTitle);
+
+const rankingsTableEl = document.createElement('table');
+rankingsTableEl.style.cssText = 'width: 100%; border-collapse: collapse;';
+
+// Add rankings table header
+const rankingsHeader = document.createElement('thead');
+rankingsHeader.innerHTML = `
+    <tr style="background: #f8f9fa;">
+        <th style="padding: 8px; border: 1px solid #dee2e6; text-align: center; width: 50px;">Rank</th>
+        <th style="padding: 8px; border: 1px solid #dee2e6; text-align: left;">Option</th>
+        <th style="padding: 8px; border: 1px solid #dee2e6; text-align: right; width: 70px;">Score</th>
+    </tr>
+`;
+rankingsTableEl.appendChild(rankingsHeader);
+
+// Calculate and add rankings
+const whatIfResults = calculateWhatIfResults();
+const whatIfRanked = assignRanksWithTies(whatIfResults);
+
+const rankingsBody = document.createElement('tbody');
+whatIfRanked.forEach((result) => {
+    const row = document.createElement('tr');
+    const isWinner = result.rank === 1;
+    const bgColor = isWinner ? '#d4edda' : 'white';
+    
+    row.innerHTML = `
+        <td style="padding: 8px; border: 1px solid #dee2e6; text-align: center; background: ${bgColor}; font-weight: ${isWinner ? '700' : '400'};">#${result.rank}</td>
+        <td style="padding: 8px; border: 1px solid #dee2e6; background: ${bgColor}; font-weight: ${isWinner ? '600' : '400'};">${result.name}</td>
+        <td style="padding: 8px; border: 1px solid #dee2e6; text-align: right; background: ${bgColor}; font-weight: ${isWinner ? '700' : '400'};">${result.totalScore.toFixed(2)}</td>
+    `;
+    rankingsBody.appendChild(row);
+});
+rankingsTableEl.appendChild(rankingsBody);
+rankingsColumn.appendChild(rankingsTableEl);
+
+// Assemble the two columns
+twoColumnContainer.appendChild(weightsColumn);
+twoColumnContainer.appendChild(rankingsColumn);
+tempCapture.append
                 
                 // Temporarily add to page for capture
                 tempCapture.style.position = 'absolute';
