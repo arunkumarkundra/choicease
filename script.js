@@ -7338,41 +7338,47 @@ function generatePPTX() {
         align: 'center'
     });
 
-    // SLIDE 5: Criteria Weights
+        // SLIDE 5: Criteria Weights
     slide = pptx.addSlide();
     slide.addText('🥧 Decision Criteria Weights', {
         x: 0.5, y: 0.3, w: 9, h: 0.6,
         fontSize: 32, bold: true, color: colors.primary
     });
     
-    // Create chart data
+    // Create chart data - FIXED FORMAT
     const chartData = [];
     const chartLabels = [];
     const chartColors = [];
     
     decisionData.criteria.forEach((criteria, i) => {
-        const weight = decisionData.normalizedWeights[criteria.id] || 0;
-        chartData.push(weight);
+        const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
         chartLabels.push(criteria.name);
-        // Use different colors for each criteria
+        chartData.push(weight);
+        
         const colorPalette = ['667eea', '764ba2', '28a745', 'ffc107', 'dc3545', '17a2b8', '6c757d'];
         chartColors.push(colorPalette[i % colorPalette.length]);
     });
     
-    slide.addChart(pptx.ChartType.pie, chartData, {
-        x: 1, y: 1.2, w: 8, h: 4,
-        chartColors: chartColors,
-        dataLabelColor: 'FFFFFF',
-        dataLabelFontSize: 12,
-        showLabel: true,
-        showValue: true,
-        showPercent: true,
-        showLegend: true,
-        legendPos: 'r',
-        title: 'Importance of Each Criteria (%)',
-        titleFontSize: 16
-    });
-
+    // Add pie chart with corrected data structure
+    slide.addChart(pptx.ChartType.pie, 
+        // Data array - each element should be a data series
+        [{
+            name: 'Criteria Weights',
+            labels: chartLabels,
+            values: chartData
+        }],
+        {
+            x: 1, y: 1.2, w: 8, h: 4,
+            chartColors: chartColors,
+            showLabel: true,
+            showValue: true,
+            showPercent: true,
+            showLegend: true,
+            legendPos: 'r',
+            title: 'Importance of Each Criteria (%)',
+            titleFontSize: 16
+        }
+    );
     // SLIDE 6: Risk Analysis (if risks exist)
     if (advancedAnalytics.risks && advancedAnalytics.risks.length > 0) {
         slide = pptx.addSlide();
