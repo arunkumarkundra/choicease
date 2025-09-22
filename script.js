@@ -7613,18 +7613,20 @@ function generatePPTX() {
         fontSize: 22, bold: true, color: colors.text, valign: 'middle'
     });
     
-    if (winner.option.description) {
-        slide.addText(winner.option.description, {
-            x: 0.5, y: 3, w: 9, h: 0.8,
-            fontSize: 14, color: colors.textLight
-        });
-    }
-    
-    yPos = 4.0;
-    slide.addText('Recommended Next Steps:', {
-        x: 0.5, y: yPos, w: 9, h: 0.4,
-        fontSize: 16, bold: true, color: colors.text
+if (winner.option.description) {
+    slide.addText(winner.option.description, {
+        x: 0.5, y: 2.9, w: 9, h: 0.6,
+        fontSize: 14, color: colors.textLight
     });
+    yPos = 3.6;
+} else {
+    yPos = 2.9;
+}
+
+slide.addText('Recommended Next Steps:', {
+    x: 0.5, y: yPos, w: 9, h: 0.4,
+    fontSize: 16, bold: true, color: colors.text
+});
     
     const nextSteps = [
         'Review the detailed analysis and risk factors',
