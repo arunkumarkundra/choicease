@@ -7220,6 +7220,7 @@ function updateUIWithImportedData() {
         // Initialize app
         document.addEventListener('DOMContentLoaded', initializeApp);
 
+
 // Copy GPT prompt functionality
         document.addEventListener('click', function(event) {
             // Handle copy criteria prompt
@@ -7258,7 +7259,12 @@ I need to determine the importance/weight of each criterion to ensure a good dec
 Here are my criteria:
 ${criteriaList}
 
-Please help me rate the importance of each criterion on a scale of 1-5, where: 1 = Least important and 5 = Most important (must-have)`;
+Please help me rate the importance of each criterion on a scale of 1-5, where:
+1 = Least important (nice to have)
+2 = Somewhat important
+3 = Moderately important
+4 = Very important
+5 = Most important (must-have)`;
                 
                 copyToClipboard(prompt);
             }
@@ -7287,8 +7293,71 @@ ${optionsList}`;
                 
                 copyToClipboard(prompt);
             }
-        });
+            
+            // Handle copy Reddit post
+            if (event.target.id === 'copyRedditPost') {
+                event.preventDefault();
+                
+                // Calculate results if not already done
+                let results = calculateResults();
+                
+                // Sort results by score (highest first)
+                results.sort((a, b) => b.score - a.score);
+                
+                // Build criteria list with weights
+                const criteriaList = decisionData.criteria.map(c => {
+                    const weight = calculateDisplayWeight(c.id);
+                    return `- **${c.name}** (${weight}% importance)${c.description ? ': ' + c.description : ''}`;
+                }).join('\n');
+                
+                // Build options list
+                const optionsList = decisionData.options.map(o => 
+                    `- **${o.name}**${o.description ? ': ' + o.description : ''}`
+                ).join('\n');
+                
+                // Build results ranking
+                const resultsRanking = results.map((result, index) => {
+                    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
+                    return `${medal} **${result.option.name}** - Score: ${result.score.toFixed(1)}/5`;
+                }).join('\n');
 
+// Create the post
+                const redditPost = `# Decision: ${decisionData.title}
+
+${decisionData.description ? decisionData.description + '\n' : ''}
+---
+
+## 📋 Options Evaluated
+
+${optionsList}
+
+---
+
+## ⚖️ Criteria Used
+
+${criteriaList}
+
+---
+
+## 🏆 Results
+
+${resultsRanking}
+
+---
+
+**Winner:** ${results[0].option.name} 🎉
+
+Made with [Choicease](https://choicease.com) - Smart Choices, Made Easy!
+
+*What do you think? Would you have chosen differently? Let me know in the comments!*
+
+---
+
+*The attached QR can be imported and analyzed on [choicease.com](https://choicease.com)*`;
+                
+                copyToClipboard(redditPost);
+            }
+        });
 
 
         // Helper function to copy text to clipboard
