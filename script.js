@@ -7220,7 +7220,7 @@ function updateUIWithImportedData() {
         // Initialize app
         document.addEventListener('DOMContentLoaded', initializeApp);
 
-        // Copy GPT prompt functionality
+// Copy GPT prompt functionality
         document.addEventListener('click', function(event) {
             // Handle copy criteria prompt
             if (event.target.id === 'copyCriteriaPrompt') {
@@ -7238,6 +7238,27 @@ function updateUIWithImportedData() {
                 }
                 
                 prompt += '\n\nPlease help me with the Criteria and importance of the criteria to ensure a good decision.';
+                
+                copyToClipboard(prompt);
+            }
+            
+            // Handle copy weights/importance prompt
+            if (event.target.id === 'copyWeightsPrompt') {
+                event.preventDefault();
+                
+                // Build criteria list
+                const criteriaList = decisionData.criteria.map(c => 
+                    `- ${c.name}${c.description ? ' (' + c.description + ')' : ''}`
+                ).join('\n');
+                
+                const prompt = `I am in the process of taking this decision - ${decisionData.title}${decisionData.description ? ', ' + decisionData.description : ''}
+
+I need to determine the importance/weight of each criterion to ensure a good decision.
+
+Here are my criteria:
+${criteriaList}
+
+Please help me rate the importance of each criterion on a scale of 1-5, where: 1 = Least important and 5 = Most important (must-have)`;
                 
                 copyToClipboard(prompt);
             }
@@ -7267,6 +7288,8 @@ ${optionsList}`;
                 copyToClipboard(prompt);
             }
         });
+
+
 
         // Helper function to copy text to clipboard
         function copyToClipboard(text) {
