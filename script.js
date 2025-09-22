@@ -1009,15 +1009,15 @@ function setupRatingStep() {
 
 // Update setupEnhancedPDF function to also setup PPTX button
 function setupEnhancedPDF() {
-    const pdfBtn = document.getElementById('enhancedPdfBtn');
-    if (pdfBtn) {
-        pdfBtn.onclick = function() {
+    const btn = document.getElementById('enhancedPdfBtn');
+    if (btn) {
+        btn.onclick = function() {
             console.log('Enhanced PDF button clicked - using canvas approach');
             generateCanvasBasedPDF();
         };
     }
     
-    // ADD THIS: Setup PPTX button
+    // Setup PPTX button
     const pptxBtn = document.getElementById('enhancedPptxBtn');
     if (pptxBtn) {
         pptxBtn.onclick = function() {
@@ -1025,10 +1025,9 @@ function setupEnhancedPDF() {
             generatePPTX();
         };
     } else {
-        console.log('PPTX button not found - make sure enhancedPptxBtn exists in HTML');
+        console.log('PPTX button not found');
     }
 }
-
 
 
 
