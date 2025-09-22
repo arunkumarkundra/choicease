@@ -1017,15 +1017,17 @@ function setupEnhancedPDF() {
         };
     }
     
+    // ADD THIS: Setup PPTX button
     const pptxBtn = document.getElementById('enhancedPptxBtn');
     if (pptxBtn) {
         pptxBtn.onclick = function() {
             console.log('Enhanced PPTX button clicked');
             generatePPTX();
         };
+    } else {
+        console.log('PPTX button not found - make sure enhancedPptxBtn exists in HTML');
     }
 }
-
 
 
 
