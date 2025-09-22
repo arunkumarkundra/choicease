@@ -924,8 +924,11 @@ function setupRatingStep() {
                                 <button class="btn btn-success" id="enhancedPdfBtn">
                                     📄 Download Advanced PDF Report
                                 </button>
+                                <button class="btn btn-success" id="enhancedPptxBtn" style="margin-left: 10px;">
+                                    📊 Download PowerPoint Presentation
+                                </button>
                                 <p style="font-size: 0.9rem; color: #666; margin-top: 10px;">
-                                    Comprehensive report with charts and analysis
+                                    Comprehensive report with charts and analysis in PDF or PowerPoint format
                                 </p>
                             </div>
                         </div>
