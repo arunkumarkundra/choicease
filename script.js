@@ -1009,9 +1009,12 @@ function setupRatingStep() {
 
 // Update setupEnhancedPDF function to also setup PPTX button
 function setupEnhancedPDF() {
-    const btn = document.getElementById('enhancedPdfBtn');
-    if (btn) {
-        btn.onclick = function() {
+    console.log('=== setupEnhancedPDF called ===');
+    
+    const pdfBtn = document.getElementById('enhancedPdfBtn');
+    console.log('PDF button found:', pdfBtn);
+    if (pdfBtn) {
+        pdfBtn.onclick = function() {
             console.log('Enhanced PDF button clicked - using canvas approach');
             generateCanvasBasedPDF();
         };
@@ -1019,13 +1022,26 @@ function setupEnhancedPDF() {
     
     // Setup PPTX button
     const pptxBtn = document.getElementById('enhancedPptxBtn');
+    console.log('PPTX button found:', pptxBtn);
+    console.log('PPTX button style.display:', pptxBtn ? pptxBtn.style.display : 'N/A');
+    console.log('PPTX button classList:', pptxBtn ? pptxBtn.classList : 'N/A');
+    
     if (pptxBtn) {
         pptxBtn.onclick = function() {
             console.log('Enhanced PPTX button clicked');
             generatePPTX();
         };
+        console.log('PPTX button handler attached successfully');
     } else {
-        console.log('PPTX button not found');
+        console.error('PPTX button NOT FOUND in DOM!');
+        // Let's search the entire document
+        const allButtons = document.querySelectorAll('button');
+        console.log('All buttons on page:', allButtons.length);
+        allButtons.forEach(btn => {
+            if (btn.textContent.includes('PowerPoint')) {
+                console.log('Found PowerPoint button!', btn);
+            }
+        });
     }
 }
 
