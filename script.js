@@ -7167,6 +7167,9 @@ function updateUIWithImportedData() {
 
 
 
+
+
+// Generate PowerPoint Presentation
 function generatePPTX() {
     if (!advancedAnalytics.results || !advancedAnalytics.confidence) {
         showToast('Please calculate results and show advanced analytics first.', 'warning');
@@ -7183,7 +7186,7 @@ function generatePPTX() {
     pptx.title = `Decision Analysis: ${decisionData.title}`;
     pptx.subject = 'Advanced Decision Analysis Report';
 
-    // Define color scheme matching your app
+    // Define color scheme
     const colors = {
         primary: '667eea',
         secondary: '764ba2',
@@ -7252,7 +7255,7 @@ function generatePPTX() {
     yPos += 0.5;
     
     decisionData.options.forEach((opt, i) => {
-        if (yPos > 5) return; // Prevent overflow
+        if (yPos > 5) return;
         slide.addText(`${i + 1}. ${opt.name}`, {
             x: 1, y: yPos, w: 8, h: 0.3,
             fontSize: 14, color: colors.textLight, bullet: true
@@ -7268,9 +7271,7 @@ function generatePPTX() {
     });
     
     const winner = advancedAnalytics.results[0];
-    const runnerUp = advancedAnalytics.results[1];
     
-    // Winner box
     slide.addShape(pptx.ShapeType.rect, {
         x: 0.5, y: 1.2, w: 9, h: 1.2,
         fill: { color: 'd4edda' },
@@ -7292,7 +7293,6 @@ function generatePPTX() {
         fontSize: 20, color: colors.success, align: 'right'
     });
     
-    // Confidence level
     yPos = 2.7;
     slide.addText(`Confidence Level: ${advancedAnalytics.confidence.level.toUpperCase()}`, {
         x: 0.5, y: yPos, w: 9, h: 0.4,
@@ -7311,7 +7311,6 @@ function generatePPTX() {
         fontSize: 32, bold: true, color: colors.primary
     });
     
-    // Create results table
     const tableData = [
         [
             { text: 'Rank', options: { bold: true, fill: colors.bg } },
@@ -7338,48 +7337,232 @@ function generatePPTX() {
         align: 'center'
     });
 
-        // SLIDE 5: Criteria Weights
+    // SLIDE 5: Criteria Weights
     slide = pptx.addSlide();
     slide.addText('🥧 Decision Criteria Weights', {
         x: 0.5, y: 0.3, w: 9, h: 0.6,
         fontSize: 32, bold: true, color: colors.primary
     });
     
-    // Create chart data - FIXED FORMAT
-    const chartData = [];
-    const chartLabels = [];
-    const chartColors = [];
+    const weightsTable = [
+        [
+            { text: 'Criteria', options: { bold: true, fill: colors.bg, fontSize: 14 } },
+            { text: 'Importance (%)', options: { bold: true, fill: colors.bg, fontSize: 14 } },
+            { text: 'Visual', options: { bold: true, fill: colors.bg, fontSize: 14 } }
+        ]
+    ];
     
     decisionData.criteria.forEach((criteria, i) => {
-        const weight = Math.round(decisionData.normalizedWeights[criteria.id] || 0);
-        chartLabels.push(criteria.name);
-        chartData.push(weight);
-        
+        const weight = decisionData.normalizedWeights[criteria.id] || 0;
         const colorPalette = ['667eea', '764ba2', '28a745', 'ffc107', 'dc3545', '17a2b8', '6c757d'];
-        chartColors.push(colorPalette[i % colorPalette.length]);
+        const barColor = colorPalette[i % colorPalette.length];
+        const barWidth = Math.round(weight);
+        const bar = '█'.repeat(Math.max(1, Math.round(barWidth / 5)));
+        
+        weightsTable.push([
+            { text: criteria.name, options: { fontSize: 12 } },
+            { text: `${weight.toFixed(1)}%`, options: { fontSize: 12, align: 'center' } },
+            { text: bar, options: { fontSize: 12, color: barColor } }
+        ]);
     });
     
-    // Add pie chart with corrected data structure
-    slide.addChart(pptx.ChartType.pie, 
-        // Data array - each element should be a data series
-        [{
-            name: 'Criteria Weights',
-            labels: chartLabels,
-            values: chartData
-        }],
-        {
-            x: 1, y: 1.2, w: 8, h: 4,
-            chartColors: chartColors,
-            showLabel: true,
-            showValue: true,
-            showPercent: true,
-            showLegend: true,
-            legendPos: 'r',
-            title: 'Importance of Each Criteria (%)',
-            titleFontSize: 16
+    slide.addTable(weightsTable, {
+        x: 0.5, y: 1.2, w: 9, h: 4.5,
+        border: { type: 'solid', color: 'CCCCCC' },
+        fill: { color: 'FFFFFF' }
+    });
+
+    // SLIDE 6: Criteria Impact Analysis
+    slide = pptx.addSlide();
+    slide.addText('📊 Criteria Impact Analysis', {
+        x: 0.5, y: 0.3, w: 9, h: 0.6,
+        fontSize: 32, bold: true, color: colors.primary
+    });
+    
+    slide.addText('How each criterion affects the winner:', {
+        x: 0.5, y: 1.0, w: 9, h: 0.4,
+        fontSize: 14, color: colors.textLight
+    });
+    
+    const impactTable = [
+        [
+            { text: 'Criteria', options: { bold: true, fill: colors.bg } },
+            { text: 'Weight', options: { bold: true, fill: colors.bg } },
+            { text: 'Winner Rating', options: { bold: true, fill: colors.bg } },
+            { text: 'Contribution', options: { bold: true, fill: colors.bg } }
+        ]
+    ];
+    
+    decisionData.criteria.forEach(criteria => {
+        const weight = (decisionData.normalizedWeights[criteria.id] || 0) / 100;
+        const ratingKey = `${winner.option.id}-${criteria.id}`;
+        const rating = decisionData.ratings[ratingKey] || 0;
+        const contribution = (rating * weight).toFixed(2);
+        
+        impactTable.push([
+            { text: criteria.name },
+            { text: `${(weight * 100).toFixed(1)}%` },
+            { text: `${rating.toFixed(1)}/5` },
+            { text: contribution, options: { color: colors.success } }
+        ]);
+    });
+    
+    slide.addTable(impactTable, {
+        x: 0.5, y: 1.5, w: 9, h: 4,
+        fontSize: 12,
+        border: { type: 'solid', color: 'CCCCCC' }
+    });
+
+    // SLIDE 7: Performance Heatmap
+    slide = pptx.addSlide();
+    slide.addText('🔥 Performance Heatmap', {
+        x: 0.5, y: 0.3, w: 9, h: 0.6,
+        fontSize: 32, bold: true, color: colors.primary
+    });
+    
+    const heatmapTable = [
+        [
+            { text: 'Option', options: { bold: true, fill: colors.bg, fontSize: 11 } },
+            ...decisionData.criteria.map(c => ({ 
+                text: c.name.substring(0, 15), 
+                options: { bold: true, fill: colors.bg, fontSize: 10 } 
+            }))
+        ]
+    ];
+    
+    decisionData.options.forEach(option => {
+        const row = [{ text: option.name, options: { fontSize: 11 } }];
+        
+        decisionData.criteria.forEach(criteria => {
+            const ratingKey = `${option.id}-${criteria.id}`;
+            const rating = decisionData.ratings[ratingKey] || 0;
+            
+            let cellColor = 'FFFFFF';
+            if (rating >= 4) cellColor = 'c3e6cb';
+            else if (rating >= 3) cellColor = 'ffeaa7';
+            else if (rating >= 2) cellColor = 'fff3cd';
+            else if (rating >= 1) cellColor = 'ffebee';
+            else cellColor = 'ffcdd2';
+            
+            row.push({ 
+                text: rating.toFixed(1), 
+                options: { fill: cellColor, fontSize: 10, align: 'center' } 
+            });
+        });
+        
+        heatmapTable.push(row);
+    });
+    
+    slide.addTable(heatmapTable, {
+        x: 0.3, y: 1.2, w: 9.4, h: 4,
+        fontSize: 10,
+        border: { type: 'solid', color: 'CCCCCC' }
+    });
+
+    // SLIDE 8: Sensitivity Analysis
+    if (advancedAnalytics.sensitivity) {
+        slide = pptx.addSlide();
+        slide.addText('⚖️ Sensitivity Analysis', {
+            x: 0.5, y: 0.3, w: 9, h: 0.6,
+            fontSize: 32, bold: true, color: colors.primary
+        });
+        
+        slide.addText('Decision Stability Assessment:', {
+            x: 0.5, y: 1.0, w: 9, h: 0.4,
+            fontSize: 16, bold: true, color: colors.text
+        });
+        
+        const flipPoints = computeFlipPoints ? computeFlipPoints() : [];
+        
+        if (flipPoints.length === 0) {
+            slide.addShape(pptx.ShapeType.rect, {
+                x: 0.5, y: 1.6, w: 9, h: 1.2,
+                fill: { color: 'd4edda' },
+                line: { color: colors.success, width: 2 }
+            });
+            
+            slide.addText('✅ Highly Stable Decision', {
+                x: 0.7, y: 1.8, w: 8.6, h: 0.8,
+                fontSize: 18, bold: true, color: colors.success, valign: 'middle'
+            });
+            
+            slide.addText('No criteria weight changes would alter the recommended choice', {
+                x: 0.5, y: 3.0, w: 9, h: 0.5,
+                fontSize: 14, color: colors.textLight, align: 'center'
+            });
+        } else {
+            const sensitivityTable = [
+                [
+                    { text: 'Criteria', options: { bold: true, fill: colors.bg } },
+                    { text: 'Current Weight', options: { bold: true, fill: colors.bg } },
+                    { text: 'Flip Point', options: { bold: true, fill: colors.bg } },
+                    { text: 'Buffer', options: { bold: true, fill: colors.bg } }
+                ]
+            ];
+            
+            flipPoints.slice(0, 5).forEach(fp => {
+                const buffer = Math.abs(fp.currentWeight - fp.flipPoint);
+                sensitivityTable.push([
+                    { text: fp.criteriaName },
+                    { text: `${fp.currentWeight.toFixed(1)}%` },
+                    { text: `${fp.flipPoint.toFixed(1)}%` },
+                    { text: `${buffer.toFixed(1)}%`, options: { color: buffer < 10 ? colors.danger : colors.success } }
+                ]);
+            });
+            
+            slide.addTable(sensitivityTable, {
+                x: 0.5, y: 1.6, w: 9, h: 3.5,
+                fontSize: 12,
+                border: { type: 'solid', color: 'CCCCCC' }
+            });
         }
-    );
-    // SLIDE 6: Risk Analysis (if risks exist)
+    }
+
+    // SLIDE 9: Satisficers Analysis
+    slide = pptx.addSlide();
+    slide.addText('✅ Satisficers Analysis', {
+        x: 0.5, y: 0.3, w: 9, h: 0.6,
+        fontSize: 32, bold: true, color: colors.primary
+    });
+    
+    slide.addText('Options that meet minimum acceptable standards:', {
+        x: 0.5, y: 1.0, w: 9, h: 0.4,
+        fontSize: 14, color: colors.textLight
+    });
+    
+    const threshold = 2.5;
+    const satisficers = advancedAnalytics.results.filter(r => r.totalScore >= threshold);
+    
+    yPos = 1.6;
+    if (satisficers.length > 0) {
+        satisficers.forEach((result, i) => {
+            slide.addShape(pptx.ShapeType.rect, {
+                x: 0.5, y: yPos, w: 9, h: 0.6,
+                fill: { color: i === 0 ? 'd4edda' : 'f8f9fa' },
+                line: { color: i === 0 ? colors.success : 'CCCCCC', width: 1 }
+            });
+            
+            slide.addText(`${i + 1}. ${result.option.name}`, {
+                x: 0.7, y: yPos + 0.05, w: 6, h: 0.5,
+                fontSize: 14, bold: i === 0
+            });
+            
+            slide.addText(`Score: ${result.totalScore.toFixed(2)}`, {
+                x: 7, y: yPos + 0.05, w: 2.2, h: 0.5,
+                fontSize: 14, align: 'right', color: colors.success
+            });
+            
+            yPos += 0.7;
+            if (yPos > 5) return;
+        });
+    } else {
+        slide.addText('No options meet the minimum threshold', {
+            x: 0.5, y: 2.5, w: 9, h: 0.5,
+            fontSize: 16, color: colors.danger, align: 'center'
+        });
+    }
+
+    // SLIDE 10: Risk Analysis
     if (advancedAnalytics.risks && advancedAnalytics.risks.length > 0) {
         slide = pptx.addSlide();
         slide.addText('⚠️ Risk Analysis', {
@@ -7408,13 +7591,13 @@ function generatePPTX() {
             });
             
             yPos += 0.9;
-            if (yPos > 5.5) return; // Prevent overflow
+            if (yPos > 5.5) return;
         });
     }
 
-    // SLIDE 7: Final Recommendation
+    // SLIDE 11: Next Steps & Recommendations
     slide = pptx.addSlide();
-    slide.addText('✅ Final Recommendation', {
+    slide.addText('✅ Next Steps & Recommendations', {
         x: 0.5, y: 0.3, w: 9, h: 0.6,
         fontSize: 32, bold: true, color: colors.primary
     });
@@ -7432,14 +7615,13 @@ function generatePPTX() {
     
     if (winner.option.description) {
         slide.addText(winner.option.description, {
-            x: 0.5, y: 3, w: 9, h: 1,
+            x: 0.5, y: 3, w: 9, h: 0.8,
             fontSize: 14, color: colors.textLight
         });
     }
     
-    // Add next steps
-    yPos = 4.2;
-    slide.addText('Next Steps:', {
+    yPos = 4.0;
+    slide.addText('Recommended Next Steps:', {
         x: 0.5, y: yPos, w: 9, h: 0.4,
         fontSize: 16, bold: true, color: colors.text
     });
@@ -7448,7 +7630,8 @@ function generatePPTX() {
         'Review the detailed analysis and risk factors',
         'Validate your decision with stakeholders',
         'Create an implementation plan',
-        'Monitor progress and adjust as needed'
+        'Monitor progress and adjust as needed',
+        'Document lessons learned for future decisions'
     ];
     
     yPos += 0.5;
@@ -7471,8 +7654,6 @@ function generatePPTX() {
             showToast('Failed to generate PowerPoint. Please try again.', 'error');
         });
 }
-
-
 
 
 
