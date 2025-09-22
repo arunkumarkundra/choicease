@@ -7231,7 +7231,7 @@ function updateUIWithImportedData() {
                 // Add existing criteria if any
                 if (decisionData.criteria && decisionData.criteria.length > 0) {
                     const criteriaList = decisionData.criteria.map(c => 
-                        `- ${c.criteriaName}${c.description ? ' (' + c.description + ')' : ''}`
+                        `- ${c.name}${c.description ? ' (' + c.description + ')' : ''}`
                     ).join('\n');
                     
                     prompt += `\n\nI have thought of the following from my side:\n${criteriaList}`;
@@ -7248,7 +7248,7 @@ function updateUIWithImportedData() {
                 
                 // Build criteria list
                 const criteriaList = decisionData.criteria.map(c => 
-                    `- ${c.criteriaName}${c.description ? ' (' + c.description + ')' : ''}`
+                    `- ${c.name}${c.description ? ' (' + c.description + ')' : ''}`
                 ).join('\n');
                 
                 // Build options list
