@@ -7225,8 +7225,19 @@ function updateUIWithImportedData() {
             // Handle copy criteria prompt
             if (event.target.id === 'copyCriteriaPrompt') {
                 event.preventDefault();
-                const prompt = `I am trying to come up with criteria to take a decision on: ${decisionData.title}${decisionData.description ? ' - ' + decisionData.description : ''}.
-Please help me with the Criteria and importance of the criteria to ensure a good decision.`;
+                
+                let prompt = `I am trying to come up with criteria to take a decision on: ${decisionData.title}${decisionData.description ? ' - ' + decisionData.description : ''}.`;
+                
+                // Add existing criteria if any
+                if (decisionData.criteria && decisionData.criteria.length > 0) {
+                    const criteriaList = decisionData.criteria.map(c => 
+                        `- ${c.criteriaName}${c.description ? ' (' + c.description + ')' : ''}`
+                    ).join('\n');
+                    
+                    prompt += `\n\nI have thought of the following from my side:\n${criteriaList}`;
+                }
+                
+                prompt += '\n\nPlease help me with the Criteria and importance of the criteria to ensure a good decision.';
                 
                 copyToClipboard(prompt);
             }
