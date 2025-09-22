@@ -7288,16 +7288,18 @@ ${optionsList}`;
                 
                 copyToClipboard(prompt);
             }
-            
-            // Handle copy Reddit post
+
+// Handle copy Reddit post
             if (event.target.id === 'copyRedditPost') {
                 event.preventDefault();
                 
-                // Calculate results if not already done
-                let results = calculateResults();
+                // Use already calculated results
+                if (!advancedAnalytics.results || advancedAnalytics.results.length === 0) {
+                    showToast('Please calculate results first before copying the post.', 'warning');
+                    return;
+                }
                 
-                // Sort results by score (highest first)
-                results.sort((a, b) => b.score - a.score);
+                const results = advancedAnalytics.results;
                 
                 // Build criteria list with weights
                 const criteriaList = decisionData.criteria.map(c => {
@@ -7313,7 +7315,7 @@ ${optionsList}`;
                 // Build results ranking
                 const resultsRanking = results.map((result, index) => {
                     const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}.`;
-                    return `${medal} **${result.option.name}** - Score: ${result.score.toFixed(1)}/5`;
+                    return `${medal} **${result.option.name}** - Score: ${result.totalScore.toFixed(1)}/5`;
                 }).join('\n');
                 
                 // Create the post
@@ -7352,6 +7354,8 @@ Made with [Choicease](https://choicease.com) - Smart Choices, Made Easy!
                 
                 copyToClipboard(redditPost);
             }
+                
+                
         });
 
 
