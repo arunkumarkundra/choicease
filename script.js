@@ -7219,3 +7219,83 @@ function updateUIWithImportedData() {
 
         // Initialize app
         document.addEventListener('DOMContentLoaded', initializeApp);
+
+        // Copy GPT prompt functionality
+        document.addEventListener('click', function(event) {
+            // Handle copy criteria prompt
+            if (event.target.id === 'copyCriteriaPrompt') {
+                event.preventDefault();
+                const prompt = `I am trying to come up with criteria to take a decision on: ${decisionData.title}${decisionData.description ? ' - ' + decisionData.description : ''}.
+Please help me with the Criteria and importance of the criteria to ensure a good decision.`;
+                
+                copyToClipboard(prompt);
+            }
+            
+            // Handle copy rating prompt
+            if (event.target.id === 'copyRatingPrompt') {
+                event.preventDefault();
+                
+                // Build criteria list
+                const criteriaList = decisionData.criteria.map(c => 
+                    `- ${c.criteriaName}${c.description ? ' (' + c.description + ')' : ''}`
+                ).join('\n');
+                
+                // Build options list
+                const optionsList = decisionData.options.map(o => 
+                    `- ${o.name}${o.description ? ' (' + o.description + ')' : ''}`
+                ).join('\n');
+                
+                const prompt = `I am in the process of taking this decision - ${decisionData.title}${decisionData.description ? ', ' + decisionData.description : ''}
+
+I am deciding based on the following criteria:
+${criteriaList}
+
+Help me rate the below Options on the above criteria on a scale of 0-5:
+${optionsList}`;
+                
+                copyToClipboard(prompt);
+            }
+        });
+
+        // Helper function to copy text to clipboard
+        function copyToClipboard(text) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text)
+                    .then(() => {
+                        showToast('Prompt copied to clipboard! ✨', 'success');
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy:', err);
+                        fallbackCopyToClipboard(text);
+                    });
+            } else {
+                fallbackCopyToClipboard(text);
+            }
+        }
+
+        // Fallback copy method for older browsers
+        function fallbackCopyToClipboard(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.top = '0';
+            textArea.style.left = '0';
+            textArea.style.opacity = '0';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast('Prompt copied to clipboard! ✨', 'success');
+                } else {
+                    showToast('Failed to copy prompt. Please try again.', 'error');
+                }
+            } catch (err) {
+                console.error('Fallback copy failed:', err);
+                showToast('Failed to copy prompt. Please try again.', 'error');
+            }
+            
+            document.body.removeChild(textArea);
+        }
