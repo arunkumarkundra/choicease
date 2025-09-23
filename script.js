@@ -6253,7 +6253,7 @@ function generateQRCodesSequentially(qrDataArray, totalChunks, tempDiv) {
 function createSingleQR(data, index, totalChunks, tempDiv) {
     return new Promise(function(resolve, reject) {
         const qrContainer = document.createElement('div');
-        qrContainer.style.cssText = 'width:512px;height:512px;display:block;margin:10px;';
+        qrContainer.style.cssText = 'width:768px;height:768px;display:block;margin:10px;';
         tempDiv.appendChild(qrContainer);
         
         try {
@@ -6261,8 +6261,8 @@ function createSingleQR(data, index, totalChunks, tempDiv) {
             
             const qr = new QRCode(qrContainer, {
                 text: data,
-                width: 512,
-                height: 512,
+                width: 768,
+                height: 768,
                 correctLevel: QRCode.CorrectLevel.L,
                 colorDark: "#000000",
                 colorLight: "#ffffff",
@@ -6309,13 +6309,13 @@ function createSingleQR(data, index, totalChunks, tempDiv) {
                 } else if (img && img.complete && img.naturalWidth > 0) {
                     // Convert img to canvas with proper size
                     const canvas = document.createElement('canvas');
-                    canvas.width = 512;
-                    canvas.height = 512;
+                    canvas.width = 768;
+                    canvas.height = 768;
                     const ctx = canvas.getContext('2d');
                     
                     ctx.fillStyle = '#ffffff';
-                    ctx.fillRect(0, 0, 512, 512);
-                    ctx.drawImage(img, 0, 0, 512, 512);
+                    ctx.fillRect(0, 0, 768, 768);
+                    ctx.drawImage(img, 0, 0, 768, 768);
                     
                     // Add readability test for img->canvas conversion (with error handling)
                     if (typeof testQRReadability === 'function') {
@@ -6353,7 +6353,7 @@ function createSingleQR(data, index, totalChunks, tempDiv) {
 // ========================================
 
 function createFinalImage(qrCanvases, totalChunks) {
-    const qrSize = 512; // Match the new QR size
+    const qrSize = 768; // Match the new QR size
     const padding = 40;
     const headerHeight = 120;
     const footerHeight = 100;
