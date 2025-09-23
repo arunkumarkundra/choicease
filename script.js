@@ -7167,110 +7167,10 @@ function updateUIWithImportedData() {
 
 
 
-        function addExecutiveSummarySlide(pptx, decisionData, result) {
-            const slide = pptx.addSlide();
-            slide.addText('Executive Summary: ' + decisionData.title, { x: 0.5, y: 0.5, w: '90%', h: 0.5, fontSize: 24, bold: true });
-            slide.addText(decisionData.description, { x: 0.5, y: 1.2, w: '90%', h: 0.5, fontSize: 14 });
-            slide.addText(`Based on the analysis, the top-ranked option is:`, { x: 0.5, y: 2.5, w: '90%', h: 0.5, fontSize: 16 });
-            slide.addText(result.option.name, { x: 0.5, y: 3.0, w: '90%', h: 0.5, fontSize: 20, bold: true, color: '0078D4' });
-            slide.addText(`Final Score: ${result.score.toFixed(2)}`, { x: 0.5, y: 3.5, w: '90%', h: 0.5, fontSize: 16, bold: true });
-            slide.addText(`Total number of options: ${decisionData.options.length}\nTotal number of criteria: ${decisionData.criteria.length}`, { x: 0.5, y: 4.5, w: '90%', h: 0.5, fontSize: 12 });
-            slide.slideNumber = { x: 9, y: 5.5, fontFace: 'Arial', fontSize: 10, color: '888888' };
-        }        
-
-        // Creates a slide with a detailed breakdown of a single option's score by criteria
-        function addDetailedBreakdownSlide(pptx, option, criteria) {
-            const slide = pptx.addSlide();
-            slide.addText(`Detailed Analysis: ${option.option.name}`, { x: 0.5, y: 0.5, w: '90%', h: 0.5, fontSize: 24, bold: true });
-            slide.addText(`Final Score: ${option.score.toFixed(2)}`, { x: 0.5, y: 1.2, w: '90%', h: 0.5, fontSize: 16, bold: true });
-
-            const chartData = [{
-                name: 'Contribution to Score',
-                labels: criteria.map(c => c.name),
-                values: criteria.map(c => option.option.ratings[c.id] * option.option.weights[c.id])
-            }];
-
-            slide.addChart(pptx.charts.radar(chartData, {
-                x: 1, y: 2.0, w: 8, h: 4,
-                chartArea: { fill: { color: 'FFFFFF' } },
-                showLegend: false,
-                catAxisLabelColor: '333333',
-                catAxisLabelFontSize: 10,
-                catAxisLabelPos: 'low'
-            }));
-            
-            slide.addText('This chart shows how each criterion contributed to the final score for this option.', { x: 0.5, y: 5.5, w: '90%', h: 0.5, fontSize: 12, italic: true });
-            slide.slideNumber = { x: 9, y: 5.5, fontFace: 'Arial', fontSize: 10, color: '888888' };
-        }
-        
-        // Formats the data for the summary bar chart
-        function getSummaryChartData(rankedOptions) {
-            return [{
-                name: 'Final Score',
-                labels: rankedOptions.map(r => r.option.name),
-                values: rankedOptions.map(r => r.score)
-            }];
-        }
-
-
-        // Generates the PowerPoint file
-        async function generatePPTX() {
-            if (decisionData.options.length === 0 || decisionData.criteria.length === 0) {
-                showToast('Please add options and criteria first!', 'error');
-                return;
-            }
-
-            // Show loading animation
-            showLoadingOverlay(true, "Creating your presentation...");
-
-            // Use the advanced analytics result for the presentation
-            const results = advancedAnalytics.results;
-            if (!results || results.rankedOptions.length === 0) {
-                showToast('No results available. Please run the analysis first.', 'error');
-                showLoadingOverlay(false);
-                return;
-            }
-            const topOption = results.rankedOptions[0];
-
-            // 1. Initialize PPTX
-            const pptx = new PptxGenJS();
-
-            // 2. Add Executive Summary Slide
-            addExecutiveSummarySlide(pptx, decisionData, topOption);
-
-            // 3. Add Detailed Breakdown for Top Option
-            addDetailedBreakdownSlide(pptx, topOption, decisionData.criteria);
-
-            // 4. Add Summary of all Options
-            const chartData = getSummaryChartData(results.rankedOptions);
-            const slide = pptx.addSlide();
-            slide.addChart(pptx.charts.bar(chartData, {
-                x: 0.5, y: 1.5, w: 9, h: 5,
-                barDir: 'bar',
-                chartArea: { fill: { color: 'FFFFFF' } },
-                dataLabelFormatCode: '#,##0.0',
-                dataLabelFontSize: 14,
-                showValue: true,
-                catAxisTitle: 'Final Score',
-                showCatAxisTitle: true,
-                valAxisTitle: 'Options',
-                showValAxisTitle: true,
-                barGapWidthPct: 25,
-                legendPos: 'n/a'
-            }));
-            slide.addText('Summary of All Options', { x: 0.5, y: 0.5, w: '90%', h: 0.5, fontSize: 24, bold: true });
-            slide.slideNumber = { x: 9, y: 5.5, fontFace: 'Arial', fontSize: 10, color: '888888' };
-
-            // 5. Save the file
-            await pptx.writeFile({ fileName: `Choicease-Decision-Analysis-${decisionData.title}.pptx` });
-
-            // Hide loading animation
-            showLoadingOverlay(false);
-        }
 
 
 // Generate PowerPoint Presentation
-function OLDgeneratePPTX() {
+function generatePPTX() {
     if (!advancedAnalytics.results || !advancedAnalytics.confidence) {
         showToast('Please calculate results and show advanced analytics first.', 'warning');
         return;
@@ -7279,7 +7179,7 @@ function OLDgeneratePPTX() {
     showToast('Generating PowerPoint presentation...', 'info');
 
     const pptx = new PptxGenJS();
-
+    
     // Set presentation properties
     pptx.author = 'Choicease';
     pptx.company = 'Choicease.com';
