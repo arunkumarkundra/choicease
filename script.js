@@ -6392,13 +6392,13 @@ function createFinalImage(qrCanvases, totalChunks) {
 //    const title = (decisionData.title || 'Choicease Decision').substring(0, 50);
     ctx.fillText('Choicease Decision Analysis', canvasWidth / 2, padding + 25);
 
-    // Truncate title at word boundary (max 60 chars)
+    // Truncate title at word boundary (max 80 chars)
     let title = decisionData.title || 'Choicease Decision';
-    if (title.length > 60) {
+    if (title.length > 80) {
         const words = title.split(' ');
         let truncated = '';
         for (let word of words) {
-            if ((truncated + word).length <= 57) {
+            if ((truncated + word).length <= 77) {
                 truncated += (truncated ? ' ' : '') + word;
             } else {
                 break;
@@ -6415,7 +6415,7 @@ function createFinalImage(qrCanvases, totalChunks) {
         ctx.font = '14px Arial, sans-serif';
         ctx.fillStyle = '#000000';
             
-        const maxCharsPerLine = 80;
+        const maxCharsPerLine = 100;
         const words = decisionData.description.split(' ');
         let line1 = '';
         let line2 = '';
