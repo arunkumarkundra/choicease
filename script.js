@@ -6387,7 +6387,7 @@ function createFinalImage(qrCanvases, totalChunks) {
     // Header
     ctx.fillStyle = '#000000';
     ctx.textAlign = 'center';
-    ctx.font = 'bold 24px Arial, sans-serif';
+    ctx.font = 'bold 18px Arial, sans-serif';
     
 //    const title = (decisionData.title || 'Choicease Decision').substring(0, 50);
     ctx.fillText('Choicease Decision Analysis', canvasWidth / 2, padding + 25);
@@ -6407,13 +6407,13 @@ function createFinalImage(qrCanvases, totalChunks) {
         title = truncated + '...';
     }
     
-    ctx.font = '18px Arial, sans-serif';
+    ctx.font = 'bold 24px Arial, sans-serif';
     ctx.fillText(title, canvasWidth / 2, padding + 55);
     
     // Description (up to two lines, word-level truncation)
     if (decisionData.description && decisionData.description.length > 0) {
         ctx.font = '14px Arial, sans-serif';
-        ctx.fillStyle = '#666666';
+        ctx.fillStyle = '#000000';
             
         const maxCharsPerLine = 80;
         const words = decisionData.description.split(' ');
