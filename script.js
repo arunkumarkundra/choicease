@@ -3078,7 +3078,7 @@ function renderPerformanceHeatmap() {
                     
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
                         <button id="resetWeightsBtn" class="btn btn-secondary" style="margin: 0; margin-right: 10px;">
-                            🔄 Reset to Original Weights
+                            🔄 Reset Analysis
                         </button>
                         <button id="normalizeWeightsBtn" class="btn btn-secondary" style="margin: 0;">
                             ⚖️ Balance Weights to 100%
