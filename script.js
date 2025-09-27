@@ -3295,22 +3295,12 @@ function renderPerformanceHeatmap() {
 
         
         function resetToOriginalWeights() {
-            // ✅ REPLACE THIS ENTIRE FUNCTION with:
+            // Completely refresh with current decision data
             whatIfDecisionData = JSON.parse(JSON.stringify(decisionData));
             
-            whatIfDecisionData.criteria.forEach(criteria => {
-                const originalWeight = Math.round(whatIfDecisionData.normalizedWeights[criteria.id] || 0);
-                const slider = document.getElementById(`weight-slider-${criteria.id}`);
-                const display = document.getElementById(`weight-display-${criteria.id}`);
-                
-                if (slider) slider.value = originalWeight;
-                if (display) display.textContent = `${originalWeight}%`;
-            });
-            
-            updateWhatIfResults();
-            document.getElementById('whatIfAlert').style.display = 'none';
+            // Re-render the entire what-if interface
+            renderWhatIfAnalysis();
         }
-
 
 
 
