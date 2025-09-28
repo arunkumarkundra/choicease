@@ -7404,7 +7404,7 @@ try {
         values: decisionData.criteria.map(c => decisionData.normalizedWeights[c.id] || 0)
     }];
     
-    const chartColors = ['667eea', '764ba2', '28a745', 'ffc107', 'dc3545', '17a2b8', '6c757d', 'fd7e14'];
+    const chartColors = CHART_COLORS;
     
     slide.addChart(pptx.ChartType.pie, pieChartData, {
         x: 0.5, y: 1.2, w: 4.2, h: 3.8,
@@ -7471,7 +7471,7 @@ const weightsTable = [
 
 decisionData.criteria.forEach((criteria, i) => {
     const weight = decisionData.normalizedWeights[criteria.id] || 0;
-    const colorPalette = ['667eea', '764ba2', '28a745', 'ffc107', 'dc3545', '17a2b8', '6c757d'];
+    const colorPalette = CHART_COLORS;
     const barColor = colorPalette[i % colorPalette.length];
     
     // Control bar length to prevent overflow (max 8 chars for safety)
