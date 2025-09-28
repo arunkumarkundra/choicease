@@ -7388,41 +7388,94 @@ function generatePPTX() {
         align: 'center'
     });
 
-    // SLIDE 5: Criteria Weights
-    slide = pptx.addSlide();
-    slide.addText('🥧 Decision Criteria Weights', {
-        x: 0.5, y: 0.3, w: 9, h: 0.6,
-        fontSize: 32, bold: true, color: colors.primary
-    });
-    
-    const weightsTable = [
-        [
-            { text: 'Criteria', options: { bold: true, fill: colors.bg, fontSize: 14 } },
-            { text: 'Importance (%)', options: { bold: true, fill: colors.bg, fontSize: 14 } },
-            { text: 'Visual', options: { bold: true, fill: colors.bg, fontSize: 14 } }
-        ]
-    ];
-    
-    decisionData.criteria.forEach((criteria, i) => {
-        const weight = decisionData.normalizedWeights[criteria.id] || 0;
-        const colorPalette = ['667eea', '764ba2', '28a745', 'ffc107', 'dc3545', '17a2b8', '6c757d'];
-        const barColor = colorPalette[i % colorPalette.length];
-        const barWidth = Math.round(weight);
-        const bar = '█'.repeat(Math.max(1, Math.round(barWidth / 5)));
-        
-        weightsTable.push([
-            { text: criteria.name, options: { fontSize: 12 } },
-            { text: `${weight.toFixed(1)}%`, options: { fontSize: 12, align: 'center' } },
-            { text: bar, options: { fontSize: 12, color: barColor } }
-        ]);
-    });
-    
-    slide.addTable(weightsTable, {
-        x: 0.5, y: 1.2, w: 9, h: 4.5,
-        border: { type: 'solid', color: 'CCCCCC' },
-        fill: { color: 'FFFFFF' }
-    });
+// SLIDE 5: Criteria Weights (Enhanced with Pie Chart + Table)
+slide = pptx.addSlide();
+slide.addText('🥧 Decision Criteria Weights', {
+    x: 0.5, y: 0.3, w: 9, h: 0.6,
+    fontSize: 32, bold: true, color: colors.primary
+});
 
+// Left Half: Pie Chart
+try {
+    // Prepare data for pie chart
+    const chartLabels = decisionData.criteria.map(c => c.name);
+    const chartData = decisionData.criteria.map(c => {
+        const weight = decisionData.normalizedWeights[c.id] || 0;
+        return Math.max(weight, 0.5); // Minimum slice visibility
+    });
+    
+    // Normalize to exactly 100%
+    const total = chartData.reduce((sum, val) => sum + val, 0);
+    const normalizedData = chartData.map(val => (val / total) * 100);
+    
+    // Create pie chart data for PptxGenJS
+    const chartDataPoints = chartLabels.map((label, index) => ({
+        name: label,
+        labels: [label],
+        values: [normalizedData[index]]
+    }));
+    
+    // Color palette for pie chart
+    const chartColors = ['667eea', '764ba2', '28a745', 'ffc107', 'dc3545', '17a2b8', '6c757d', 'fd7e14'];
+    
+    slide.addChart(pptx.ChartType.pie, chartDataPoints, {
+        x: 0.5, y: 1.2, w: 4.2, h: 4,
+        showLegend: true,
+        legendPos: 'b',
+        showValue: true,
+        dataLabelFormatCode: '#.0%',
+        chartColors: chartColors.slice(0, chartLabels.length)
+    });
+    
+    console.log('Pie chart added to PPTX slide');
+    
+} catch (error) {
+    console.warn('Failed to add pie chart to PPTX, continuing with table only:', error);
+    
+    // Fallback: Add a text note about missing chart
+    slide.addText('📊 Pie Chart (Interactive version available in web app)', {
+        x: 0.5, y: 1.4, w: 4.2, h: 0.6,
+        fontSize: 14, color: colors.textLight, align: 'center',
+        italic: true
+    });
+}
+
+// Right Half: Data Table
+const weightsTable = [
+    [
+        { text: 'Criteria', options: { bold: true, fill: colors.bg, fontSize: 14 } },
+        { text: 'Weight (%)', options: { bold: true, fill: colors.bg, fontSize: 14 } },
+        { text: 'Visual Bar', options: { bold: true, fill: colors.bg, fontSize: 14 } }
+    ]
+];
+
+decisionData.criteria.forEach((criteria, i) => {
+    const weight = decisionData.normalizedWeights[criteria.id] || 0;
+    const colorPalette = ['667eea', '764ba2', '28a745', 'ffc107', 'dc3545', '17a2b8', '6c757d'];
+    const barColor = colorPalette[i % colorPalette.length];
+    const barWidth = Math.round(weight);
+    const bar = '█'.repeat(Math.max(1, Math.round(barWidth / 5)));
+    
+    weightsTable.push([
+        { text: criteria.name, options: { fontSize: 12 } },
+        { text: `${weight.toFixed(1)}%`, options: { fontSize: 12, align: 'center', bold: true } },
+        { text: bar, options: { fontSize: 12, color: barColor } }
+    ]);
+});
+
+// Position table on the right side
+slide.addTable(weightsTable, {
+    x: 5.0, y: 1.2, w: 4.5, h: 4,
+    border: { type: 'solid', color: 'CCCCCC' },
+    fill: { color: 'FFFFFF' },
+    fontSize: 11
+});
+
+// Add explanatory text at the bottom
+slide.addText('Left: Visual distribution of criteria importance  |  Right: Detailed breakdown with progress bars', {
+    x: 0.5, y: 5.4, w: 9, h: 0.4,
+    fontSize: 11, color: colors.textLight, align: 'center', italic: true
+});
     // SLIDE 6: Criteria Impact Analysis
     slide = pptx.addSlide();
     slide.addText('📊 Criteria Impact Analysis', {
