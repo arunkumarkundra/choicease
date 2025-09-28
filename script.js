@@ -7388,67 +7388,84 @@ function generatePPTX() {
         align: 'center'
     });
 
-// FIXED SLIDE 5: Criteria Weights - Corrected pie chart data and layout
+// FINAL FIXED SLIDE 5: Criteria Weights - Correct multi-criteria pie chart
 slide = pptx.addSlide();
 slide.addText('🥧 Decision Criteria Weights', {
     x: 0.5, y: 0.3, w: 9, h: 0.6,
     fontSize: 32, bold: true, color: colors.primary
 });
 
-// Left Half: Fixed Pie Chart
+// Left Half: Corrected Pie Chart - Single dataset with multiple values
 try {
-    // Prepare data correctly for PptxGenJS pie chart
-    const pieData = [];
+    // Create single dataset with all criteria - THIS IS THE KEY FIX
+    const pieChartData = [{
+        name: 'Criteria Weights',
+        labels: decisionData.criteria.map(c => c.name),
+        values: decisionData.criteria.map(c => decisionData.normalizedWeights[c.id] || 0)
+    }];
+    
     const chartColors = ['667eea', '764ba2', '28a745', 'ffc107', 'dc3545', '17a2b8', '6c757d', 'fd7e14'];
     
-    decisionData.criteria.forEach((criteria, index) => {
-        const weight = decisionData.normalizedWeights[criteria.id] || 0;
-        
-        // Add each criteria as a separate data point
-        pieData.push({
-            name: criteria.name,
-            labels: [criteria.name],
-            values: [weight] // Use raw percentage value, not normalized to 100
-        });
-    });
-    
-    slide.addChart(pptx.ChartType.pie, pieData, {
+    slide.addChart(pptx.ChartType.pie, pieChartData, {
         x: 0.5, y: 1.2, w: 4.2, h: 3.8,
         showLegend: true,
         legendPos: 'b',
         legendFontSize: 10,
         showValue: true,
-        dataLabelFormatCode: '0.0"%"', // Format as percentage
+        dataLabelFormatCode: '0.0"%"',
         chartColors: chartColors.slice(0, decisionData.criteria.length),
-        title: 'Criteria Importance',
-        titleFontSize: 14
+        showTitle: false
     });
     
-    console.log('Fixed pie chart added to PPTX slide');
+    console.log('Multi-criteria pie chart added successfully');
     
 } catch (error) {
     console.warn('Failed to add pie chart to PPTX:', error);
     
-    // Fallback: Simple text placeholder
+    // Fallback: Create a simple visual representation
     slide.addShape(pptx.ShapeType.rect, {
         x: 0.5, y: 1.2, w: 4.2, h: 3.8,
         fill: { color: 'f8f9fa' },
         line: { color: 'dee2e6', width: 1 }
     });
     
-    slide.addText('📊\nPie Chart\n(View in web app)', {
-        x: 0.5, y: 2.5, w: 4.2, h: 1.5,
-        fontSize: 16, color: colors.textLight, align: 'center',
+    slide.addText('📊 Pie Chart\n(Multiple criteria view\navailable in web app)', {
+        x: 0.5, y: 2.8, w: 4.2, h: 1.2,
+        fontSize: 14, color: colors.textLight, align: 'center',
         valign: 'middle'
     });
 }
 
-// Right Half: Fixed Data Table with controlled bar lengths
+// Right Half: Fixed Table with center-aligned headers
 const weightsTable = [
     [
-        { text: 'Criteria', options: { bold: true, fill: colors.bg, fontSize: 13 } },
-        { text: 'Weight (%)', options: { bold: true, fill: colors.bg, fontSize: 13 } },
-        { text: 'Bar', options: { bold: true, fill: colors.bg, fontSize: 13 } }
+        { 
+            text: 'Criteria', 
+            options: { 
+                bold: true, 
+                fill: colors.bg, 
+                fontSize: 13, 
+                align: 'center'  // Center-aligned header
+            } 
+        },
+        { 
+            text: 'Weight (%)', 
+            options: { 
+                bold: true, 
+                fill: colors.bg, 
+                fontSize: 13, 
+                align: 'center'  // Center-aligned header
+            } 
+        },
+        { 
+            text: 'Bar', 
+            options: { 
+                bold: true, 
+                fill: colors.bg, 
+                fontSize: 13, 
+                align: 'center'  // Center-aligned header
+            } 
+        }
     ]
 ];
 
@@ -7457,14 +7474,14 @@ decisionData.criteria.forEach((criteria, i) => {
     const colorPalette = ['667eea', '764ba2', '28a745', 'ffc107', 'dc3545', '17a2b8', '6c757d'];
     const barColor = colorPalette[i % colorPalette.length];
     
-    // Fixed: Control bar length to prevent overflow
-    const barLength = Math.max(1, Math.min(10, Math.round(weight / 10))); // Max 10 chars
+    // Control bar length to prevent overflow (max 8 chars for safety)
+    const barLength = Math.max(1, Math.min(8, Math.round(weight / 12.5))); // 100% = 8 chars
     const bar = '█'.repeat(barLength);
     
     weightsTable.push([
         { 
-            text: criteria.name.length > 20 ? criteria.name.substring(0, 17) + '...' : criteria.name, 
-            options: { fontSize: 11 } 
+            text: criteria.name.length > 18 ? criteria.name.substring(0, 15) + '...' : criteria.name, 
+            options: { fontSize: 11, align: 'left' } 
         },
         { 
             text: `${weight.toFixed(1)}%`, 
@@ -7472,12 +7489,12 @@ decisionData.criteria.forEach((criteria, i) => {
         },
         { 
             text: bar, 
-            options: { fontSize: 10, color: barColor } 
+            options: { fontSize: 10, color: barColor, align: 'left' } 
         }
     ]);
 });
 
-// Position table on the right side with better sizing
+// Position table on the right side
 slide.addTable(weightsTable, {
     x: 5.0, y: 1.2, w: 4.5, h: 3.8,
     border: { type: 'solid', color: 'CCCCCC' },
@@ -7486,6 +7503,17 @@ slide.addTable(weightsTable, {
     autoPage: false
 });
 
+// Debug: Log the pie chart data structure
+console.log('Pie chart data structure:', {
+    criteriaCount: decisionData.criteria.length,
+    criteriaNames: decisionData.criteria.map(c => c.name),
+    weights: decisionData.criteria.map(c => decisionData.normalizedWeights[c.id] || 0),
+    pieChartData: [{
+        name: 'Criteria Weights',
+        labels: decisionData.criteria.map(c => c.name),
+        values: decisionData.criteria.map(c => decisionData.normalizedWeights[c.id] || 0)
+    }]
+});
         
     // SLIDE 6: Criteria Impact Analysis
     slide = pptx.addSlide();
