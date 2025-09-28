@@ -7388,64 +7388,67 @@ function generatePPTX() {
         align: 'center'
     });
 
-// SLIDE 5: Criteria Weights (Enhanced with Pie Chart + Table)
+// FIXED SLIDE 5: Criteria Weights - Corrected pie chart data and layout
 slide = pptx.addSlide();
 slide.addText('🥧 Decision Criteria Weights', {
     x: 0.5, y: 0.3, w: 9, h: 0.6,
     fontSize: 32, bold: true, color: colors.primary
 });
 
-// Left Half: Pie Chart
+// Left Half: Fixed Pie Chart
 try {
-    // Prepare data for pie chart
-    const chartLabels = decisionData.criteria.map(c => c.name);
-    const chartData = decisionData.criteria.map(c => {
-        const weight = decisionData.normalizedWeights[c.id] || 0;
-        return Math.max(weight, 0.5); // Minimum slice visibility
-    });
-    
-    // Normalize to exactly 100%
-    const total = chartData.reduce((sum, val) => sum + val, 0);
-    const normalizedData = chartData.map(val => (val / total) * 100);
-    
-    // Create pie chart data for PptxGenJS
-    const chartDataPoints = chartLabels.map((label, index) => ({
-        name: label,
-        labels: [label],
-        values: [normalizedData[index]]
-    }));
-    
-    // Color palette for pie chart
+    // Prepare data correctly for PptxGenJS pie chart
+    const pieData = [];
     const chartColors = ['667eea', '764ba2', '28a745', 'ffc107', 'dc3545', '17a2b8', '6c757d', 'fd7e14'];
     
-    slide.addChart(pptx.ChartType.pie, chartDataPoints, {
-        x: 0.5, y: 1.2, w: 4.2, h: 4,
-        showLegend: true,
-        legendPos: 'b',
-        showValue: true,
-        dataLabelFormatCode: '#.0%',
-        chartColors: chartColors.slice(0, chartLabels.length)
+    decisionData.criteria.forEach((criteria, index) => {
+        const weight = decisionData.normalizedWeights[criteria.id] || 0;
+        
+        // Add each criteria as a separate data point
+        pieData.push({
+            name: criteria.name,
+            labels: [criteria.name],
+            values: [weight] // Use raw percentage value, not normalized to 100
+        });
     });
     
-    console.log('Pie chart added to PPTX slide');
+    slide.addChart(pptx.ChartType.pie, pieData, {
+        x: 0.5, y: 1.2, w: 4.2, h: 3.8,
+        showLegend: true,
+        legendPos: 'b',
+        legendFontSize: 10,
+        showValue: true,
+        dataLabelFormatCode: '0.0"%"', // Format as percentage
+        chartColors: chartColors.slice(0, decisionData.criteria.length),
+        title: 'Criteria Importance',
+        titleFontSize: 14
+    });
+    
+    console.log('Fixed pie chart added to PPTX slide');
     
 } catch (error) {
-    console.warn('Failed to add pie chart to PPTX, continuing with table only:', error);
+    console.warn('Failed to add pie chart to PPTX:', error);
     
-    // Fallback: Add a text note about missing chart
-    slide.addText('📊 Pie Chart (Interactive version available in web app)', {
-        x: 0.5, y: 1.4, w: 4.2, h: 0.6,
-        fontSize: 14, color: colors.textLight, align: 'center',
-        italic: true
+    // Fallback: Simple text placeholder
+    slide.addShape(pptx.ShapeType.rect, {
+        x: 0.5, y: 1.2, w: 4.2, h: 3.8,
+        fill: { color: 'f8f9fa' },
+        line: { color: 'dee2e6', width: 1 }
+    });
+    
+    slide.addText('📊\nPie Chart\n(View in web app)', {
+        x: 0.5, y: 2.5, w: 4.2, h: 1.5,
+        fontSize: 16, color: colors.textLight, align: 'center',
+        valign: 'middle'
     });
 }
 
-// Right Half: Data Table
+// Right Half: Fixed Data Table with controlled bar lengths
 const weightsTable = [
     [
-        { text: 'Criteria', options: { bold: true, fill: colors.bg, fontSize: 14 } },
-        { text: 'Weight (%)', options: { bold: true, fill: colors.bg, fontSize: 14 } },
-        { text: 'Visual Bar', options: { bold: true, fill: colors.bg, fontSize: 14 } }
+        { text: 'Criteria', options: { bold: true, fill: colors.bg, fontSize: 13 } },
+        { text: 'Weight (%)', options: { bold: true, fill: colors.bg, fontSize: 13 } },
+        { text: 'Bar', options: { bold: true, fill: colors.bg, fontSize: 13 } }
     ]
 ];
 
@@ -7453,29 +7456,37 @@ decisionData.criteria.forEach((criteria, i) => {
     const weight = decisionData.normalizedWeights[criteria.id] || 0;
     const colorPalette = ['667eea', '764ba2', '28a745', 'ffc107', 'dc3545', '17a2b8', '6c757d'];
     const barColor = colorPalette[i % colorPalette.length];
-    const barWidth = Math.round(weight);
-    const bar = '█'.repeat(Math.max(1, Math.round(barWidth / 5)));
+    
+    // Fixed: Control bar length to prevent overflow
+    const barLength = Math.max(1, Math.min(10, Math.round(weight / 10))); // Max 10 chars
+    const bar = '█'.repeat(barLength);
     
     weightsTable.push([
-        { text: criteria.name, options: { fontSize: 12 } },
-        { text: `${weight.toFixed(1)}%`, options: { fontSize: 12, align: 'center', bold: true } },
-        { text: bar, options: { fontSize: 12, color: barColor } }
+        { 
+            text: criteria.name.length > 20 ? criteria.name.substring(0, 17) + '...' : criteria.name, 
+            options: { fontSize: 11 } 
+        },
+        { 
+            text: `${weight.toFixed(1)}%`, 
+            options: { fontSize: 11, align: 'center', bold: true } 
+        },
+        { 
+            text: bar, 
+            options: { fontSize: 10, color: barColor } 
+        }
     ]);
 });
 
-// Position table on the right side
+// Position table on the right side with better sizing
 slide.addTable(weightsTable, {
-    x: 5.0, y: 1.2, w: 4.5, h: 4,
+    x: 5.0, y: 1.2, w: 4.5, h: 3.8,
     border: { type: 'solid', color: 'CCCCCC' },
     fill: { color: 'FFFFFF' },
-    fontSize: 11
+    fontSize: 10,
+    autoPage: false
 });
 
-// Add explanatory text at the bottom
-slide.addText('Left: Visual distribution of criteria importance  |  Right: Detailed breakdown with progress bars', {
-    x: 0.5, y: 5.4, w: 9, h: 0.4,
-    fontSize: 11, color: colors.textLight, align: 'center', italic: true
-});
+        
     // SLIDE 6: Criteria Impact Analysis
     slide = pptx.addSlide();
     slide.addText('📊 Criteria Impact Analysis', {
