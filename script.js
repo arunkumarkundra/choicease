@@ -7217,6 +7217,87 @@ function updateUIWithImportedData() {
         }
 
 
+/**
+ * placeTextWithAutoFit
+ * Attempts several font sizes and, if necessary, truncates text to avoid spilling.
+ *
+ * Usage:
+ *   placeTextWithAutoFit(slide, longText, {x:0.5,y:1.2,w:8.5,h:1.2}, {bold:true,align:'left'})
+ */
+function placeTextWithAutoFit(slide, text, box, userOpts = {}) {
+    // Conservative list of sizes to attempt (from largest to smallest)
+    const sizesToTry = userOpts.fontSizesToTry || [28, 24, 20, 18, 16, 14, 12, 10];
+    const minFontSize = sizesToTry[sizesToTry.length - 1];
+
+    // Heuristic: estimated characters per line at fontSize = 12 → approxCharsPerInch * width
+    // charsPerInch chosen conservatively (depends on font; 10-12 is reasonable)
+    const CHARS_PER_INCH_AT_FONT12 = 10.5;
+
+    // conservative line height ratio (height per font-size in points converted to units we use here)
+    const POINTS_PER_INCH = 72;
+    // Estimate how many lines fit: box.h inches * 72 points per inch / (fontSize * lineHeightMultiplier)
+    const LINE_HEIGHT_MULTIPLIER = 1.2;
+
+    // copy userOpts so we don't mutate caller's object
+    const baseOpts = Object.assign({}, userOpts, { wrap: true });
+
+    // Helper to estimate if text will fit (heuristic)
+    function estimateFits(textStr, widthInches, heightInches, fontSizePt) {
+        if (!textStr) return true;
+        const charsPerLineAtThisSize = Math.floor((CHARS_PER_INCH_AT_FONT12 * widthInches) * (12 / fontSizePt));
+        if (charsPerLineAtThisSize < 10) {
+            // If width is very narrow, assume it'll need many lines → treat as not-fitting for big fonts
+        }
+        const totalChars = textStr.length;
+        const estimatedLines = Math.ceil(totalChars / Math.max(1, charsPerLineAtThisSize));
+        const lineHeightPoints = fontSizePt * LINE_HEIGHT_MULTIPLIER;
+        const availableLines = Math.floor((heightInches * POINTS_PER_INCH) / lineHeightPoints);
+        return estimatedLines <= Math.max(1, availableLines);
+    }
+
+    // Try font sizes from large→small and pick first that we estimate fits
+    let chosenFontSize = null;
+    for (let fs of sizesToTry) {
+        if (estimateFits(text, box.w, box.h, fs)) {
+            chosenFontSize = fs;
+            break;
+        }
+    }
+
+    // If none seemed to fit, pick minimum and plan to truncate
+    if (!chosenFontSize) chosenFontSize = minFontSize;
+
+    // If text is still too long even at min size, truncate to estimated capacity
+    function truncateToFit(textStr, widthInches, heightInches, fontSizePt) {
+        const charsPerLine = Math.floor((CHARS_PER_INCH_AT_FONT12 * widthInches) * (12 / fontSizePt));
+        const estimatedLines = Math.floor((heightInches * POINTS_PER_INCH) / (fontSizePt * LINE_HEIGHT_MULTIPLIER));
+        const capacity = Math.max(8, charsPerLine * Math.max(1, estimatedLines)); // at least some capacity
+        if (textStr.length <= capacity) return textStr;
+        // preserve some end context? simpler to truncate and append ellipsis
+        const truncated = textStr.substring(0, capacity - 1).trim();
+        return truncated + '…';
+    }
+
+    let finalText = text;
+    if (!estimateFits(finalText, box.w, box.h, chosenFontSize)) {
+        finalText = truncateToFit(finalText, box.w, box.h, chosenFontSize);
+    }
+
+    // Compose final options
+    const finalOpts = Object.assign({}, baseOpts, {
+        x: box.x,
+        y: box.y,
+        w: box.w,
+        h: box.h,
+        fontSize: chosenFontSize,
+        wrap: true,
+        fit: 'shrink' // still ask PowerPoint to shrink a little at open time if needed
+    });
+
+    // If user passed color or bold etc. they are preserved
+    slide.addText(finalText, finalOpts);
+    return { fontSize: chosenFontSize, text: finalText };
+}
 
 
 
@@ -7228,6 +7309,7 @@ function updateUIWithImportedData() {
 // - ensures title text is written (no "Click here to add title")
 // - adds shrink/wrap and autoPage for tables to avoid overflow
 // - syncs pie chart colors with the weights table
+// Full generatePPTX() — NO truncation; uses placeTextWithAutoFit for all variable text
 function generatePPTX() {
     if (!advancedAnalytics.results || !advancedAnalytics.confidence) {
         showToast('Please calculate results and show advanced analytics first.', 'warning');
@@ -7244,15 +7326,15 @@ function generatePPTX() {
     pptx.title = `Decision Analysis: ${decisionData.title || 'Report'}`;
     pptx.subject = 'Advanced Decision Analysis Report';
 
-    // Color palette (use your CHART_COLORS if present, otherwise fallback)
+    // Color palette (use your CHART_COLORS if available, otherwise fallback)
     const FALLBACK_CHART_COLORS = ['4E79A7','F28E2B','E15759','76B7B2','59A14F','EDC948','B07AA1','FF9DA7'];
     const chartPalette = (Array.isArray(window.CHART_COLORS) && window.CHART_COLORS.length > 0)
         ? window.CHART_COLORS
         : FALLBACK_CHART_COLORS;
 
-    // Generic UI colors used by shapes/text (as hex strings)
+    // UI color hex values used for non-themeable small bits
     const UI = {
-        primary: '667EEA',    // heading accent
+        primary: '667EEA',
         accent2: '764BA2',
         success: '28A745',
         warning: 'FFC107',
@@ -7263,92 +7345,73 @@ function generatePPTX() {
         tableBorder: 'CCCCCC'
     };
 
-    // Helper: create slide with consistent margins (no custom master)
-    const newSlide = () => {
-        const s = pptx.addSlide();
-        // You can set a light background for readability or omit to let user's theme show through
-        // s.background = { color: UI.bgLight }; // uncomment if you want a fixed background
-        return s;
-    };
+    // Helper: create slide (avoid custom masters to stay stable)
+    const newSlide = () => pptx.addSlide();
 
     // --- SLIDE 1: Title Slide ---
     let slide = newSlide();
 
-    // Title box (explicit textbox rather than placeholder)
-    slide.addText(decisionData.title || 'Advanced Decision Analysis', {
-        x: 0.5, y: 1.4, w: 9, h: 1.1,
-        fontSize: 40, bold: true, color: UI.primary, align: 'center', valign: 'middle',
-        wrap: true, fit: 'shrink'
-    });
+    // Title — use placeTextWithAutoFit (assumed defined above)
+    placeTextWithAutoFit(slide, decisionData.title || 'Advanced Decision Analysis',
+        { x: 0.5, y: 1.4, w: 9, h: 1.1 },
+        { bold: true, color: UI.primary, align: 'center', valign: 'middle', fontSizesToTry: [40,34,30,26,22,18] }
+    );
 
     // Subtitle
-    slide.addText('Advanced Decision Analysis', {
-        x: 0.5, y: 2.6, w: 9, h: 0.6,
-        fontSize: 18, color: UI.textLight, align: 'center', wrap: true, fit: 'shrink'
-    });
+    placeTextWithAutoFit(slide, 'Advanced Decision Analysis',
+        { x: 0.5, y: 2.6, w: 9, h: 0.8 },
+        { fontSizesToTry: [18,16,14,12], color: UI.textLight, align: 'center' }
+    );
 
-    slide.addText('Generated by Choicease.com - Smart Choices, Made Easy', {
-        x: 0.5, y: 4.9, w: 9, h: 0.5,
-        fontSize: 12, color: UI.textLight, align: 'center', italic: true, fit: 'shrink'
-    });
+    // Footer line
+    placeTextWithAutoFit(slide, 'Generated by Choicease.com - Smart Choices, Made Easy',
+        { x: 0.5, y: 4.9, w: 9, h: 0.5 },
+        { fontSizesToTry: [12,11,10], color: UI.textLight, align: 'center', italic: true }
+    );
 
     // --- SLIDE 2: Decision Overview ---
     slide = newSlide();
-    slide.addText('📋 Decision Overview', {
-        x: 0.5, y: 0.2, w: 9, h: 0.6,
-        fontSize: 26, bold: true, color: UI.primary
-    });
+    slide.addText('📋 Decision Overview', { x: 0.5, y: 0.2, w: 9, h: 0.6, fontSize: 26, bold: true, color: UI.primary });
 
     let yPos = 0.85;
     slide.addText('Decision:', { x: 0.5, y: yPos, w: 2, h: 0.4, fontSize: 14, bold: true, color: UI.text });
-    slide.addText(decisionData.title || '—', { x: 2.5, y: yPos, w: 6.5, h: 0.4, fontSize: 14, color: UI.textLight, wrap: true, fit: 'shrink' });
+    placeTextWithAutoFit(slide, decisionData.title || '—', { x: 2.5, y: yPos, w: 6.5, h: 0.4 }, { fontSizesToTry: [14,12,11,10], color: UI.textLight });
     yPos += 0.55;
 
     if (decisionData.description) {
         slide.addText('Description:', { x: 0.5, y: yPos, w: 2, h: 0.4, fontSize: 14, bold: true, color: UI.text });
-        slide.addText(decisionData.description, { x: 2.5, y: yPos, w: 6.5, h: 1.0, fontSize: 12, color: UI.textLight, wrap: true, fit: 'shrink' });
+        placeTextWithAutoFit(slide, decisionData.description || '', { x: 2.5, y: yPos, w: 6.5, h: 1.0 }, { fontSizesToTry: [14,12,11,10], color: UI.textLight });
         yPos += 1.05;
     }
 
-    slide.addText(`Options (${(decisionData.options||[]).length}):`, { x: 0.5, y: yPos, w: 9, h: 0.4, fontSize: 14, bold: true, color: UI.text });
+    slide.addText(`Options (${(decisionData.options || []).length}):`, { x: 0.5, y: yPos, w: 9, h: 0.4, fontSize: 14, bold: true, color: UI.text });
     yPos += 0.45;
 
     (decisionData.options || []).forEach((opt, i) => {
         if (yPos > 5) return;
-        slide.addText(`${i + 1}. ${opt.name}`, {
-            x: 1, y: yPos, w: 8, h: 0.36, fontSize: 12, color: UI.textLight, bullet: true, wrap: true, fit: 'shrink'
-        });
+        placeTextWithAutoFit(slide, `${i + 1}. ${opt.name}`, { x: 1, y: yPos, w: 8, h: 0.36 }, { fontSizesToTry: [12,11,10], color: UI.textLight, bullet: true, align: 'left' });
         yPos += 0.36;
     });
 
     // --- SLIDE 3: Executive Summary ---
     slide = newSlide();
-    slide.addText('📊 Executive Summary', {
-        x: 0.5, y: 0.2, w: 9, h: 0.5, fontSize: 26, bold: true, color: UI.primary
-    });
+    slide.addText('📊 Executive Summary', { x: 0.5, y: 0.2, w: 9, h: 0.6, fontSize: 26, bold: true, color: UI.primary });
 
     const winner = (advancedAnalytics.results && advancedAnalytics.results[0]) || { option: { name: '—' }, totalScore: 0 };
 
-    // Highlight box
-    slide.addShape(pptx.ShapeType.rect, {
-        x: 0.5, y: 1.0, w: 9, h: 1.2,
-        fill: { color: UI.bgLight },
-        line: { color: UI.primary, width: 2 }
-    });
+    slide.addShape(pptx.ShapeType.rect, { x: 0.5, y: 1.0, w: 9, h: 1.2, fill: { color: UI.bgLight }, line: { color: UI.primary, width: 2 } });
 
     slide.addText('🏆 Recommended Choice', { x: 0.7, y: 1.05, w: 8.6, h: 0.32, fontSize: 14, bold: true, color: UI.primary });
-    slide.addText(winner.option.name, { x: 0.7, y: 1.4, w: 6, h: 0.6, fontSize: 20, bold: true, color: UI.text });
+    placeTextWithAutoFit(slide, winner.option.name || '—', { x: 0.7, y: 1.4, w: 6, h: 0.6 }, { fontSizesToTry: [22,20,18,16], bold: true, color: UI.text });
     slide.addText(`Score: ${winner.totalScore.toFixed(2)}`, { x: 7, y: 1.4, w: 2.2, h: 0.6, fontSize: 16, color: UI.primary, align: 'right' });
 
     yPos = 2.7;
-    slide.addText(`Confidence Level: ${advancedAnalytics.confidence.level ? advancedAnalytics.confidence.level.toUpperCase() : 'N/A'}`, {
-        x: 0.5, y: yPos, w: 9, h: 0.4, fontSize: 14, bold: true, color: UI.text
-    });
-    slide.addText(advancedAnalytics.confidence.explanation || '', { x: 0.5, y: yPos + 0.45, w: 9, h: 1.2, fontSize: 12, color: UI.textLight, wrap: true, fit: 'shrink' });
+    slide.addText(`Confidence Level: ${advancedAnalytics.confidence.level ? advancedAnalytics.confidence.level.toUpperCase() : 'N/A'}`, { x: 0.5, y: yPos, w: 9, h: 0.4, fontSize: 14, bold: true, color: UI.text });
+    placeTextWithAutoFit(slide, advancedAnalytics.confidence.explanation || '', { x: 0.5, y: yPos + 0.45, w: 9, h: 1.2 }, { fontSizesToTry: [14,12,11,10], color: UI.textLight });
 
-    // --- SLIDE 4: Detailed Results (autoPage true to avoid overflow) ---
+    // --- SLIDE 4: Detailed Results (autoPage true keeps tables from overflowing single slide) ---
     slide = newSlide();
-    slide.addText('🎯 Detailed Results', { x: 0.5, y: 0.2, w: 9, h: 0.5, fontSize: 26, bold: true, color: UI.primary });
+    slide.addText('🎯 Detailed Results', { x: 0.5, y: 0.2, w: 9, h: 0.6, fontSize: 26, bold: true, color: UI.primary });
 
     const tableData = [
         [
@@ -7363,7 +7426,7 @@ function generatePPTX() {
         const gap = (advancedAnalytics.results && advancedAnalytics.results[0] ? advancedAnalytics.results[0].totalScore : 0) - result.totalScore;
         tableData.push([
             { text: `#${i + 1}`, options: { color: i === 0 ? UI.primary : UI.text } },
-            { text: result.option.name, options: { bold: i === 0, wrap: true } },
+            { text: result.option.name || '', options: { bold: i === 0, wrap: true } },
             { text: result.totalScore.toFixed(2), options: { color: i === 0 ? UI.primary : UI.text } },
             { text: gap > 0 ? `-${gap.toFixed(2)}` : '0.00', options: { color: gap > 0 ? UI.danger : UI.success } }
         ]);
@@ -7375,9 +7438,9 @@ function generatePPTX() {
         autoPage: true
     });
 
-    // --- SLIDE 5: Criteria Weights (pie + table with synchronized palette) ---
+    // --- SLIDE 5: Criteria Weights (pie + table with shared palette) ---
     slide = newSlide();
-    slide.addText('🥧 Decision Criteria Weights', { x: 0.5, y: 0.2, w: 9, h: 0.5, fontSize: 26, bold: true, color: UI.primary });
+    slide.addText('🥧 Decision Criteria Weights', { x: 0.5, y: 0.2, w: 9, h: 0.6, fontSize: 26, bold: true, color: UI.primary });
 
     const criteria = decisionData.criteria || [];
     const pieData = [{
@@ -7386,45 +7449,44 @@ function generatePPTX() {
         values: criteria.map(c => decisionData.normalizedWeights[c.id] || 0)
     }];
 
-    // Ensure pie uses same color palette as we will use for bars:
-    const effectiveColors = chartPalette.slice(0, Math.max(1, pieData[0].labels.length));
+    const effectiveColors = chartPalette.slice(0, Math.max(1, (pieData[0].labels || []).length));
 
     try {
         slide.addChart(pptx.ChartType.pie, pieData, {
             x: 0.5, y: 1.0, w: 4.2, h: 3.8,
             showLegend: true, legendPos: 'b', legendFontSize: 10,
             showValue: true, dataLabelFormatCode: '0.0"%"',
-            chartColors: effectiveColors, // keep pie and table visually aligned
+            chartColors: effectiveColors,
             showTitle: false
         });
     } catch (err) {
-        console.warn('Pie chart failed:', err);
-        slide.addText('Pie chart unavailable — see web app', { x: 0.5, y: 2.2, w: 4.2, h: 0.8, fontSize: 12, color: UI.textLight });
+        console.warn('Pie chart creation failed:', err);
+        placeTextWithAutoFit(slide, 'Pie chart unavailable — see web app', { x: 0.5, y: 2.2, w: 4.2, h: 0.8 }, { fontSizesToTry: [12,11,10], color: UI.textLight });
     }
 
-    // Right-side weights table using same palette for visual bars
-    const weightRows = [
+    // Right-side weights table — use same palette for bars
+    const weightsTable = [
         [
-            { text: 'Criteria', options: { bold: true, fill: UI.bgLight, align: 'center' } },
-            { text: 'Weight (%)', options: { bold: true, fill: UI.bgLight, align: 'center' } },
-            { text: 'Bar', options: { bold: true, fill: UI.bgLight, align: 'center' } }
+            { text: 'Criteria', options: { bold: true, fill: UI.bgLight, fontSize: 12, align: 'center' } },
+            { text: 'Weight (%)', options: { bold: true, fill: UI.bgLight, fontSize: 12, align: 'center' } },
+            { text: 'Bar', options: { bold: true, fill: UI.bgLight, fontSize: 12, align: 'center' } }
         ]
     ];
 
-    criteria.forEach((crit, i) => {
+    (decisionData.criteria || []).forEach((crit, i) => {
         const weight = decisionData.normalizedWeights[crit.id] || 0;
         const barLen = Math.max(1, Math.min(8, Math.round(weight / 12.5)));
         const barStr = '█'.repeat(barLen);
         const hex = effectiveColors[i % effectiveColors.length] || FALLBACK_CHART_COLORS[i % FALLBACK_CHART_COLORS.length];
 
-        weightRows.push([
-            { text: crit.name.length > 20 ? crit.name.slice(0,17) + '...' : crit.name, options: { wrap: true } },
-            { text: `${weight.toFixed(1)}%` },
-            { text: barStr, options: { color: hex } }
+        weightsTable.push([
+            { text: crit.name || '', options: { fontSize: 11, align: 'left', wrap: true } },
+            { text: `${weight.toFixed(1)}%`, options: { fontSize: 11, align: 'center', bold: true } },
+            { text: barStr, options: { fontSize: 10, color: hex, align: 'left' } }
         ]);
     });
 
-    slide.addTable(weightRows, {
+    slide.addTable(weightsTable, {
         x: 5.0, y: 1.0, w: 4.5, h: 3.8,
         border: { type: 'solid', color: UI.tableBorder },
         fill: { color: 'FFFFFF' }, fontSize: 10, autoPage: false
@@ -7432,10 +7494,10 @@ function generatePPTX() {
 
     // --- SLIDE 6: Criteria Impact Analysis ---
     slide = newSlide();
-    slide.addText('📊 Criteria Impact Analysis', { x: 0.5, y: 0.2, w: 9, h: 0.5, fontSize: 22, bold: true, color: UI.primary });
-    slide.addText('How each criterion affects the winner:', { x: 0.5, y: 0.95, w: 9, h: 0.4, fontSize: 12, color: UI.textLight });
+    slide.addText('📊 Criteria Impact Analysis', { x: 0.5, y: 0.2, w: 9, h: 0.6, fontSize: 22, bold: true, color: UI.primary });
+    slide.addText('How each criterion affects the winner:', { x: 0.5, y: 1.0, w: 9, h: 0.4, fontSize: 12, color: UI.textLight });
 
-    const impactRows = [
+    const impactTable = [
         [
             { text: 'Criteria', options: { bold: true, fill: UI.bgLight } },
             { text: 'Weight', options: { bold: true, fill: UI.bgLight } },
@@ -7444,46 +7506,53 @@ function generatePPTX() {
         ]
     ];
 
-    (decisionData.criteria || []).forEach(crit => {
-        const weight = (decisionData.normalizedWeights[crit.id] || 0) / 100;
-        const ratingKey = `${winner.option.id}-${crit.id}`;
+    (decisionData.criteria || []).forEach(criteriaItem => {
+        const weight = (decisionData.normalizedWeights[criteriaItem.id] || 0) / 100;
+        const ratingKey = `${winner.option.id}-${criteriaItem.id}`;
         const rating = (decisionData.ratings && (decisionData.ratings[ratingKey] || 0)) || 0;
         const contribution = (rating * weight).toFixed(2);
 
-        impactRows.push([
-            { text: crit.name },
-            { text: `${(weight*100).toFixed(1)}%` },
-            { text: `${rating.toFixed(1)}/5` },
-            { text: contribution, options: { color: UI.success } }
+        impactTable.push([
+            { text: criteriaItem.name || '', options: { fontSize: 11, wrap: true } },
+            { text: `${(weight * 100).toFixed(1)}%`, options: { fontSize: 11 } },
+            { text: `${rating.toFixed(1)}/5`, options: { fontSize: 11 } },
+            { text: contribution, options: { fontSize: 11, color: UI.success } }
         ]);
     });
 
-    slide.addTable(impactRows, { x: 0.5, y: 1.45, w: 9, h: 4.6, fontSize: 11, border: { type: 'solid', color: UI.tableBorder }, autoPage: true });
+    slide.addTable(impactTable, {
+        x: 0.5, y: 1.5, w: 9, h: 4.6, fontSize: 11, border: { type: 'solid', color: UI.tableBorder }, autoPage: true
+    });
 
     // --- SLIDE 7: Performance Heatmap ---
     slide = newSlide();
-    slide.addText('🔥 Performance Heatmap', { x: 0.5, y: 0.2, w: 9, h: 0.5, fontSize: 22, bold: true, color: UI.primary });
+    slide.addText('🔥 Performance Heatmap', { x: 0.5, y: 0.2, w: 9, h: 0.6, fontSize: 22, bold: true, color: UI.primary });
 
     const heatRows = [
         [
             { text: 'Option', options: { bold: true, fill: UI.bgLight, fontSize: 11 } },
-            ... (decisionData.criteria || []).map(c => ({ text: c.name.substring(0,15), options: { bold: true, fill: UI.bgLight, fontSize: 10 } }))
+            ... (decisionData.criteria || []).map(c => ({ text: c.name.substring(0, 15), options: { bold: true, fill: UI.bgLight, fontSize: 10 } }))
         ]
     ];
 
     (decisionData.options || []).forEach(opt => {
-        const row = [{ text: opt.name, options: { fontSize: 11, wrap: true } }];
+        const row = [{ text: opt.name || '', options: { fontSize: 11, wrap: true } }];
+
         (decisionData.criteria || []).forEach(cr => {
             const rk = `${opt.id}-${cr.id}`;
             const rating = (decisionData.ratings && (decisionData.ratings[rk] || 0)) || 0;
+
+            // heatmap color — fixed hex for readability; can be made scheme-aware if you prefer
             let cellColor = 'FFFFFF';
             if (rating >= 4) cellColor = 'c3e6cb';
             else if (rating >= 3) cellColor = 'ffeaa7';
             else if (rating >= 2) cellColor = 'fff3cd';
             else if (rating >= 1) cellColor = 'ffebee';
             else cellColor = 'ffcdd2';
+
             row.push({ text: rating.toFixed(1), options: { fill: cellColor, align: 'center' } });
         });
+
         heatRows.push(row);
     });
 
@@ -7492,8 +7561,8 @@ function generatePPTX() {
     // --- SLIDE 8: Sensitivity Analysis ---
     if (advancedAnalytics.sensitivity) {
         slide = newSlide();
-        slide.addText('⚖️ Sensitivity Analysis', { x: 0.5, y: 0.2, w: 9, h: 0.5, fontSize: 22, bold: true, color: UI.primary });
-        slide.addText('Decision Stability Assessment:', { x: 0.5, y: 0.95, w: 9, h: 0.4, fontSize: 12, bold: true, color: UI.text });
+        slide.addText('⚖️ Sensitivity Analysis', { x: 0.5, y: 0.2, w: 9, h: 0.6, fontSize: 22, bold: true, color: UI.primary });
+        slide.addText('Decision Stability Assessment:', { x: 0.5, y: 1.0, w: 9, h: 0.4, fontSize: 12, bold: true, color: UI.text });
 
         const flipPoints = (typeof computeFlipPoints === 'function') ? computeFlipPoints() : [];
 
@@ -7511,10 +7580,10 @@ function generatePPTX() {
                 ]
             ];
 
-            flipPoints.slice(0,5).forEach(fp => {
+            flipPoints.slice(0, 5).forEach(fp => {
                 const buffer = Math.abs(fp.currentWeight - fp.flipPoint);
                 sensRows.push([
-                    { text: fp.criteriaName },
+                    { text: fp.criteriaName || '', options: { wrap: true } },
                     { text: `${fp.currentWeight.toFixed(1)}%` },
                     { text: `${fp.flipPoint.toFixed(1)}%` },
                     { text: `${buffer.toFixed(1)}%`, options: { color: buffer < 10 ? UI.danger : UI.success } }
@@ -7527,8 +7596,8 @@ function generatePPTX() {
 
     // --- SLIDE 9: Satisficers Analysis ---
     slide = newSlide();
-    slide.addText('✅ Satisficers Analysis', { x: 0.5, y: 0.2, w: 9, h: 0.5, fontSize: 22, bold: true, color: UI.primary });
-    slide.addText('Options that meet minimum acceptable standards:', { x: 0.5, y: 0.95, w: 9, h: 0.4, fontSize: 12, color: UI.textLight });
+    slide.addText('✅ Satisficers Analysis', { x: 0.5, y: 0.2, w: 9, h: 0.6, fontSize: 22, bold: true, color: UI.primary });
+    slide.addText('Options that meet minimum acceptable standards:', { x: 0.5, y: 1.0, w: 9, h: 0.4, fontSize: 12, color: UI.textLight });
 
     const threshold = 2.5;
     const satisficers = (advancedAnalytics.results || []).filter(r => r.totalScore >= threshold);
@@ -7537,7 +7606,7 @@ function generatePPTX() {
     if (satisficers.length > 0) {
         satisficers.forEach((r, i) => {
             slide.addShape(pptx.ShapeType.rect, { x: 0.5, y: yPos, w: 9, h: 0.6, fill: { color: i === 0 ? UI.bgLight : 'FFFFFF' }, line: { color: i === 0 ? UI.primary : UI.tableBorder, width: 1 } });
-            slide.addText(`${i+1}. ${r.option.name}`, { x: 0.7, y: yPos + 0.05, w: 6, h: 0.5, fontSize: 13, bold: i === 0, wrap: true, fit: 'shrink' });
+            placeTextWithAutoFit(slide, `${i+1}. ${r.option.name}`, { x: 0.7, y: yPos + 0.05, w: 6, h: 0.5 }, { fontSizesToTry: [14,13,12], bold: i === 0, wrap: true });
             slide.addText(`Score: ${r.totalScore.toFixed(2)}`, { x: 7, y: yPos + 0.05, w: 2.2, h: 0.5, fontSize: 13, align: 'right', color: UI.primary });
             yPos += 0.68;
             if (yPos > 5) return;
@@ -7549,15 +7618,15 @@ function generatePPTX() {
     // --- SLIDE 10: Risk Analysis ---
     if (advancedAnalytics.risks && advancedAnalytics.risks.length > 0) {
         slide = newSlide();
-        slide.addText('⚠️ Risk Analysis', { x: 0.5, y: 0.2, w: 9, h: 0.5, fontSize: 22, bold: true, color: UI.primary });
+        slide.addText('⚠️ Risk Analysis', { x: 0.5, y: 0.2, w: 9, h: 0.6, fontSize: 22, bold: true, color: UI.primary });
 
         yPos = 1.15;
-        (advancedAnalytics.risks || []).slice(0,5).forEach(risk => {
+        (advancedAnalytics.risks || []).slice(0, 5).forEach(risk => {
             const sevCol = (risk.severity === 'critical') ? UI.danger : (risk.severity === 'high' ? UI.warning : UI.success);
             const fillColor = (risk.severity === 'critical') ? 'f8d7da' : (risk.severity === 'high' ? 'fff3cd' : 'd4edda');
 
             slide.addShape(pptx.ShapeType.rect, { x: 0.5, y: yPos, w: 9, h: 0.8, fill: { color: fillColor }, line: { color: sevCol, width: 1 } });
-            slide.addText(`${risk.severity.toUpperCase()}: ${risk.description}`, { x: 0.7, y: yPos + 0.1, w: 8.6, h: 0.6, fontSize: 12, wrap: true, fit: 'shrink', color: UI.text });
+            placeTextWithAutoFit(slide, `${risk.severity.toUpperCase()}: ${risk.description}`, { x: 0.7, y: yPos + 0.1, w: 8.6, h: 0.6 }, { fontSizesToTry: [14,12,11,10], color: UI.text });
             yPos += 0.92;
             if (yPos > 5.5) return;
         });
@@ -7565,10 +7634,10 @@ function generatePPTX() {
 
     // --- SLIDE 11: Next Steps & Recommendations ---
     slide = newSlide();
-    slide.addText('✅ Next Steps & Recommendations', { x: 0.5, y: 0.2, w: 9, h: 0.5, fontSize: 22, bold: true, color: UI.primary });
+    slide.addText('✅ Next Steps & Recommendations', { x: 0.5, y: 0.2, w: 9, h: 0.6, fontSize: 22, bold: true, color: UI.primary });
 
     slide.addShape(pptx.ShapeType.rect, { x: 0.5, y: 1.15, w: 9, h: 1.5, fill: { color: UI.bgLight }, line: { color: UI.primary, width: 3 } });
-    slide.addText(`Based on your criteria, we recommend: ${winner.option.name}`, { x: 0.7, y: 1.35, w: 8.6, h: 1.0, fontSize: 18, bold: true, wrap: true, fit: 'shrink', color: UI.text });
+    placeTextWithAutoFit(slide, `Based on your criteria, we recommend: ${winner.option.name}`, { x: 0.7, y: 1.35, w: 8.6, h: 1.0 }, { fontSizesToTry: [20,18,16,14], bold: true, wrap: true });
 
     yPos = 2.9;
     slide.addText('Recommended Next Steps:', { x: 0.5, y: yPos, w: 9, h: 0.4, fontSize: 14, bold: true, color: UI.text });
@@ -7583,11 +7652,11 @@ function generatePPTX() {
 
     yPos += 0.45;
     nextSteps.forEach(step => {
-        slide.addText(step, { x: 1, y: yPos, w: 8, h: 0.34, fontSize: 12, color: UI.textLight, bullet: true, wrap: true, fit: 'shrink' });
+        placeTextWithAutoFit(slide, step, { x: 1, y: yPos, w: 8, h: 0.3 }, { fontSizesToTry: [12,11,10], color: UI.textLight, bullet: true });
         yPos += 0.34;
     });
 
-    // Finalize and write the file
+    // Finalize file name and write
     const safeTitle = (decisionData.title || 'report').replace(/[^a-z0-9]/gi, '_').toLowerCase();
     const fileName = `choicease_advanced_${safeTitle}_${Date.now()}.pptx`;
 
@@ -7598,6 +7667,10 @@ function generatePPTX() {
             showToast('Failed to generate PowerPoint. Please try again.', 'error');
         });
 }
+
+
+
+
 
 
 
