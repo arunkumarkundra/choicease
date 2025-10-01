@@ -7651,27 +7651,88 @@ function generatePPTX() {
         }
     }
 
-    // --- SLIDE 9: Satisficers Analysis ---
-    slide = newSlide();
-    slide.addText('✅ Satisficers Analysis', { x: 0.5, y: 0.2, w: 9, h: 0.5, fontSize: 22, bold: true, color: S.accent1 });
-    slide.addText('Options that meet minimum acceptable standards:', { x: 0.5, y: 1.0, w: 9, h: 0.35, fontSize: 12, color: S.text2 });
+// --- SLIDE 9: Satisficers Analysis (REPLACED) ---
+// Shows only options that meet the per-criterion minimum across ALL criteria.
+// Displays original ranks and uses 1- or 2-column layout to avoid overflow.
 
-    const threshold = 2.5;
-    const satisficers = (advancedAnalytics.results || []).filter(r => r.totalScore >= threshold);
-    yPos = 1.4;
+slide = newSlide();
+slide.addText('✅ Satisficers Analysis', { x: 0.5, y: 0.2, w: 9, h: 0.5, fontSize: 22, bold: true, color: S.accent1 });
+slide.addText('Options that meet minimum acceptable standards:', { x: 0.5, y: 1.0, w: 9, h: 0.35, fontSize: 12, color: S.text2 });
 
-    if (satisficers.length > 0) {
-        satisficers.forEach((r, i) => {
-            slide.addShape(pptx.ShapeType.rect, { x: 0.5, y: yPos, w: 9, h: 0.6, fill: { color: i === 0 ? S.background2 : 'FFFFFF' }, line: { color: i === 0 ? S.accent3 : UI.tableBorder, width: 1 } });
-            placeTextWithAutoFit(slide, `${i + 1}. ${r.option.name}`, { x: 0.7, y: yPos + 0.05, w: 6, h: 0.5 }, { fontSizesToTry: [14,13,12], bold: i === 0, color: S.text1 });
-            slide.addText(`Score: ${r.totalScore.toFixed(2)}`, { x: 7, y: yPos + 0.05, w: 2.2, h: 0.5, fontSize: 13, align: 'right', color: S.accent4 });
-            yPos += 0.68;
-            if (yPos > 5) return;
+// CONFIG: per-criterion minimum to qualify as a satisficer
+// You can change this number if you want a stricter/looser filter.
+const satisficerCriterionThreshold = 2.5;
+
+// Build an array of results with original rank preserved
+const rankedResults = (advancedAnalytics.results || []).map((r, idx) => ({
+    rank: idx + 1,
+    result: r
+}));
+
+// Filter: keep only options where for ALL criteria the option's rating >= threshold
+const criteriaList = decisionData.criteria || [];
+const satisficersFiltered = rankedResults.filter(({ result }) => {
+    // For each criterion, check rating for this option
+    for (let crit of criteriaList) {
+        const ratingKey = `${result.option.id}-${crit.id}`;
+        const rating = (decisionData.ratings && (decisionData.ratings[ratingKey] || 0)) || 0;
+        if (rating < satisficerCriterionThreshold) return false; // fails on at least one criterion
+    }
+    return true; // passed all criteria
+});
+
+// If none meet the per-criterion criteria show a message
+if (!satisficersFiltered || satisficersFiltered.length === 0) {
+    slide.addText('No options meet the minimum per-criterion threshold', { x: 0.5, y: 1.8, w: 9, h: 0.5, fontSize: 14, color: S.accent6, align: 'center' });
+} else {
+    // Layout: if <=6 show single column; otherwise use two columns to save vertical space
+    const items = satisficersFiltered; // array of { rank, result }
+
+    // column coordinates (match the Decision Overview approach)
+    const leftX = 0.8, leftW = 4.2;
+    const rightX = 5.2, rightW = 3.8;
+    const rowH = 0.36;
+
+    if (items.length <= 6) {
+        // Single column, list all (use original rank in display). No bullets (numbering already present).
+        let y = 1.45;
+        items.forEach((item, i) => {
+            const rank = item.rank;
+            const optName = (item.result && item.result.option && item.result.option.name) || '';
+            const score = (item.result && typeof item.result.totalScore === 'number') ? item.result.totalScore.toFixed(2) : '—';
+            // Emphasize the first item visually
+            slide.addShape(pptx.ShapeType.rect, { x: 0.6, y: y - 0.05, w: 8.6, h: 0.44, fill: { color: i === 0 ? S.background2 : 'FFFFFF' }, line: { color: i === 0 ? S.accent3 : UI.tableBorder, width: 1 } });
+
+            placeTextWithAutoFit(slide, `#${rank} ${optName} (${score})`, { x: 0.7, y: y, w: 7.8, h: 0.4 }, { fontSizesToTry: [14,13,12,11], bold: i === 0, color: S.text1 });
+            y += rowH;
         });
     } else {
-        slide.addText('No options meet the minimum threshold', { x: 0.5, y: 2.5, w: 9, h: 0.5, fontSize: 14, color: S.accent6, align: 'center' });
-    }
+        // Two-column layout: split items into two roughly equal columns using original ranking order
+        const perCol = Math.ceil(items.length / 2);
+        let baseY = 1.45;
+        for (let i = 0; i < perCol; ++i) {
+            const leftItem = items[i];
+            const rightItem = items[i + perCol];
+            const rowY = baseY + (i * rowH);
 
+            if (leftItem) {
+                const rank = leftItem.rank;
+                const optName = (leftItem.result && leftItem.result.option && leftItem.result.option.name) || '';
+                const score = (leftItem.result && typeof leftItem.result.totalScore === 'number') ? leftItem.result.totalScore.toFixed(2) : '—';
+                placeTextWithAutoFit(slide, `#${rank} ${optName} (${score})`, { x: leftX, y: rowY, w: leftW, h: rowH }, { fontSizesToTry: [12,11,10], color: S.text1 });
+            }
+
+            if (rightItem) {
+                const rank = rightItem.rank;
+                const optName = (rightItem.result && rightItem.result.option && rightItem.result.option.name) || '';
+                const score = (rightItem.result && typeof rightItem.result.totalScore === 'number') ? rightItem.result.totalScore.toFixed(2) : '—';
+                placeTextWithAutoFit(slide, `#${rank} ${optName} (${score})`, { x: rightX, y: rowY, w: rightW, h: rowH }, { fontSizesToTry: [12,11,10], color: S.text1 });
+            }
+        }
+    }
+}
+
+        
     // --- SLIDE 10: Risk Analysis ---
     if (advancedAnalytics.risks && advancedAnalytics.risks.length > 0) {
         slide = newSlide();
