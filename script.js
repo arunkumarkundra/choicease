@@ -8026,8 +8026,29 @@ Made with [Choicease](https://choicease.com) - Smart Choices, Made Easy!
                 copyToClipboard(redditPost);
             }
                 
+
+            // Handle Post to X
+            if (event.target.id === 'postToX') {
+                event.preventDefault();
+
+                const title = decisionData.title || 'my decision';
+                const tweetText = `Sharing my ChoiceaseDecision on: ${title}. Scan the QR to explore it on choicease.com`;
+                const intentUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(tweetText)}`;
+
+                // Trigger QR download first
+                const qrBtn = document.querySelector('[data-type="qr"]');
+                if (qrBtn) qrBtn.click();
+
+                // Open X after short delay to let download begin
+                setTimeout(() => {
+                    window.open(intentUrl, '_blank');
+                    showToast('Attach the downloaded QR image to your tweet! 📎', 'info');
+                }, 1500);
+            }
                 
         });
+
+
 
 
         // Helper function to copy text to clipboard
