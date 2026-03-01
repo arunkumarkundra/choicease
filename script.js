@@ -8039,11 +8039,13 @@ Made with [Choicease](https://choicease.com) - Smart Choices, Made Easy!
                 const qrBtn = document.querySelector('[data-type="qr"]');
                 if (qrBtn) qrBtn.click();
 
-                // Open X after short delay to let download begin
+                // Show toast FIRST, open X only after user has had time to read it
+                showToast('QR downloaded! In X, tap the 📎 icon to attach it to your tweet.', 'info');
+
+                // Open X after short delay
                 setTimeout(() => {
-                    window.open(intentUrl, '_blank');
-                    showToast('Attach the downloaded QR image to your tweet! 📎', 'info');
-                }, 1500);
+                    window.open(intentUrl, '_blank');                   
+                }, 3000);
             }
                 
         });
