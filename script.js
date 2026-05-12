@@ -6343,46 +6343,79 @@ function createSingleQR(data, index, totalChunks, tempDiv) {
 // ========================================
 
 function createFinalImage(qrCanvases, totalChunks) {
-    const qrSize = 768; // Match the new QR size
-    const padding = 40;
-    const headerHeight = 120;
-    const footerHeight = 100;
-    const qrSpacing = 60; // INCREASED: More space between QRs (was 20)
-    const labelHeight = 40; // NEW: Dedicated space for labels
-    
-    // Calculate canvas dimensions with proper spacing for labels
-    const canvasWidth = qrSize + (padding * 2);
-    const canvasHeight = headerHeight + 
-                        (qrSize * totalChunks) + 
-                        (labelHeight * totalChunks) + // NEW: Space for labels
-                        (qrSpacing * Math.max(0, totalChunks - 1)) + 
-                        footerHeight + 
-                        (padding * 2);
+    // Orchestrator: generate results card + QR canvas, combine, download
+    // Fallback: if results card fails, export QR only
 
-    // Create output canvas
-    const outputCanvas = document.createElement('canvas');
-    outputCanvas.width = canvasWidth;
-    outputCanvas.height = canvasHeight;
-    const ctx = outputCanvas.getContext('2d');
+    // Step 1: always build QR canvas first (required)
+    let qrCanvas;
+    try {
+        qrCanvas = createQRCanvas(qrCanvases, totalChunks);
+    } catch (error) {
+        console.error('QR canvas creation failed:', error);
+        showToast('Failed to generate QR image. Please try again.', 'error');
+        return;
+    }
 
-    // White background
+    // Step 2: try to generate results card
+    createShareableImage()
+        .then(resultsCanvas => {
+            // Step 3: try to combine both canvases
+            let combined;
+            try {
+                combined = combineCanvases(resultsCanvas, qrCanvas);
+            } catch (error) {
+                console.warn('Canvas combine failed, falling back to QR only:', error);
+                combined = qrCanvas;  // graceful fallback
+            }
+            // Step 4: download
+            downloadCanvas(combined);
+        })
+        .catch(error => {
+            // Results card failed — still export QR only
+            console.warn('Results card failed, exporting QR only:', error);
+            downloadCanvas(qrCanvas);
+        });
+}
+
+// ========================================
+// EXTRACTED: Draws the QR code section
+// Returns a canvas (no downloading)
+// ========================================
+function createQRCanvas(qrCanvases, totalChunks) {
+    const qrSize        = 768;
+    const padding       = 40;
+    const headerHeight  = 120;
+    const footerHeight  = 100;
+    const qrSpacing     = 60;
+    const labelHeight   = 40;
+
+    const canvasWidth  = qrSize + (padding * 2);
+    const canvasHeight = headerHeight +
+        (qrSize * totalChunks) +
+        (labelHeight * totalChunks) +
+        (qrSpacing * Math.max(0, totalChunks - 1)) +
+        footerHeight +
+        (padding * 2);
+
+    const canvas = document.createElement('canvas');
+    canvas.width  = canvasWidth;
+    canvas.height = canvasHeight;
+    const ctx = canvas.getContext('2d');
+
+    // White background + border
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);
-
-    // Add border for better QR detection
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2;
     ctx.strokeRect(1, 1, canvasWidth - 2, canvasHeight - 2);
 
-    // Header
+    // Header text
     ctx.fillStyle = '#000000';
     ctx.textAlign = 'center';
     ctx.font = 'bold 18px Arial, sans-serif';
-    
-//    const title = (decisionData.title || 'Choicease Decision').substring(0, 50);
     ctx.fillText('Choicease Decision Analysis', canvasWidth / 2, padding + 25);
 
-    // Truncate title at word boundary (max 80 chars)
+    // Decision title (truncated at word boundary if needed)
     let title = decisionData.title || 'Choicease Decision';
     if (title.length > 80) {
         const words = title.split(' ');
@@ -6396,21 +6429,18 @@ function createFinalImage(qrCanvases, totalChunks) {
         }
         title = truncated + '...';
     }
-    
     ctx.font = 'bold 24px Arial, sans-serif';
     ctx.fillText(title, canvasWidth / 2, padding + 55);
-    
-    // Description (up to two lines, word-level truncation)
+
+    // Optional description (up to two lines)
     if (decisionData.description && decisionData.description.length > 0) {
         ctx.font = '14px Arial, sans-serif';
         ctx.fillStyle = '#000000';
-            
+
         const maxCharsPerLine = 100;
         const words = decisionData.description.split(' ');
-        let line1 = '';
-        let line2 = '';
-        let currentLine = 1;
-        
+        let line1 = '', line2 = '', currentLine = 1;
+
         for (let word of words) {
             if (currentLine === 1) {
                 if ((line1 + word).length <= maxCharsPerLine) {
@@ -6428,75 +6458,133 @@ function createFinalImage(qrCanvases, totalChunks) {
                 }
             }
         }
-        
         ctx.fillText(line1, canvasWidth / 2, padding + 80);
-        if (line2) {
-            ctx.fillText(line2, canvasWidth / 2, padding + 100);
-        }
+        if (line2) ctx.fillText(line2, canvasWidth / 2, padding + 100);
     }
 
-
-    // Draw QR codes with proper spacing and labels
+    // Draw each QR code
     let yOffset = headerHeight + padding;
-    qrCanvases.forEach((canvas, index) => {
-        // FIXED: Add chunk label ABOVE the QR code with proper spacing
-        ctx.fillStyle = '#333333';
-        ctx.font = 'bold 16px Arial, sans-serif';
-        ctx.textAlign = 'center';
-//        ctx.fillText(`Part ${index + 1} of ${totalChunks}`, canvasWidth / 2, yOffset + 20);
-        
-        // Move QR code position down to accommodate label
+    qrCanvases.forEach((qrCanvas) => {
         const qrYPosition = yOffset + labelHeight;
-        
-        // Draw border around QR code area with more generous spacing
+
+        // Border around each QR
         ctx.strokeStyle = '#cccccc';
         ctx.lineWidth = 1;
         ctx.strokeRect(padding - 5, qrYPosition - 5, qrSize + 10, qrSize + 10);
-        
-        // Draw QR code
-        ctx.drawImage(canvas, padding, qrYPosition, qrSize, qrSize);
-        
-        // Move to next position with proper spacing
+
+        ctx.drawImage(qrCanvas, padding, qrYPosition, qrSize, qrSize);
+
         yOffset += qrSize + labelHeight + qrSpacing;
     });
 
-    
-    // Footer (adjust position based on new layout)
+    // Footer placeholder text (logo added later in downloadCanvas)
+    ctx.fillStyle = '#333333';
+    ctx.textAlign = 'right';
+    ctx.font = '12px Arial, sans-serif';
+    const rightAlignX = canvasWidth - padding;
     const footerY = canvasHeight - footerHeight;
-    
-    // Logo on left - with proper loading
-    const logo = new Image();
-    logo.onload = function() {
-        const logoHeight = 60;
-        const logoWidth = logo.width * (logoHeight / logo.height); // Maintain aspect ratio
-        ctx.drawImage(logo, padding, footerY, logoWidth, logoHeight);
-        
-        // Text on right - moved inside onload to ensure logo loads first
-        ctx.fillStyle = '#333333';
-        ctx.textAlign = 'right';
-        ctx.font = '12px Arial, sans-serif';
-        const rightAlignX = canvasWidth - padding;
-        ctx.fillText('Generated: ' + new Date().toLocaleString(), rightAlignX, footerY + 20);
-        ctx.fillText('Import at: https://choicease.com', rightAlignX, footerY + 40);
-        ctx.fillText('Share at: https://reddit.com/r/choicease', rightAlignX, footerY + 60);
-    
-        // Download with better quality - moved inside onload
-        const url = outputCanvas.toDataURL('image/png', 1.0);
-        const safeTitle = (decisionData.title || 'decision').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-').substring(0, 19);
-        const filename = `choicease_QR_${safeTitle}_${timestamp}.png`;
-    
+    ctx.fillText('Generated: ' + new Date().toLocaleString(),   rightAlignX, footerY + 20);
+    ctx.fillText('Import at: https://choicease.com',             rightAlignX, footerY + 40);
+    ctx.fillText('Share at: https://reddit.com/r/choicease',     rightAlignX, footerY + 60);
+
+    return canvas;
+}
+
+
+// ========================================
+// NEW: Stacks results canvas on top of
+// QR canvas with a branded separator
+// Returns combined canvas
+// ========================================
+function combineCanvases(resultsCanvas, qrCanvas) {
+    const separatorHeight = 36;
+    const targetWidth     = qrCanvas.width;
+
+    // Scale results canvas to match QR canvas width
+    const resultsScaledHeight = Math.round(
+        resultsCanvas.height * (targetWidth / resultsCanvas.width)
+    );
+
+    const totalHeight = resultsScaledHeight + separatorHeight + qrCanvas.height;
+
+    const combined = document.createElement('canvas');
+    combined.width  = targetWidth;
+    combined.height = totalHeight;
+    const ctx = combined.getContext('2d');
+
+    // White background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, targetWidth, totalHeight);
+
+    // 1. Results card at top
+    ctx.drawImage(resultsCanvas, 0, 0, targetWidth, resultsScaledHeight);
+
+    // 2. Branded separator strip
+    const sepY = resultsScaledHeight;
+    ctx.fillStyle = '#667eea';
+    ctx.fillRect(0, sepY, targetWidth, separatorHeight);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 13px Arial, sans-serif';
+    ctx.fillText(
+        '▼  Scan QR code to explore full analysis on choicease.com  ▼',
+        targetWidth / 2,
+        sepY + 22
+    );
+
+    // 3. QR section below
+    ctx.drawImage(qrCanvas, 0, resultsScaledHeight + separatorHeight);
+
+    return combined;
+}
+
+
+// ========================================
+// NEW: Draws logo then triggers download
+// Falls back gracefully if logo missing
+// ========================================
+function downloadCanvas(canvas) {
+    const safeTitle = (decisionData.title || 'decision')
+        .replace(/[^a-zA-Z0-9]/g, '_')
+        .substring(0, 30);
+    const timestamp = new Date().toISOString()
+        .replace(/[:.]/g, '-')
+        .substring(0, 19);
+    const filename = `choicease_QR_${safeTitle}_${timestamp}.png`;
+
+    function triggerDownload() {
+        const url  = canvas.toDataURL('image/png', 1.0);
         const link = document.createElement('a');
         link.download = filename;
-        link.href = url;
+        link.href     = url;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
-        console.log("QR export completed successfully");
+        console.log('QR export completed successfully');
+    }
+
+    // Try to paint logo onto canvas bottom-left, then download
+    const logo = new Image();
+    logo.onload = function () {
+        try {
+            const ctx        = canvas.getContext('2d');
+            const logoHeight = 60;
+            const logoWidth  = logo.width * (logoHeight / logo.height);
+            const padding    = 40;
+            const footerY    = canvas.height - 100; // matches footerHeight in createQRCanvas
+            ctx.drawImage(logo, padding, footerY, logoWidth, logoHeight);
+        } catch (e) {
+            console.warn('Logo draw failed, continuing without it:', e);
+        }
+        triggerDownload();
     };
-    logo.src = "images/Choicease logo.png";    
-     
+    logo.onerror = function () {
+        // Logo missing — download without it, no crash
+        console.warn('Logo not found, downloading without it');
+        triggerDownload();
+    };
+    logo.src = 'images/Choicease logo.png';
 }
 
         
