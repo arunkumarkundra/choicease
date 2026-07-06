@@ -41,8 +41,8 @@ export function buildShareText(analysis, link) {
     `${decision.options.length} options · ${decision.criteria.length} criteria · properly weighed, not gut-felt`,
     ``,
     link?.url && !link.oversized
-      ? `Open my full analysis (and tweak it yourself): <br> ${url}`
-      : `Try it yourself — free, private, no sign-up: <br> ${url}`,
+      ? `Open my full analysis (and tweak it yourself):\n${url}`
+      : `Try it yourself — free, private, no sign-up:\n${url}`,
     `#${COMMUNITY_TAG}`,
   ];
   return lines.join('\n');
