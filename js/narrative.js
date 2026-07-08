@@ -128,7 +128,7 @@ export function tradeOffLine(ranked, drivers, risks) {
 
 /** Multi-paragraph executive summary for reports. */
 export function executiveSummary(decision, analysis) {
-  const { ranked, confidence, drivers, flipPoints, risks, robustness, regret } = analysis;
+  const { ranked, confidence, drivers, flipPoints, risks, robustness, regret, eliminator } = analysis;
   if (!ranked.length) return '';
   const top = ranked[0];
   const lines = [];
@@ -165,6 +165,17 @@ export function executiveSummary(decision, analysis) {
     lines.push(
       `Alternative lens: under a minimax-regret criterion, ${regret[0].option.name} would be preferred — ` +
       `it carries the smallest worst-case regret. The divergence indicates the recommendation trades a modest downside risk for higher expected fit.`,
+    );
+  }
+
+  if (eliminator?.eliminated?.length) {
+    const names = eliminator.eliminated.map((e) => e.option.name);
+    lines.push(
+      `Screening: ${joinNames(names)} can be safely eliminated — ` +
+      `${eliminator.eliminated.every((e) => e.rule === 'dominated')
+        ? 'each is dominated by a stronger option on every criterion'
+        : 'no weighting of the stated criteria lifts them to first place'}. ` +
+      `The effective shortlist is ${joinNames(eliminator.shortlist)}.`,
     );
   }
 
