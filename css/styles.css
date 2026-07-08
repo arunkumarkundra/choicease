@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Choicease — styles.css
+   Choicease â€” styles.css
    Boardroom-paper design system.
    Tokens: ink navy, slate, petrol accent; semantic green/amber/red
    reserved for meaning. Schibsted Grotesk display, Inter body,
@@ -957,7 +957,7 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 .footer a { color: var(--slate); }
 
 /* ==========================================================================
-   v2.1 additions — results layers, lenses, chips, assist, editor
+   v2.1 additions â€” results layers, lenses, chips, assist, editor
    ========================================================================== */
 
 /* Gated stepper tabs */
@@ -1259,3 +1259,17 @@ button { font: inherit; color: inherit; background: none; border: none; cursor: 
 
 /* Matrix header alignment tweak for ranking table */
 .matrix td { font-size: 0.85rem; }
+
+/* Eliminator cards */
+.eliminate-card {
+  border: 1px solid #ecc8c3;
+  border-left: 4px solid var(--risk);
+  background: var(--risk-tint);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 10px;
+}
+.eliminate-card--watch { border-color: #e6d3a3; border-left-color: var(--warn); background: var(--warn-tint); }
+.eliminate-card__head { font-weight: 700; margin-bottom: 4px; }
+.eliminate-card__why { font-size: 0.88rem; color: var(--slate); }
+.eliminate-card__why strong { color: var(--ink); }
