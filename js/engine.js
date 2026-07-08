@@ -374,6 +374,117 @@ export function computeDominance(decision) {
   return dominated;
 }
 
+/* --------------------- Sweep winners (who can ever be #1?) --------------- */
+/* Sweeps every criterion's weight 0-100% (others rescaled) and records every
+   option that tops the ranking somewhere, with a first example of how.
+   An option absent from this map cannot reach #1 under any single-criterion
+   emphasis — the backbone of safe elimination. */
+
+export function computeSweepWinners(decision) {
+  const basePct = normalizeWeights(decision.weights);
+  const winners = new Map(); // optionId -> null (current winner) | {criterionName, weightPct}
+  const base = assignRanks(computeResults(decision));
+  for (const r of base) {
+    if (r.rank === 1) winners.set(r.option.id, null);
+  }
+  for (const criterion of decision.criteria) {
+    for (let w = 0; w <= 100; w += 1) {
+      const trial = buildTrialWeights(basePct, criterion.id, w);
+      const top = computeResults(decision, trial)[0].option;
+      if (!winners.has(top.id)) {
+        winners.set(top.id, { criterionName: criterion.name, weightPct: w });
+      }
+    }
+  }
+  return winners;
+}
+
+/* ----------------------------- Eliminator -------------------------------- */
+/* "What can be safely cut from the list?" An option is only ELIMINATED when
+   the evidence is airtight; compensable weakness goes to a watchlist instead.
+   Rules (any one eliminates):
+     A. Dominated — another option is equal-or-better on every criterion.
+     B. Deal-breakers + no path to #1 — worst-in-field ratings (<= DEAL_BREAKER_RATING)
+        on criteria carrying >= DEAL_BREAKER_WEIGHT_PCT of weight, AND the sweep
+        (plus robustness scenarios, when provided) never crowns it.
+     C. No path to #1 at all — never wins the sweep and 0% of robustness scenarios,
+        regardless of deal-breakers.
+   Deal-breakers WITH a path to #1 -> watchlist, with the rescue condition shown. */
+
+export const DEAL_BREAKER_RATING = 2;
+export const DEAL_BREAKER_WEIGHT_PCT = 50;
+
+export function computeEliminator(decision, { robustness = null } = {}) {
+  const evaluated = decision.options.length;
+  if (evaluated < 2 || decision.criteria.length === 0) {
+    return { eliminated: [], watchlist: [], shortlist: decision.options.map((o) => o.name), evaluated };
+  }
+  const weightsPct = normalizeWeights(decision.weights);
+  const dominance = computeDominance(decision);
+  const sweepWinners = computeSweepWinners(decision);
+  const shareByOption = robustness
+    ? Object.fromEntries(robustness.winShare.map((w) => [String(w.option.id), w.share]))
+    : null;
+
+  const minPerCriterion = {};
+  for (const c of decision.criteria) {
+    minPerCriterion[c.id] = Math.min(
+      ...decision.options.map((o) => getRating(decision, o.id, c.id)),
+    );
+  }
+
+  const eliminated = [];
+  const watchlist = [];
+
+  for (const option of decision.options) {
+    const canWin = sweepWinners.has(option.id);
+    if (canWin && sweepWinners.get(option.id) === null) continue; // current winner: never eliminable
+
+    const dominatedBy = dominance.find((d) => d.dominatedId === option.id)?.by || null;
+
+    const dealBreakers = [];
+    for (const c of decision.criteria) {
+      const rating = getRating(decision, option.id, c.id);
+      if (rating <= DEAL_BREAKER_RATING && rating <= minPerCriterion[c.id] + 1e-9) {
+        dealBreakers.push({
+          criterionName: c.name,
+          rating,
+          weightPct: weightsPct[c.id] || 0,
+        });
+      }
+    }
+    dealBreakers.sort((a, b) => b.weightPct - a.weightPct);
+    const dealBreakerWeightPct = dealBreakers.reduce((s, d) => s + d.weightPct, 0);
+    const hasDealBreakers = dealBreakerWeightPct >= DEAL_BREAKER_WEIGHT_PCT;
+
+    const robustShare = shareByOption ? (shareByOption[String(option.id)] || 0) : null;
+    const neverWins = !canWin && (robustShare === null || robustShare === 0);
+
+    const entryBase = {
+      option: { id: option.id, name: option.name },
+      dominatedBy,
+      dealBreakers,
+      dealBreakerWeightPct,
+      canWin,
+      robustShare,
+    };
+
+    if (dominatedBy) {
+      eliminated.push({ ...entryBase, rule: 'dominated' });
+    } else if (hasDealBreakers && neverWins) {
+      eliminated.push({ ...entryBase, rule: 'dealBreakers' });
+    } else if (neverWins) {
+      eliminated.push({ ...entryBase, rule: 'neverWins' });
+    } else if (hasDealBreakers && canWin) {
+      watchlist.push({ ...entryBase, rescue: sweepWinners.get(option.id) });
+    }
+  }
+
+  const eliminatedIds = new Set(eliminated.map((e) => e.option.id));
+  const shortlist = decision.options.filter((o) => !eliminatedIds.has(o.id)).map((o) => o.name);
+  return { eliminated, watchlist, shortlist, evaluated };
+}
+
 /* ---------------------------- Robustness --------------------------------- */
 /* Perturb every criterion weight by a random factor in [1−jitter, 1+jitter],
    renormalize, recompute the winner. Deterministic via seeded PRNG. */
@@ -430,5 +541,6 @@ export function analyzeDecision(decision) {
   const regret = computeRegret(decision);
   const dominance = computeDominance(decision);
   const robustness = computeRobustness(decision);
-  return { ranked, flipPoints, confidence, drivers, risks, regret, dominance, robustness };
+  const eliminator = computeEliminator(decision, { robustness });
+  return { ranked, flipPoints, confidence, drivers, risks, regret, dominance, robustness, eliminator };
 }
