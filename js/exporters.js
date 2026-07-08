@@ -171,7 +171,11 @@ export function exportPDF(analysis, summaryText) {
         : '';
       const regretLeader = regret[0];
       const regretLine = `Minimax regret: ${regretLeader.option.name} carries the smallest worst-case regret (${regretLeader.maxRegret.toFixed(2)}${regretLeader.maxRegretCriterion ? `, driven by ${regretLeader.maxRegretCriterion}` : ''}).`;
-      for (const line of [robustLine, regretLine].filter(Boolean)) {
+      const elim = analysis.eliminator;
+      const elimLine = elim.eliminated.length
+        ? `Eliminator: ${elim.eliminated.map((e) => pptxEliminationNote(e)).join('; ')}. Shortlist: ${elim.shortlist.join(', ')}.`
+        : '';
+      for (const line of [robustLine, regretLine, elimLine].filter(Boolean)) {
         const wrapped = doc.splitTextToSize(line, contentW);
         doc.text(wrapped, margin, y);
         y += wrapped.length * 12 + 4;
@@ -292,7 +296,7 @@ export function exportPPTX(analysis, summaryText) {
 
 /** Exported separately so tests can build the deck in Node. */
 export function buildPptx(PptxGenJS, analysis, summaryText) {
-  const { ranked, confidence, flipPoints, drivers, regret, robustness, risks, dominance } = analysis;
+  const { ranked, confidence, flipPoints, drivers, regret, robustness, risks, eliminator } = analysis;
   const pptx = new PptxGenJS();
   pptx.layout = 'LAYOUT_16x9';
   pptx.defineSlideMaster({
@@ -470,8 +474,11 @@ export function buildPptx(PptxGenJS, analysis, summaryText) {
     }
     s.addTable(rows, { ...tableStyle, y: 1.2, rowH: 0.32 });
     const notes = [];
-    if (dominance.length) {
-      notes.push(`Dominated options (safe to eliminate under any weighting): ${dominance.map((d) => `${d.dominated} (by ${d.by})`).join('; ')}.`);
+    if (eliminator.eliminated.length) {
+      notes.push(`Eliminator — safe to cut: ${eliminator.eliminated.map((e) => pptxEliminationNote(e)).join('; ')}. Shortlist: ${eliminator.shortlist.join(', ')}.`);
+    }
+    if (eliminator.watchlist.length) {
+      notes.push(`Watchlist (deal-breakers, but a path to #1 remains): ${eliminator.watchlist.map((e) => e.option.name).join(', ')} — cut only if the low ratings are firm.`);
     }
     notes.push(`Robustness basis: ${robustness.trials} scenarios, each criterion weight independently perturbed by up to ±${Math.round(robustness.jitter * 100)}%.`);
     s.addText(notes.map((text) => ({ text, options: { bullet: { code: '2022' }, fontSize: 10, color: P.slate, paraSpaceAfter: 4 } })),
@@ -541,6 +548,14 @@ export function buildPptx(PptxGenJS, analysis, summaryText) {
   }
 
   return pptx;
+}
+
+function pptxEliminationNote(e) {
+  if (e.rule === 'dominated') return `${e.option.name} (dominated by ${e.dominatedBy})`;
+  if (e.rule === 'dealBreakers') {
+    return `${e.option.name} (worst-in-field on ${e.dealBreakers.map((d) => d.criterionName).join(', ')} — ${Math.round(e.dealBreakerWeightPct)}% of weight — with no path to #1)`;
+  }
+  return `${e.option.name} (no weighting lifts it to #1)`;
 }
 
 function heatHex(rating) {
