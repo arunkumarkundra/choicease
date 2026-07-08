@@ -12,7 +12,7 @@
 import { decision } from './state.js';
 import {
   analyzeDecision, computeResults, assignRanks, computeSatisficing,
-  RATING_LABELS,
+  RATING_LABELS, DEAL_BREAKER_WEIGHT_PCT,
 } from './engine.js';
 import {
   casualWinnerLine, casualSubLine, casualCallouts,
@@ -386,7 +386,7 @@ function updateWhatIfResults() {
 /* 7 — Alternative lenses: regret, satisficing, dominance, robustness */
 
 function renderLenses() {
-  const { ranked, regret, dominance, robustness } = lastAnalysis;
+  const { ranked, regret, robustness, eliminator } = lastAnalysis;
   const body = panelBody('panelLenses');
   if (ranked.length < 2) {
     body.innerHTML = '<p class="empty-note">Alternative lenses require at least two options.</p>';
@@ -427,11 +427,8 @@ function renderLenses() {
     </div>
     <div id="satisficingResults"></div>
 
-    <h4 class="subhead">Dominance check <span class="subhead__q">— "Can anything be eliminated outright?"</span></h4>
-    ${dominance.length
-      ? `<ul class="lens-list">${dominance.map((d) => `
-          <li><strong>${esc(d.dominated)}</strong> is dominated by <strong>${esc(d.by)}</strong> — equal or worse on every criterion. It can be eliminated regardless of how the weights are set.</li>`).join('')}</ul>`
-      : '<p class="lens-note">No option is dominated — every option is best at something, so none can be eliminated on structure alone.</p>'}
+    <h4 class="subhead">Eliminator <span class="subhead__q">— "What can be safely cut from the list?"</span></h4>
+    ${renderEliminator(eliminator)}
 
     <h4 class="subhead">Robustness <span class="subhead__q">— "Does the winner survive if my weights are a bit off?"</span></h4>
     <p class="lens-note"><strong>${esc(robustness.baseWinnerName)}</strong> remains the leading option in
@@ -473,6 +470,50 @@ function renderSatisficingResults() {
       `).join('')}
     </div>
   `;
+}
+
+function renderEliminator(eliminator) {
+  const { eliminated, watchlist, shortlist, evaluated } = eliminator;
+  if (!eliminated.length && !watchlist.length) {
+    return `<p class="lens-note">Nothing can be safely cut — every option is either competitive under some reasonable weighting or best-in-field somewhere. The shortlist is the full list.</p>`;
+  }
+  const parts = [];
+  parts.push(`<p class="lens-note">An option is only eliminated when the evidence is airtight: it is dominated, or it has worst-in-field deal-breakers <em>and</em> no weighting can lift it to #1. Weakness alone never cuts an option that could still win.</p>`);
+
+  for (const e of eliminated) {
+    parts.push(`
+      <div class="eliminate-card">
+        <div class="eliminate-card__head">✂️ ${esc(e.option.name)} — safe to eliminate</div>
+        <div class="eliminate-card__why">${eliminationReason(e)}</div>
+      </div>`);
+  }
+  for (const w of watchlist) {
+    parts.push(`
+      <div class="eliminate-card eliminate-card--watch">
+        <div class="eliminate-card__head">⚠️ ${esc(w.option.name)} — deal-breakers, but don't cut yet</div>
+        <div class="eliminate-card__why">Worst in the field on ${dealBreakerList(w.dealBreakers)} — together ${Math.round(w.dealBreakerWeightPct)}% of the decision weight. However, it would still take #1 if "${esc(w.rescue?.criterionName || '')}" carried ~${w.rescue?.weightPct}% of the weight. Cut it only if those low ratings are firm and that scenario is off the table.</div>
+      </div>`);
+  }
+  parts.push(`<p class="lens-note"><strong>Shortlist after screening:</strong> ${shortlist.map(esc).join(', ')} <span class="mono">(${shortlist.length} of ${evaluated} survive)</span>.</p>`);
+  return parts.join('');
+}
+
+function eliminationReason(e) {
+  if (e.rule === 'dominated') {
+    return `Dominated by <strong>${esc(e.dominatedBy)}</strong> — equal or worse on every single criterion, so no weighting can ever make it the better pick.`;
+  }
+  if (e.rule === 'dealBreakers') {
+    const robustNote = e.robustShare !== null ? ` and it wins ${Math.round(e.robustShare * 100)}% of the ${'robustness'} scenarios` : '';
+    return `Worst in the field on ${dealBreakerList(e.dealBreakers)} — together ${Math.round(e.dealBreakerWeightPct)}% of the decision weight (threshold: ${DEAL_BREAKER_WEIGHT_PCT}%). No single-criterion emphasis (0–100% weight sweep) ever lifts it to #1${robustNote}.`;
+  }
+  const robustNote = e.robustShare !== null ? ` and 0% of robustness scenarios` : '';
+  return `No path to #1: it never tops the ranking under any single-criterion weight change (0–100% sweep)${robustNote} — it is consistently outclassed even without a single deal-breaker.`;
+}
+
+function dealBreakerList(dealBreakers) {
+  return dealBreakers
+    .map((d) => `<strong>${esc(d.criterionName)}</strong> (${d.rating.toFixed(1)}/5 at ${Math.round(d.weightPct)}% weight)`)
+    .join(', ');
 }
 
 /* 8 — Risks & weaknesses */
