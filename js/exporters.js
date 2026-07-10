@@ -388,7 +388,7 @@ export function buildPptx(PptxGenJS, analysis, summaryText) {
       x: 0.4, y: 1.15, w: 9.2, h: 3.9,
       barDir: 'bar', chartColors: [P.petrol],
       valAxisMinVal: 0, valAxisMaxVal: 5, valAxisMajorUnit: 1,
-      showValue: true, dataLabelColor: P.ink, dataLabelFontSize: 10, dataLabelFontFace: 'Arial',
+      showValue: true, dataLabelColor: P.ink, dataLabelFontSize: 10, dataLabelFontFace: 'Arial', dataLabelFormatCode: '0.00',
       catAxisLabelFontSize: 11, valAxisLabelFontSize: 10,
       catAxisLabelFontFace: 'Arial', valAxisLabelFontFace: 'Arial',
       showLegend: false, showTitle: false,
@@ -428,7 +428,7 @@ export function buildPptx(PptxGenJS, analysis, summaryText) {
     }], {
       x: 0.4, y: 1.15, w: 9.2, h: 3.9,
       barDir: 'bar', chartColors: [P.petrol],
-      showValue: true, dataLabelColor: P.ink, dataLabelFontSize: 9, dataLabelFontFace: 'Arial',
+      showValue: true, dataLabelColor: P.ink, dataLabelFontSize: 9, dataLabelFontFace: 'Arial', dataLabelFormatCode: '0.00',
       catAxisLabelFontSize: 10, valAxisLabelFontSize: 9,
       catAxisLabelFontFace: 'Arial', valAxisLabelFontFace: 'Arial',
       showLegend: false, showTitle: false,
