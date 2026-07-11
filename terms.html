@@ -11,12 +11,17 @@
   <link rel="stylesheet" href="css/styles.css">
 
   <script>
-    const user = "contact";
-    const domain = "choicease.com";
-    const email = user + "@" + domain;
-    const link = document.getElementById("emailLink");
-    link.href = "mailto:" + email;
-    link.innerText = email;
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = 'contact';
+      const domain = 'choicease.com';
+      const email = `${user}@${domain}`;
+      const link = document.getElementById('emailLink');
+  
+      if (link) {
+        link.href = `mailto:${email}`;
+        link.textContent = email;
+      }
+    });
   </script>
 </head>
 <body>
