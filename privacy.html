@@ -17,7 +17,7 @@
       <span class="brand__mark" aria-hidden="true"></span><span class="brand__name">Choicease</span>
     </a>
   </header>
-  
+
   <main class="shell">
     <section class="step">
       <header class="step__head">
@@ -33,11 +33,20 @@
       <h2>4. Third-party services</h2>
       <p>Choicease is hosted on GitHub Pages, and fonts and libraries are served from CDNs. Those providers may log minimal technical information (such as IP addresses) for security and operations, per their own privacy statements.</p>
       <h2>5. Contact</h2>
-      <p>Questions? <a href="mailto:contact@choicease.com">contact@choicease.com</a></p>
+      <p>Questions? <a id="emailLink" href="#">contact@choicease.com</a></p>
     </section>
   </main>
   <footer class="footer">
     <p>© 2026 Choicease · <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a></p>
   </footer>
+
+  <script>
+    const user = "contact";
+    const domain = "choicease.com";
+    const email = user + "@" + domain;
+    const link = document.getElementById("emailLink");
+    link.href = "mailto:" + email;
+    link.innerText = email;
+  </script>
 </body>
 </html>
