@@ -64,18 +64,18 @@ export function classifySituation(analysis, decision) {
 const POOLS = {
   solo: [
     `Weighing {title}? I mapped it out properly instead of just going with my gut.`,
-    `Thinking through {title}. Turns out writing down what actually matters changes everything.`,
+    `Thinking through {title}. Turns out writing down what actually matters, changes everything.`,
     `Had a decision to make: {title}. Gave it the structured treatment.`,
   ],
   landslide: [
-    `🏆 {winner} — and it wasn't close.`,
+    `🏆 {winner} trumps {title} — and it wasn't close.`,
     `Called it: {winner} runs away with {title}. {runnerUp} never stood a chance.`,
     `{winner} takes {title} in a landslide ({fit}% fit).`,
     `Decision made ✅ {winner} wins {title} decisively.`,
   ],
   clear: [
     `🏆 {winner} takes {title} — {fit}% fit, and the numbers back it up. Do you agree?`,
-    `After weighing {options} options on {criteria} criteria: {winner} wins. Would you have picked it?`,
+    `After weighing {options} options on {criteria} criteria: {winner} wins {title}. Would you have picked it?`,
     `{winner} comes out on top for {title}, edging {runnerUp}. Solid pick — or am I missing something?`,
     `Decision made ✅ {winner} over {runnerUp} for {title}. Curious what you'd have chosen.`,
     `🏆 {winner} wins {title}. Properly weighed, not gut-felt — but I'd love a second opinion.`,
@@ -84,13 +84,13 @@ const POOLS = {
     `📸 Photo finish: {winner} barely edges {runnerUp} for {title}. Honestly — which would YOU pick?`,
     `Too close to call. {winner} and {runnerUp} are neck-and-neck on {title}. Break the tie for me?`,
     `{winner} wins {title}… by a hair over {runnerUp}. I keep flip-flopping. What would you do?`,
-    `Dead heat between {winner} and {runnerUp}. The math barely picked one. Your call could swing it.`,
+    `Dead heat between {winner} and {runnerUp} for {title}. The math barely picked one. Your call could swing it.`,
     `This one's a coin-flip: {winner} vs {runnerUp} for {title}. Help me decide?`,
   ],
   fragile: [
     `🏆 {winner} wins {title} — but it's got a soft spot. Am I overthinking this, or is it the right call?`,
     `The numbers say {winner} for {title}. One small change and it flips, though. Would you risk it?`,
-    `{winner} takes it, but only just — nudge one priority and {runnerUp} wins. What matters most to you here?`,
+    `{winner} takes it, but only just — nudge one priority and {runnerUp} wins {title}. What matters most to you here?`,
     `Leaning {winner} for {title}. It's not bulletproof. Talk me into it — or out of it?`,
   ],
   upset: [
