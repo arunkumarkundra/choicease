@@ -48,7 +48,7 @@
       <div class="gallery-grid" id="galleryGrid"><p class="empty-note">Loading decisions…</p></div>
       <div class="gallery-submit">
         <strong>Want yours featured?</strong> Email your decision's link to
-        <a href="mailto:contact@choicease.com?subject=Decision%20Gallery%20submission">contact@choicease.com</a>
+        <a id="gallerySubmissionEmail">Contact us</a>
         — we hand-pick the most interesting ones.
       </div>
     </section>
@@ -114,6 +114,13 @@
       .catch(() => {
         document.getElementById('galleryGrid').innerHTML = '<p class="empty-note">Could not load the gallery. Try refreshing.</p>';
       });
+
+      const email = 'contact' + '@' + 'choicease.com';
+      const gallerySubmissionLink = document.getElementById('gallerySubmissionEmail');
+      if (gallerySubmissionLink) {
+        gallerySubmissionLink.href = `mailto:${email}?subject=Decision%20Gallery%20submission`;
+        gallerySubmissionLink.textContent = email;
+      }
   </script>
 </body>
 </html>
