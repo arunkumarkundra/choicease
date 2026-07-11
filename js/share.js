@@ -8,9 +8,10 @@
 
 import { decision, exportSnapshot } from './state.js';
 import { encodeDecisionLink } from './link.js';
+import { buildBody } from './sharecopy.js';
 import { toast, copyToClipboard, downloadBlob, safeFilename } from './ui.js';
 
-export const APP_URL = 'https://choicease.com';
+export const APP_URL = 'https://choicease.com/';
 export const COMMUNITY_TAG = 'ChoiceaseDecision';
 
 const BRAND = {
@@ -28,25 +29,37 @@ const BRAND = {
 export function buildShareText(analysis, link) {
   const ranked = analysis?.ranked || [];
   const top = ranked[0];
-  const url = link?.url && !link.oversized ? link.url : APP_URL;
+  const hasLink = link?.url && !link.oversized;
+  const url = hasLink ? link.url : APP_URL;
+
+  const { situation, lead, stat } = buildBody(analysis, decision);
+  const lines = [lead];
+  if (stat) lines.push(stat);
+  lines.push('');
   if (!top) {
-    return `Weighing a big decision? I've been using Choicease — free, private, and it actually helps you think. ${url} #${COMMUNITY_TAG}`;
+    lines.push(`${url} #${COMMUNITY_TAG}`);
+    return lines.join('\n');
   }
-  const fit = Math.round((top.totalScore / 5) * 100);
-  const runnerUp = ranked[1];
-  const lines = [
-    `Decision made ✅ ${decision.title || 'A tough call'}`,
-    ``,
-    `🏆 ${top.option.name} takes it (${fit}% fit${runnerUp ? `, edging out ${runnerUp.option.name}` : ''})`,
-    `${decision.options.length} options · ${decision.criteria.length} criteria · properly weighed, not gut-felt`,
-    ``,
-    link?.url && !link.oversized
-      ? `Open my full analysis (and tweak it yourself):\n${url}`
-      : `Try it yourself — free, private, no sign-up:\n${url}`,
+  lines.push(
+    hasLink
+      ? `${INVITE[situation] || INVITE.default} ${url}`
+      : `Try it yourself — free, private, no sign-up: ${url}`,
     `#${COMMUNITY_TAG}`,
-  ];
+  );
   return lines.join('\n');
 }
+
+/* Link invitation varies with situation — a debate-worthy result asks the
+   reader to weigh in; a clear one just offers the tool. */
+const INVITE = {
+  photofinish: 'See it and cast your vote:',
+  fragile: 'Pressure-test it yourself:',
+  upset: 'See if you\'d have called it differently:',
+  clear: 'Open my full analysis (and tweak it yourself):',
+  landslide: 'See the full breakdown:',
+  solo: 'Map out your own:',
+  default: 'Open my full analysis (and tweak it yourself):',
+};
 
 /* --------------------------- Share link ---------------------------------- */
 
@@ -215,8 +228,29 @@ export async function shareNative(analysis) {
 
 export function shareToX(analysis) {
   const link = buildShareLink();
-  const text = buildShareText(analysis, link);
+  const text = buildXText(analysis, link);
   window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+}
+
+/* X can't attach an uploaded image, so the reliable preview is the site's OG
+   card. X unfurls the LAST URL in the text — so we end with the clean,
+   canonical root URL (matches og:url) and keep the live decision link inline
+   for humans who want to open and tweak the decision. */
+function buildXText(analysis, link) {
+  const top = analysis?.ranked?.[0];
+  const hasLink = link?.url && !link.oversized;
+  const { lead, stat } = buildBody(analysis, decision);
+
+  const lines = [lead];
+  if (stat) lines.push(stat);
+  if (!top) {
+    lines.push('', `#${COMMUNITY_TAG} ${APP_URL}`);
+    return lines.join('\n');
+  }
+  if (hasLink) lines.push('', `Open & tweak my analysis: ${link.url}`);
+  // Root URL stays LAST so X unfurls the canonical OG card (matches og:url).
+  lines.push('', `#${COMMUNITY_TAG}`, `Make your own → ${APP_URL}`);
+  return lines.join('\n');
 }
 
 export function shareToWhatsApp(analysis) {
