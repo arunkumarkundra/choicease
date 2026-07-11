@@ -1,5 +1,5 @@
 {
-  "note": "HOW TO ADD A GALLERY ENTRY: (1) The user emails their decision link to contact@choicease.com (the app's results page pre-fills this email, including their consent line \u2014 only email submissions are considered, which establishes consent to publish). (2) Open their link, sanity-check the content. (3) Append an entry below with: title, story (one line), winner, options (count), criteria (count), category (pick from: 'Life & Family', 'Career & Learning', 'Purchases & Products', 'Health & Wellness', 'Money & Finance', 'Business', 'Tech', 'Travel', 'Home & Property', 'Other'), link (their full #d= URL), date (YYYY-MM). (4) Commit \u2014 the gallery page updates automatically.",
+  "note": "HOW TO ADD A GALLERY ENTRY: (1) The user emails their decision link to contact@choicease.com (the app's results page pre-fills this email, including their consent line \u2014 only email submissions are considered, which establishes consent to publish). (2) Open their link, sanity-check the content. (3) Append an entry below with: title, story (one line), winner, options (count), criteria (count), category (a single string OR a list of strings, picked from: 'Life & Family', 'Career & Learning', 'Purchases & Products', 'Health & Wellness', 'Money & Finance', 'Business', 'Tech', 'Travel', 'Home & Property', 'Other' \u2014 spelling and capitalization must match exactly), link (their full #d= URL), date (YYYY-MM). (4) Commit \u2014 the gallery page updates automatically.",
   "entries": [
     {
       "title": "Choosing our family car",
@@ -9,9 +9,8 @@
       "criteria": 5,
       "link": "https://choicease.com/#d=eJxtk8GOmzAQhl9l5ENPECUBmoZjo616WXW12bbSrnqYwJBYARvZZild5d07EBLYsDePPf78zz_jN-Gky0nEYnPQ2kq1B10ZyLCQeQMJGuGJlGxiZOmkVpz3VGs4ytR6kEjXQGrka3dLQU10TLHhE60Ics27RmMKji8DQqGVO8zga5XuyfmJVjaRurKwqxxYzIhhiS7IQiaNdTN-2EkOHRYlP7ucLz_785U_j54W6zj8Eofr2Xq1euY03UmzIn55EzIV8Xo-X3hCYdGWdY-mchK2tczcpJZnWZYNHNAlhx0mRw8IbQNSnUtzBrNMJuLkXbnLK_d7U6kUJWwMOZyAN7ooMXGw_fnLa6sqUKWtS6-Sag8yQlcZ8nN2h9IxP7jVfWec3E_5K98ygwzcP_ADe8P4Eg0p17rnwGk9poaDas2iYcPVTZCPlElFKVhKUXWiM20c7nKCg9wfauT2mEpaMuL0xxN8k9-XOLi-GLn-YGRC8AleMa9o8tQP5XeDUXZZuEeprIOa-wCNroDHY1C_GHm-7aZkarZBewCDjh3m4UNpdtgu2tFki5CHdcwbPN5yj1qVfa0T8JY9Zs5Oa-d18-x3o3xJHzEHh79VlAPxdOviI48x92tt8hSOBZQsLpfO0JgUXUmPZJHN_9jCu78lJY7b1R0DZu0wRNAQGtv1pyZumuNP8SbazoiYJbZmijjqFsFlJxRx0C0iES9P_Lo2BebyH6W_rwje7u3tePy__B46a2l9zOzlOA5u4vAmPzpL4F_V0y7Zy542Og3eRb3mPrpygp4T9Jyg5wRDFJzr76Pw3c1ouBleSEO0HNSHPelddngTn2nsHM-gPTdtMVuI038a3KBz",
       "date": "2026-07",
-      "category": "Life & family"
-    }
-    ,
+      "category": "Life & Family"
+    },
     {
       "title": "Premium Smartphone for a Business Professional",
       "story": "Comparing flagship phones for productivity, travel, security, and long-term business use.",
@@ -20,7 +19,7 @@
       "criteria": 8,
       "link": "https://choicease.com/#d=eJyFVU1zo0YQ_StdHPaEKL4_dPNukq09uOKsN0lVUjmMoSWmDAyZGaTVuvzf0yMkQEIiFxtQT_fr16_fvFma6wqttfUkseZdDc81k7otRYOwERIYfOwUb1ApeJJiQ_-5aFhl2VaBKpe81fROxz-VQigEXSKoMYMumYYXVBpU17ZCagXtJIt5Kbpc8x3XBxtyUdddw3NmctqgJdthZUPdVQSSqVfebG1gTQGVaLYrjbIGiRVnL7yi8w58K7mCAnNuslNuLiTX_AcqeDn30KKkrmrW5GjDC9OU5AAV39CbwryTRxxKbPSeSQT8TvEcj8GmLuZCHZTGGnijcSuPQEHsUAL1qwV9acsDEG1Iv0vNeFPTk0NsaV4TDaxuiSvf9eOVm6w895sXr71g7caOH_p_UZg48qms9d9vFi-stZekQZxlQRiEbuy6nm01rDbjema16potfGYV-36AZz-C3ytibDYY692-TBVlaea5rj-kemjbCoE_HSfmJWbO_58ldbMkct1gyPJZiC2leeLfsQLPvZPlH9uid-KGs-sewyhKfUoZDimfJuqAD_A40cEs9XNLGljRF8TmWjKN0LjSrH8pRN6ZoQAWJI7jF1SvWrRQC3rqB70X8nVTiT3gZsNzo4CDc01BmIaRTzOJRryjuGb4qJecBCikDV8fHm0Srmpp0HyHRpekuU4ZuWBxKVEDpqQ_FSEloPS1ME-DnlnbqhmyyAuCLHDdeED28aT0D_CpZHJ7i8BzCDZFJ_vi-SkWVItY2LDntG6m6vmHHl-_p7S9DTVz3JY5ojDIQt91k1G_px2z4eELwTq6DvyCTHfEzAwcxTDyDKKo0eroDM3ws-GupuP8x8k3FDKZlwRXHgcMWojKzLXToj6FGNhT76GuS9OzEcYNPuPEj1LXTUf0J68wyM9m8dw73FyZ59jNqTsburZgmvxV4r-d0Zbd-wU5FlmoRFbwXhQG5oG6USA2oyudrHQOM_OPgswGmD9x1VbsAL91zDjkDNpXKnVyT3JDybel7gtLJGyqBHI4mhAe0HgzqVL3mESnC0EutyOnPZnvNZg4DOMwcj13APPzYJ6kQtE0eOJ-hurLxFv3XJdQsZb208ydvVRoBLAnUswzPeaV6Aqaudzx_Ly-43rk_dJxnE81TryA_MYbPfUPVnX9rfdIVjgH9isZPasqutAa3HC6y2gdCOaO7jkBbUeiYzQ_mmKOV9eU2DcoVclb4lGZyZEP7tHwTVb_Zl07oLUmE7y2GWsdDB-HDbfW0fjxvGTT44N2L46flTL9OExsenwgyVr770SUMaaKrtTizyX0XugkoZ95iecGaeqHyc12UsdPs9jzksgPYjeLo1vt-XQ1Bj4di9KAmkuSW-0u1Jv0v1Bv5ON-0ISfhXoTwkInjjM6k4ZJGqZplhCBRtbNdkrbcLWv5jyOxYdb-0ZU6Izlh3v5Ztw47HnVcS5LVW9GzWqOUaET3a85GXPoZPerXsTF9-texAULcaNyltDdjJphmyzddA6zbKMOQyddyDfGLTB8kS1bqDoKe6mHMeoC26zqNC6-n2-yKQs9TP1mSZkXcfFC3Lh5gZMsoJvGLajpYpON-ZH7q_4i8BzPev8Pszq9cQ",
       "date": "2026-07",
-      "category": "Tech"
+      "category": ["Tech", "Purchases & Products"]
     }
   ]
 }
