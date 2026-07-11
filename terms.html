@@ -9,6 +9,15 @@
   <link rel="icon" type="image/x-icon" href="images/favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css">
+
+  <script>
+    const user = "contact";
+    const domain = "choicease.com";
+    const email = user + "@" + domain;
+    const link = document.getElementById("emailLink");
+    link.href = "mailto:" + email;
+    link.innerText = email;
+  </script>
 </head>
 <body>
   <header class="topbar">
@@ -39,7 +48,7 @@
       <h2>7. Changes</h2>
       <p>These terms may be updated; the latest version is always posted on this page with a revised date.</p>
       <h2>8. Contact</h2>
-      <p><a href="mailto:contact@choicease.com">contact@choicease.com</a></p>
+      <p><a id="emailLink" href="#"></a></p>
     </section>
   </main>
   <footer class="footer">
