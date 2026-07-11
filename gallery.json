@@ -1,5 +1,5 @@
 {
-  "note": "HOW TO ADD A GALLERY ENTRY: (1) The user emails their decision link to contact@choicease.com (the app's results page pre-fills this email, including their consent line \u2014 only email submissions are considered, which establishes consent to publish). (2) Open their link, sanity-check the content. (3) Append an entry below with: title, story (one line), winner, options (count), criteria (count), category (pick from: 'Life & family', 'Career', 'Purchases', 'Business', 'Tech', 'Travel', 'Other'), link (their full #d= URL), date (YYYY-MM). (4) Commit \u2014 the gallery page updates automatically.",
+  "note": "HOW TO ADD A GALLERY ENTRY: (1) The user emails their decision link to contact@choicease.com (the app's results page pre-fills this email, including their consent line \u2014 only email submissions are considered, which establishes consent to publish). (2) Open their link, sanity-check the content. (3) Append an entry below with: title, story (one line), winner, options (count), criteria (count), category (pick from: 'Life & Family', 'Career & Learning', 'Purchases & Products', 'Health & Wellness', 'Money & Finance', 'Business', 'Tech', 'Travel', 'Home & Property', 'Other'), link (their full #d= URL), date (YYYY-MM). (4) Commit \u2014 the gallery page updates automatically.",
   "entries": [
     {
       "title": "Choosing our family car",
