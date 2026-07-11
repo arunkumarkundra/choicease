@@ -74,11 +74,11 @@ const POOLS = {
     `Decision made ✅ {winner} wins {title} decisively.`,
   ],
   clear: [
-    `🏆 {winner} takes {title} — {fit}% fit, and the numbers back it up. Do you agree?`,
+    `🏆 {winner} takes \"{title}\" — {fit}% fit, and the numbers back it up. Do you agree?`,
     `After weighing {options} options on {criteria} criteria: {winner} wins. Would you have picked it?`,
-    `{winner} comes out on top for {title}, edging {runnerUp}. Solid pick — or am I missing something?`,
-    `Decision made ✅ {winner} over {runnerUp} for {title}. Curious what you'd have chosen.`,
-    `🏆 {winner} wins {title}. Properly weighed, not gut-felt — but I'd love a second opinion.`,
+    `{winner} comes out on top for \"{title}\", edging {runnerUp}. Solid pick — or am I missing something?`,
+    `Decision made ✅ {winner} over {runnerUp} for \"{title}\". Curious what you'd have chosen.`,
+    `🏆 {winner} wins \"{title}\". Properly weighed, not gut-felt — but I'd love a second opinion.`,
   ],
   photofinish: [
     `📸 Photo finish: {winner} barely edges {runnerUp} for {title}. Honestly — which would YOU pick?`,
