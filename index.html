@@ -299,7 +299,7 @@
       </div>
 
       <p class="community-line community-line--results">Proud of this one?
-        <a id="gallerySubmitMailto" href="mailto:contact@choicease.com"><strong>Mail it to us</strong></a>
+        <a id="gallerySubmitMailto"><strong>Mail it to us</strong></a>
         to be considered for the <a href="gallery.html"><strong>Decision Gallery</strong></a>.</p>
 
       <div id="advancedSection" class="advanced is-hidden">
@@ -381,7 +381,7 @@
   <footer class="footer">
     <p>© <span id="year"></span> Choicease · Runs entirely in your browser — nothing is uploaded ·
       <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> ·
-      <a href="mailto:contact@choicease.com">Contact</a>
+      <a id="footerEmailLink">Contact</a>
     </p>
   </footer>
 
@@ -408,7 +408,7 @@
           <li>🤖 Free AI help for criteria, weights, and ratings</li>
           <li>🔗 Share your decision — friends open it live and can tweak it themselves</li>
           <li>📈 Advanced analytics: sensitivity, regret analysis, robustness — plus PDF &amp; PowerPoint reports</li>
-          <li>🖼️ <a href="gallery.html">Decision Gallery</a>: real decisions to explore — mail us yours at <a href="mailto:contact@choicease.com">contact@choicease.com</a> to be featured</li>
+          <li>🖼️ <a href="gallery.html">Decision Gallery</a>: real decisions to explore — mail us yours at <a id="howItWorksEmailLink">Contact us</a> to be featured</li>
           <li>🛡️ Totally private — everything runs in your browser, nothing is uploaded</li>
           <li>🔁 Free to use — no sign-up, no account</li>
         </ul>
@@ -435,7 +435,7 @@
         <p class="field__optional" id="licenseFeedback" role="status"></p>
       </div>
       <footer class="modal__foot">
-        <a class="btn btn--ghost" href="mailto:contact@choicease.com?subject=Choicease%20Pro">Get a license</a>
+        <a id="premiumEmailLink" class="btn btn--ghost">Get a license</a>
         <button type="button" class="btn btn--primary" id="licenseSubmitBtn">Unlock</button>
       </footer>
     </div>
@@ -454,5 +454,24 @@
     </div>
   </div>
 
+  <script>
+    const email = 'contact' + '@' + 'choicease.com';
+  
+    const footerLink = document.getElementById('footerEmailLink');
+    if (footerLink) footerLink.href = `mailto:${email}`;
+  
+    const gallerySubmitLink = document.getElementById('gallerySubmitMailto');
+    if (gallerySubmitLink) gallerySubmitLink.href = `mailto:${email}`;
+  
+    const howItWorksLink = document.getElementById('howItWorksEmailLink');
+    if (howItWorksLink) {
+      howItWorksLink.href = `mailto:${email}`;
+      howItWorksLink.textContent = email;
+    }
+  
+    const premiumLink = document.getElementById('premiumEmailLink');
+    if (premiumLink) premiumLink.href = `mailto:${email}?subject=Choicease%20Pro`;
+  </script>
+  
 </body>
 </html>
