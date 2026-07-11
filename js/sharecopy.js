@@ -65,13 +65,13 @@ const POOLS = {
   solo: [
     `Weighing {title}? I mapped it out properly instead of just going with my gut.`,
     `Thinking through {title}. Turns out writing down what actually matters changes everything.`,
-    `Had a decision to make: {title}. Gave it the structured treatment. 🧠`,
+    `Had a decision to make: {title}. Gave it the structured treatment.`,
   ],
   landslide: [
-    `🏆 {winner} — and it wasn't close. Not even a debate. 😎`,
+    `🏆 {winner} — and it wasn't close.`,
     `Called it: {winner} runs away with {title}. {runnerUp} never stood a chance.`,
-    `{winner} takes {title} in a landslide ({fit}% fit). Sometimes the answer is just obvious. ✅`,
-    `Decision made ✅ {winner} wins {title} decisively. Anyone want to argue? (You'll lose. 😄)`,
+    `{winner} takes {title} in a landslide ({fit}% fit).`,
+    `Decision made ✅ {winner} wins {title} decisively.`,
   ],
   clear: [
     `🏆 {winner} takes {title} — {fit}% fit, and the numbers back it up. Do you agree?`,
@@ -82,21 +82,21 @@ const POOLS = {
   ],
   photofinish: [
     `📸 Photo finish: {winner} barely edges {runnerUp} for {title}. Honestly — which would YOU pick?`,
-    `Too close to call. {winner} and {runnerUp} are neck-and-neck on {title}. Break the tie for me? 🤔`,
+    `Too close to call. {winner} and {runnerUp} are neck-and-neck on {title}. Break the tie for me?`,
     `{winner} wins {title}… by a hair over {runnerUp}. I keep flip-flopping. What would you do?`,
-    `Dead heat between {winner} and {runnerUp}. The math barely picked one. Your call could swing it. 👀`,
-    `This one's a coin-flip: {winner} vs {runnerUp} for {title}. Help me decide? 🪙`,
+    `Dead heat between {winner} and {runnerUp}. The math barely picked one. Your call could swing it.`,
+    `This one's a coin-flip: {winner} vs {runnerUp} for {title}. Help me decide?`,
   ],
   fragile: [
     `🏆 {winner} wins {title} — but it's got a soft spot. Am I overthinking this, or is it the right call?`,
     `The numbers say {winner} for {title}. One small change and it flips, though. Would you risk it?`,
     `{winner} takes it, but only just — nudge one priority and {runnerUp} wins. What matters most to you here?`,
-    `Leaning {winner} for {title}. It's not bulletproof. Talk me into it — or out of it? 🤔`,
+    `Leaning {winner} for {title}. It's not bulletproof. Talk me into it — or out of it?`,
   ],
   upset: [
-    `Plot twist: {winner} won {title} — not the option I expected. Didn't see that coming. Did you? 🤯`,
+    `Plot twist: {winner} won {title} — not the option I expected. Didn't see that coming. Did you?`,
     `Surprise result: {winner} takes {title} even though it's not the strongest on {heaviest}. Convinced, or skeptical?`,
-    `Went in expecting a different winner, but {winner} edged {title}. Talk me out of it? 🤔`,
+    `Went in expecting a different winner, but {winner} edged {title}. Talk me out of it?`,
     `{winner}?! Not where I thought {title} would land. The criteria don't lie though. Your take?`,
   ],
 };
