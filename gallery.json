@@ -2,6 +2,16 @@
   "note": "HOW TO ADD A GALLERY ENTRY: (1) The user emails their decision link to contact@choicease.com (the app's results page pre-fills this email, including their consent line \u2014 only email submissions are considered, which establishes consent to publish). (2) Open their link, sanity-check the content. (3) Append an entry below with: title, story (one line), winner, options (count), criteria (count), category (a single string OR a list of strings, picked from: 'Life & Family', 'Career & Learning', 'Purchases & Products', 'Health & Wellness', 'Money & Finance', 'Business', 'Tech', 'Travel', 'Home & Property', 'Other' \u2014 spelling and capitalization must match exactly), link (their full #d= URL), date (YYYY-MM). (4) Commit \u2014 the gallery page updates automatically.",
   "entries": [
     {
+      "title": "What type of house should one buy to live in?",
+      "story": "Choosing a primary residence involves balancing lifestyle, affordability, long-term financial outcomes, maintenance responsibilities, and future flexibility.",
+      "winner": "Premium Apartment",
+      "options": 3,
+      "criteria": 6,
+      "link": "https://choicease.com/#d=eJx9VU1v3DYQ_SuEDj7JKvW9u5fACJKmQNIEiNEALXLgSqNdohSpUNTaquH_3qFkSbRl67C7NjnkvPfmzfDBM9wI8A7ejzMzxPQNEFWRs-paIC3-iJIoCeTY9cQoIvgFCJfvPN8roS00bwxXEk-_PyvVcnkijDSa10z3REPLS5CFPXBR4gItOTLBZGHDBK-gNb0An7CqUrpkRy646X0ilDxdG9A1qbi00UwQ1ZlC1dD6pGZcGrDrYBM0SrZ8OMntLpMlqTrTaSCVgPtxpw8QreF43LC6QawRjbJrml-H0W2YHVJ6iOIgi_O_MUwNfFrv8M-Dx0vvEOa7OKdZnIUpzSgNfU-y2qr1TUPNu5rcNEybGqRZKfKlE4Zfd5KbSQljqRw7LkqrwB03Z1SYaSgJ3ikHCgMDl2PNJDthxLHHLcLaVqEgNkNAvkrRo9gjDjbhICMFwltSWHFKsAnO-B14j_4zVgmNwoRSGs2s_uJCMPIb-Z0ZPPRe1bXF35NPKP6K4B-yhAakJYZ-qW2ZbTp0wAS6mC9QVQXasq4V1qZtWIGFR6NcWNEPnGcF1iijLI1iSuMZpZv4kzXqCtp3g3cyYY3baNWAthBQE9MSdSdJI5TxHUzsnteoIepltBKjjeC-YcgHTzXKjLVDaD99D9OgOzl76ZFkt4tyxJnOOG9cY68w3iqDdmg6XZwZ9lqhWoMKFqIb3GHY_WzosQ3kaSVNGiYZxZTZnPLz1FbkinzmF3vTh3vkz20frptW1YgQpXgqyFyEuTY-kYojOgEXEKM78S_dl6wnvzomxtoO3bxGl9D9Lqc0XwRp0K5P_iXfJllXsCziwhqwYA23IjH33BHVsjOJCIvmwkQHdmgU464zAUpAH5ZrWNjHMX52M6wvTr9dka93EnR75g35YOu3buxbHCU4iNBco3VhCMMm_9Vx22v4H-mafwGaYVtDw7he-zrdhZEt3n7G8Z1VgHpeLY23NjYUnR7GpAR-Oh9Vp3HwllMtfKflKlY8zcVRFFZznBeVtUIpuIR2DSmj-zSKaEhnSB-XKTrw-jhK-ydA2a7A3TwF4juhQaoLDhF_7KPStyvGznGCt7CSNQaH2QQKlwqcg4A_ZyZPwxDATruzFA0O4wfvZY95B2yzl13wbHEyn3dIlsWp9M8Wpzq4i7MS3iF-RDWUrlHg_6D8sYUpSgJMii9FlGS7HNPFr4HcilpQh0lAk2if79KQ5kniBi0sNoIWVm8HOSzzYLfPaBru84SG0X6fImuNLSVPLtf5Hbxek0-C5eJ5Zr8SFwV7_837HJmSIFvum16qV-LSt7M6UXGw28i6yB4F6UbWJW4rq2O9INnI6rjRQbfOusTFQb6Rd4mLgnAjr2N4975VXjcu2si7xMVO3lWc47YNjd3O26qZE7dZs2fOC9HV-Hy147wKg9B7_B_LlCmZ",
+      "date": "2026-07",
+      "category": "Life & Family"
+    },
+    {
       "title": "Choosing our family car",
       "story": "Two kids, city commutes, monthly road trips \u2014 safety-first budget shopping.",
       "winner": "Honda City",
