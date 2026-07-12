@@ -173,21 +173,31 @@ function wireResultActions() {
 
 /* -------------------- Gallery submission mailto -------------------------- */
 
+/* -------------------- Gallery submission mailto -------------------------- */
+
 function updateGalleryMailto() {
   const anchor = $('#gallerySubmitMailto');
   if (!anchor) return;
   const link = buildShareLink();
+  const analysis = getLastAnalysis();
+  const winner = analysis?.ranked?.[0]?.option?.name || '';
+  const date = new Date().toISOString().slice(0, 7); // YYYY-MM
+
   const subject = `Decision Gallery submission: ${decision.title || 'my decision'}`;
   const body = [
     'Hi Choicease team,',
     '',
     `I'd like my decision "${decision.title || 'Untitled'}" to be considered for the Decision Gallery.`,
     '',
-    'Here is the link that opens it live:',
-    link && !link.oversized ? link.url : '(link too large — happy to share details another way)',
-    '',
-    'A one-line story about it (feel free to edit):',
+    `Title: ${decision.title || 'Untitled'}`,
+    'Story (one line, feel free to edit):',
     decision.description || '',
+    `Winner: ${winner}`,
+    `Options: ${decision.options.length}`,
+    `Criteria: ${decision.criteria.length}`,
+    `Date: ${date}`,
+    'Link:',
+    link && !link.oversized ? link.url : '(link too large — happy to share details another way)',
     '',
     'I confirm I\'m happy for this decision to be published in the public gallery.',
   ].join('\n');
