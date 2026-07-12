@@ -247,9 +247,9 @@ function buildXText(analysis, link) {
     lines.push('', `#${COMMUNITY_TAG} ${APP_URL}`);
     return lines.join('\n');
   }
-  if (hasLink) lines.push('', `Open & tweak my analysis: ${link.url}`);
+  if (hasLink) lines.push('', `Review & tweak my analysis: ${link.url}`);
   // Root URL stays LAST so X unfurls the canonical OG card (matches og:url).
-  lines.push('', `#${COMMUNITY_TAG}`, `Make your own → ${APP_URL}`);
+  lines.push('', `#${COMMUNITY_TAG}`, `Make your own: ${APP_URL}`);
   return lines.join('\n');
 }
 
