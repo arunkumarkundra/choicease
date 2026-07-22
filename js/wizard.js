@@ -8,12 +8,16 @@
 import {
   decision, setFrame, addOption, removeOption, updateOption,
   addCriterion, removeCriterion, updateCriterion,
-  setImportance, setRating, LIMITS,
+  setImportance, setRating, markAiSeeded, LIMITS,
 } from './state.js';
 import { normalizeWeights, IMPORTANCE_LABELS, RATING_LABELS, DEFAULT_RATING } from './engine.js';
 import {
   HELPER_GPT_URL, criteriaPrompt, weightsPrompt, ratingsPrompt, suggestStarterSet,
 } from './assist.js';
+import {
+  aiSupported, ensureAiLoading, onAiProgress, aiReady,
+  aiCriteria, aiWeights, aiRatings, AI_UNAVAILABLE,
+} from './ai.js';
 import { esc, $, $$, toast, copyToClipboard, scrollToElement } from './ui.js';
 
 export const STEP_COUNT = 6;
@@ -34,6 +38,130 @@ export function initWizard({ onResults }) {
 
 export function getCurrentStep() {
   return currentStep;
+}
+
+/* ==========================================================================
+   On-device AI assist (WebLLM via ./ai.js)
+   Everything here degrades silently to the existing non-AI behaviour if the
+   model is unsupported, still downloading, or fails. No UI markup is required
+   in index.html — the one-time "warming up" note is created on demand.
+   ========================================================================== */
+
+/* How long to wait for an in-flight model load before falling back to plain
+   defaults when seeding weights/ratings on first entry to a step. On a first
+   visit the model won't be ready in time (fresh download) and we fall back;
+   on later visits it is cached and seeding succeeds. */
+const AI_SEED_WAIT_MS = 8000;
+
+/* Guards so background work started for one step can't apply to a stale one,
+   and so we never kick a task off twice. */
+let starterAiToken = 0;
+const seedInFlight = { weightsRatings: false };
+
+/**
+ * Insert (once) a small, friendly "warming up" note into `container`, wired to
+ * model load progress. It removes itself when the model is ready or failed.
+ * Purely additive DOM; no existing element is touched. Safe to call repeatedly.
+ */
+function showWarmingNote(container) {
+  if (!container || !aiSupported()) return;
+  if (aiReady()) return; // nothing to wait for
+  if (container.querySelector('[data-ai-warming]')) return; // already shown
+
+  const note = document.createElement('p');
+  note.className = 'note';
+  note.setAttribute('data-ai-warming', '');
+  note.style.marginTop = '10px';
+  note.innerHTML =
+    '✨ Warming up a private AI assistant — runs entirely on your device, ' +
+    'nothing uploaded. This one-time setup can take a little while.';
+  container.appendChild(note);
+
+  const unsubscribe = onAiProgress(({ status, progress }) => {
+    if (status === 'loading') {
+      const pct = Math.round((progress || 0) * 100);
+      note.innerHTML =
+        `✨ Warming up a private AI assistant — runs entirely on your device, ` +
+        `nothing uploaded. Preparing… ${pct}%`;
+    } else if (status === 'ready' || status === 'failed') {
+      unsubscribe();
+      note.remove();
+    }
+  });
+}
+
+/** True only for a brand-new decision the user has not touched on Tab 4/5. */
+function eligibleForSeeding() {
+  if (decision.aiSeeded) return false;
+  if (!aiSupported()) return false;
+  if (!decision.criteria.length || !decision.options.length) return false;
+  // Every criterion must still hold the literal default importance (3), and no
+  // rating may exist yet. Any deviation means the user has already engaged.
+  const weightsUntouched = decision.criteria.every((c) => decision.weights[c.id] === 3);
+  const ratingsUntouched = Object.keys(decision.ratings).length === 0;
+  return weightsUntouched && ratingsUntouched;
+}
+
+/**
+ * Seed default weights (Tab 4) and ratings (Tab 5) from AI, exactly once, for
+ * an untouched brand-new decision. Values are written through the normal state
+ * mutators so persistence and validation are unchanged. On any failure the
+ * decision is still marked seeded so this never runs again for it.
+ */
+async function maybeSeedWeightsAndRatings() {
+  if (seedInFlight.weightsRatings) return;
+  if (!eligibleForSeeding()) return;
+  seedInFlight.weightsRatings = true;
+
+  // Snapshot identity so a slow result can't be applied to a different or
+  // since-modified decision.
+  const criteriaIds = decision.criteria.map((c) => c.id).join(',');
+
+  ensureAiLoading();
+  showWarmingNote($('#weightingList'));
+
+  try {
+    const stillEligible = () =>
+      eligibleForSeeding() && decision.criteria.map((c) => c.id).join(',') === criteriaIds;
+
+    const weights = await aiWeights(decision, { waitMs: AI_SEED_WAIT_MS });
+    if (stillEligible()) {
+      for (const [criterionId, importance] of Object.entries(weights)) {
+        setImportance(Number(criterionId), importance);
+      }
+    }
+
+    // Ratings are best-effort and partial by design; only fill if still untouched
+    // aside from the weights we just set.
+    if (decision.aiSeeded !== true && Object.keys(decision.ratings).length === 0) {
+      try {
+        const ratings = await aiRatings(decision, { waitMs: AI_SEED_WAIT_MS });
+        if (decision.criteria.map((c) => c.id).join(',') === criteriaIds
+            && Object.keys(decision.ratings).length === 0) {
+          for (const [key, score] of Object.entries(ratings)) {
+            const [optionId, criterionId] = key.split('-').map(Number);
+            setRating(optionId, criterionId, score);
+          }
+        }
+      } catch (err) {
+        if (err !== AI_UNAVAILABLE) throw err;
+        /* ratings unavailable — leave cells at the honest midpoint default */
+      }
+    }
+  } catch (err) {
+    if (err !== AI_UNAVAILABLE) {
+      /* Unexpected error: swallow so the app never breaks on AI. */
+    }
+    /* AI_UNAVAILABLE: fall through to existing defaults. */
+  } finally {
+    // Whether we succeeded, partially succeeded, or fell back: AI has had its
+    // single chance for this decision. Never revisit.
+    markAiSeeded();
+    seedInFlight.weightsRatings = false;
+    // Re-render whichever step is showing so seeded values appear.
+    if (currentStep === 4) renderWeighting();
+    if (currentStep === 5) renderRatingMatrix();
+  }
 }
 
 /* --------------------------- Step prerequisites -------------------------- */
@@ -64,7 +192,12 @@ export function goToStep(step, { scroll = true } = {}) {
   renderStepper();
 
   if (currentStep === 3) renderStarterChips();
-  if (currentStep === 4) renderWeighting();
+  if (currentStep === 4) {
+    renderWeighting();
+    // First entry to weighting for an untouched new decision: let AI seed the
+    // initial weights and ratings. No-op for touched/imported/resumed ones.
+    maybeSeedWeightsAndRatings();
+  }
   if (currentStep === 5) renderRatingMatrix();
   if (currentStep === 6 && onEnterResults) onEnterResults();
 
@@ -293,6 +426,11 @@ function renderStarterChips() {
   const set = suggestStarterSet(decision.title);
   if (!set || decision.criteria.length >= 3) {
     container.classList.add('is-hidden');
+    // No regex match: try the on-device AI as a silent fallback. Same chip UI,
+    // no AI wording; if it's unsupported/slow/failing, nothing appears (exactly
+    // today's behaviour). Only attempted when the user still has room for a
+    // head start (fewer than 3 criteria) and there was no regex set.
+    if (!set && decision.criteria.length < 3) maybeSuggestCriteriaWithAi();
     return;
   }
   container.classList.remove('is-hidden');
@@ -317,6 +455,79 @@ function renderStarterChips() {
       toast(added ? `Added ${added} starter criteria — tweak them to fit. ✨` : 'Those are already on your list.');
     } else if (one) {
       const c = set.criteria[Number(one.dataset.starter)];
+      const result = addFrom(c);
+      toast(result.ok ? `Added "${c.name}" ✨` : result.error, result.ok ? 'info' : 'warn');
+    } else {
+      return;
+    }
+    renderCriteria();
+    renderStepper();
+    renderStarterChips();
+  };
+}
+
+/**
+ * Regex found no starter set for this title. Ask the on-device model for
+ * criteria and, if it delivers, render them using the identical starter-chip
+ * UI so they are indistinguishable from the built-in sets. Fully silent on any
+ * failure. A token guards against applying a stale result after the user has
+ * navigated away or added criteria.
+ */
+async function maybeSuggestCriteriaWithAi() {
+  if (!aiSupported()) return;
+  const token = ++starterAiToken;
+  const titleAtStart = decision.title;
+
+  ensureAiLoading();
+  showWarmingNote($('#step-3'));
+
+  let suggestions;
+  try {
+    suggestions = await aiCriteria(decision, { waitMs: 0 });
+  } catch {
+    return; // AI unavailable/slow — leave the UI exactly as today.
+  }
+
+  // Discard if anything moved on while we waited.
+  if (token !== starterAiToken) return;
+  if (currentStep !== 3) return;
+  if (decision.title !== titleAtStart) return;
+  if (decision.criteria.length >= 3) return;
+  if (suggestStarterSet(decision.title)) return; // a regex set now applies
+  if (!Array.isArray(suggestions) || suggestions.length < 2) return;
+
+  renderSuggestedChips(suggestions);
+}
+
+/**
+ * Render AI-suggested criteria into #starterChips using the same markup and
+ * behaviour as the built-in starter chips (add one, or add all).
+ */
+function renderSuggestedChips(suggestions) {
+  const container = $('#starterChips');
+  if (!container) return;
+  container.classList.remove('is-hidden');
+  container.innerHTML = `
+    <span class="starter-chips__label">Want a head start? Suggested criteria:</span>
+    <div class="starter-chips__row">
+      ${suggestions.map((c, i) => `
+        <button type="button" class="chip" data-starter="${i}" title="${esc(c.description || '')}">+ ${esc(c.name)}</button>
+      `).join('')}
+      <button type="button" class="chip chip--all" data-starter-all>Add all</button>
+    </div>`;
+
+  container.onclick = (e) => {
+    const all = e.target.closest('[data-starter-all]');
+    const one = e.target.closest('[data-starter]');
+    const addFrom = (c) => addCriterion(c.name, c.description || '');
+    if (all) {
+      let added = 0;
+      for (const c of suggestions) {
+        if (addFrom(c).ok) added += 1;
+      }
+      toast(added ? `Added ${added} starter criteria — tweak them to fit. ✨` : 'Those are already on your list.');
+    } else if (one) {
+      const c = suggestions[Number(one.dataset.starter)];
       const result = addFrom(c);
       toast(result.ok ? `Added "${c.name}" ✨` : result.error, result.ok ? 'info' : 'warn');
     } else {
