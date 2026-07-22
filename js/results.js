@@ -19,6 +19,7 @@ import {
   verdictSentence, tradeOffLine, executiveSummary,
 } from './narrative.js';
 import { esc, $, $$ } from './ui.js';
+import { requestSanityCheck } from './magic.js';
 
 let lastAnalysis = null;
 let whatIfWeights = null;
@@ -42,12 +43,49 @@ export function renderResults() {
 
   renderCasualLayer();
 
-  // Advanced section resets collapsed; content builds lazily on first open.
+// Advanced section resets collapsed; content builds lazily on first open.
   const adv = $('#advancedSection');
   adv.classList.add('is-hidden');
   const toggle = $('#advancedToggleBtn');
   toggle.setAttribute('aria-expanded', 'false');
   toggle.textContent = 'Show Advanced Analytics and Reports';
+
+  if (lastAnalysis.ranked.length >= 2) {
+    requestSanityCheck(decision, sanityDigest(lastAnalysis), appendSanityCallout);
+  }
+}
+
+/* ----------------- Silent sanity check (additive) ------------------------ */
+/* A brief second look at the computed result, rendered as one more
+   plain-language callout when — and only when — it is ready. If it never
+   arrives, the results page is complete without it. */
+
+function sanityDigest(analysis) {
+  const { ranked, confidence } = analysis;
+  return {
+    ranking: ranked.map((r) => ({
+      name: r.option.name,
+      score: Number(r.totalScore.toFixed(2)),
+      rank: r.rank,
+      tied: !!r.isTied,
+    })),
+    weightsPct: decision.criteria.map((c) => ({
+      name: c.name,
+      pct: Math.round(decision.normalizedWeights[c.id] || 0),
+    })),
+    confidence: confidence.level,
+    ratingCoverage: Number((confidence.coverage ?? 1).toFixed(2)),
+  };
+}
+
+function appendSanityCallout(text) {
+  const callouts = $('#casualResults .callouts');
+  if (!callouts || callouts.querySelector('[data-sanity]')) return;
+  const div = document.createElement('div');
+  div.className = 'callout callout--info';
+  div.setAttribute('data-sanity', '');
+  div.textContent = `Second look: ${text}`;
+  callouts.appendChild(div);
 }
 
 /* ========================== CASUAL LAYER ================================== */
