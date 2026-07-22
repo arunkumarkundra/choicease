@@ -15,6 +15,7 @@ import {
   HELPER_GPT_URL, criteriaPrompt, weightsPrompt, ratingsPrompt, suggestStarterSet,
 } from './assist.js';
 import { esc, $, $$, toast, copyToClipboard, scrollToElement } from './ui.js';
+import { aiStarterSet, magicStepChange, draftNewestOptionDescription } from './magic.js';
 
 export const STEP_COUNT = 6;
 let currentStep = 1;
@@ -61,14 +62,20 @@ export function goToStep(step, { scroll = true } = {}) {
   for (let i = 1; i <= STEP_COUNT; i += 1) {
     $(`#step-${i}`)?.classList.toggle('is-hidden', i !== currentStep);
   }
+
   renderStepper();
+
+  magicStepChange(currentStep, {
+    rerenderWeights: renderWeighting,
+    rerenderRatings: renderRatingMatrix,
+  });
 
   if (currentStep === 3) renderStarterChips();
   if (currentStep === 4) renderWeighting();
   if (currentStep === 5) renderRatingMatrix();
   if (currentStep === 6 && onEnterResults) onEnterResults();
-
-  if (scroll) scrollToElement($(`#step-${currentStep}`));
+   
+   
 }
 
 function renderStepper() {
@@ -158,6 +165,7 @@ function wireItemStep(kind, actions) {
   const add = () => {
     const nameInput = $(cfg.nameInput);
     const descInput = $(cfg.descInput);
+    const hadDescription = descInput.value.trim().length > 0;
     const result = actions.add(nameInput.value, descInput.value);
     if (!result.ok) {
       toast(result.error, 'warn');
@@ -168,7 +176,15 @@ function wireItemStep(kind, actions) {
     nameInput.focus();
     actions.render();
     renderStepper();
+    if (kind === 'option' && !hadDescription) {
+      draftNewestOptionDescription(() => {
+        // Refresh the list only when no inline editor is open, so a draft
+        // arriving mid-edit never blows away the user's typing.
+        if (!document.querySelector('#optionsList .is-editing')) renderOptions();
+      });
+    }
   };
+   
   $(cfg.addBtn).addEventListener('click', add);
   $(cfg.nameInput).addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); add(); }
@@ -290,7 +306,9 @@ export function renderCriteria() {
 
 function renderStarterChips() {
   const container = $('#starterChips');
-  const set = suggestStarterSet(decision.title);
+  const set = suggestStarterSet(decision.title)
+    || aiStarterSet(decision, () => renderStarterChips());
+   
   if (!set || decision.criteria.length >= 3) {
     container.classList.add('is-hidden');
     return;
