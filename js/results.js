@@ -141,7 +141,7 @@ async function maybeRunSanityCheck() {
 
   let critique;
   try {
-    critique = await aiSanityCheck(decision, summary, { waitMs: 0 });
+    critique = await aiSanityCheck(decision, summary, { waitMs: 6000 });
   } catch {
     return; // AI unavailable/slow/failed — leave results unchanged.
   }
