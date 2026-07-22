@@ -17,25 +17,42 @@
      defensively and reject anything malformed rather than guess.
    ========================================================================== */
 
-/* WebLLM is loaded from a CDN as an ES module, on demand. If the import
-   fails (offline, blocked, unsupported browser) we degrade to non-AI.
-   The version is PINNED: a floating "latest" can pair a newer JS runtime with
-   an incompatible prebuilt model config, which throws a BindingError at engine
-   init. Pinning keeps the JS and the model library in the matched set. */
-const WEBLLM_VERSION = '0.2.84';
-const WEBLLM_CDN = `https://esm.run/@mlc-ai/web-llm@${WEBLLM_VERSION}`;
+/* WebLLM is VENDORED locally (js/vendor/web-llm/web-llm.js), pinned to package
+   version 0.2.84. Loading from an auto-ESM CDN (esm.run/jsdelivr +esm) re-bundles
+   the package and corrupts how it resolves its model config, surfacing as a
+   BindingError ("Cannot pass non-string to std::string") at engine init. The
+   vendored file is the package's own unmodified ESM build, so it resolves
+   correctly. If the import fails, we degrade silently to non-AI.
+   Path is relative to this module (js/ai.js → js/vendor/web-llm/web-llm.js). */
+const WEBLLM_SRC = './vendor/web-llm/web-llm.js';
 
 /* Preferred model: Qwen2.5-3B-Instruct — strong instruction-following and
    reliable JSON for a ~2.5GB quantized download; a good quality/size balance.
-   We do not assume this exact id exists in whatever version loads: at runtime
-   we pick it from the loaded prebuiltAppConfig.model_list if present, else fall
-   back to another Qwen 3B, else any 3B instruct model. This turns a model-list
-   drift into graceful degradation instead of a hard BindingError. */
+   We do not hardcode-trust this id: at runtime we pick it from the loaded
+   prebuiltAppConfig.model_list if present, else fall back to another Qwen 3B,
+   else any 3B instruct model — graceful degradation instead of a hard error. */
 const PREFERRED_MODEL_ID = 'Qwen2.5-3B-Instruct-q4f16_1-MLC';
 
 /* Sentinel thrown whenever AI cannot serve a request for any reason. Callers
    match on this to fall back to the existing regex/default behaviour. */
 export const AI_UNAVAILABLE = 'AI_UNAVAILABLE';
+
+/* Safety net: WebLLM can spawn internal promises we don't directly await; if
+   one rejects (e.g. a model-init failure), it can surface as an "Unhandled
+   Promise Rejection" in the console even though the app handles the failure via
+   status flags. We swallow only WebLLM/WASM-binding rejections here so they
+   don't alarm users, while leaving all other app errors untouched. Registered
+   once, guarded, and never rethrows. */
+if (typeof window !== 'undefined' && !window.__choiceaseAiRejectionGuard) {
+  window.__choiceaseAiRejectionGuard = true;
+  window.addEventListener('unhandledrejection', (event) => {
+    const msg = String(event?.reason?.message || event?.reason || '');
+    if (/BindingError|std::string|MLC|web-?llm|WebGPU/i.test(msg)) {
+      try { console.warn('[Choicease AI] suppressed model error:', msg); } catch { /* ignore */ }
+      event.preventDefault(); // keep it out of the console as an uncaught error
+    }
+  });
+}
 
 /* Engine lifecycle state. `status` is one of:
    'idle'      — never started
@@ -128,7 +145,7 @@ export function ensureAiLoading() {
 
   state.loadPromise = (async () => {
     try {
-      const webllm = await import(WEBLLM_CDN);
+      const webllm = await import(WEBLLM_SRC);
       const modelId = resolveModelId(webllm);
       if (typeof modelId !== 'string' || !modelId) {
         throw new Error('No suitable WebLLM model found in prebuilt config');
