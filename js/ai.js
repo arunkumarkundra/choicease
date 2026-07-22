@@ -25,11 +25,12 @@
    import fails (offline, blocked) we degrade silently to non-AI. */
 const TRANSFORMERS_SRC = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3';
 
-/* Qwen2.5-1.5B-Instruct (ONNX, q4): a good quality/size balance for on-device
-   use — strong enough for criteria/weights/ratings suggestions while staying
-   small enough (~1GB) to run under the WASM backend on mobile. To trade quality
-   for a smaller/faster download, switch to 'onnx-community/Qwen2.5-0.5B-Instruct'. */
-const MODEL_ID = 'onnx-community/Qwen2.5-1.5B-Instruct';
+/* Qwen2.5-0.5B-Instruct (ONNX, q4): matches the configuration proven to work
+   on Safari, mobile, and desktop in a sibling project. ~0.4GB, fast enough on
+   the WASM (CPU) backend to run everywhere. This is the reliable default; for
+   higher-quality suggestions on capable devices, 'onnx-community/Qwen2.5-1.5B-Instruct'
+   is a drop-in swap (~1GB, heavier on mobile/WASM). */
+const MODEL_ID = 'onnx-community/Qwen2.5-0.5B-Instruct';
 const MODEL_DTYPE = 'q4';
 
 /* Sentinel thrown whenever AI cannot serve a request for any reason. Callers
