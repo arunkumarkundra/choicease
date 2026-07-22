@@ -62,10 +62,17 @@ const AI_STARTER_WAIT_MS = 6000;
 
 /* Start the model download once, in the background, as early as the user
    shows intent. Safe to call repeatedly; ensureAiLoading() is idempotent and
-   returns immediately when unsupported, already loading, or ready. */
+   returns immediately when unsupported, already loading, or ready.
+   Fully guarded: any failure here must never affect navigation or the
+   existing regex/non-AI experience. */
 function warmAi() {
-  if (!aiSupported()) return;
-  ensureAiLoading();
+  try {
+    if (!aiSupported()) return;
+    const p = ensureAiLoading();
+    if (p && typeof p.catch === 'function') p.catch(() => {});
+  } catch {
+    /* AI is strictly optional; swallow everything. */
+  }
 }
 
 /* Guards so background work started for one step can't apply to a stale one,
@@ -217,7 +224,8 @@ export function goToStep(step, { scroll = true } = {}) {
     renderWeighting();
     // First entry to weighting for an untouched new decision: let AI seed the
     // initial weights and ratings. No-op for touched/imported/resumed ones.
-    maybeSeedWeightsAndRatings();
+    // Guarded: seeding must never break the weighting UI.
+    try { maybeSeedWeightsAndRatings(); } catch { /* AI optional */ }
   }
   if (currentStep === 5) renderRatingMatrix();
   if (currentStep === 6 && onEnterResults) onEnterResults();
@@ -451,7 +459,9 @@ function renderStarterChips() {
     // no AI wording; if it's unsupported/slow/failing, nothing appears (exactly
     // today's behaviour). Only attempted when the user still has room for a
     // head start (fewer than 3 criteria) and there was no regex set.
-    if (!set && decision.criteria.length < 3) maybeSuggestCriteriaWithAi();
+    if (!set && decision.criteria.length < 3) {
+      try { maybeSuggestCriteriaWithAi(); } catch { /* AI optional */ }
+    }
     return;
   }
   container.classList.remove('is-hidden');
