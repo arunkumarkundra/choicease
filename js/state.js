@@ -45,6 +45,8 @@ export function replaceDecision(next) {
 export function resetDecision() {
   replaceDecision(createEmptyDecision());
   clearDraft();
+  rearmSeeds(); // a brand-new decision may be seeded once
+  bumpEpoch();  // and any in-flight AI result for the old one is void
 }
 
 /* --------------------------------------------------------------------------
@@ -163,6 +165,7 @@ export function updateCriterion(criterionId, name, description) {
 export function setImportance(criterionId, rating) {
   const r = Math.min(5, Math.max(1, Math.round(Number(rating) || 3)));
   decision.weights[criterionId] = r;
+  seedGate.weights = false; // the user has taken over — AI stays out
   saveDraft();
 }
 
@@ -171,6 +174,7 @@ export function setRating(optionId, criterionId, value) {
   if (!Number.isFinite(v)) v = 3;
   v = Math.min(5, Math.max(0, Math.round(v * 10) / 10));
   decision.ratings[`${optionId}-${criterionId}`] = v;
+  seedGate.ratings = false; // the user has taken over — AI stays out
   saveDraft();
   return v;
 }
@@ -211,6 +215,85 @@ export function clearDraft() {
   } catch {
     /* ignore */
   }
+}
+
+/* --------------------------------------------------------------------------
+   AI seeding gate — initiation only, never revision.
+   Each kind ('weights' | 'ratings') may be seeded at most once, and only on a
+   brand-new decision built in this session. Importing, opening a shared link,
+   or resuming a draft disarms both gates; any user edit of a kind disarms
+   that kind; leaving the tab consumes its window (handled by magic.js).
+   Nothing here is persisted or exported — the gate is a per-session,
+   per-decision courtesy window, invisible to every schema.
+   -------------------------------------------------------------------------- */
+
+const seedGate = { weights: true, ratings: true };
+let decisionEpoch = 0;
+
+export function getDecisionEpoch() { return decisionEpoch; }
+export function canSeed(kind) { return seedGate[kind] === true; }
+export function consumeSeed(kind) { if (kind in seedGate) seedGate[kind] = false; }
+
+function disarmSeeds() { seedGate.weights = false; seedGate.ratings = false; }
+function rearmSeeds() { seedGate.weights = true; seedGate.ratings = true; }
+function bumpEpoch() { decisionEpoch += 1; }
+
+/** Apply AI-proposed importance levels ({ criterionId: 1..5 }). One shot:
+    the gate is consumed whether or not anything applied. Blank-slate
+    invariant: refuses unless every weight is still the flat default (3). */
+export function applySeededWeights(map) {
+  if (!canSeed('weights')) return 0;
+  const allFlat = decision.criteria.length >= 2
+    && decision.criteria.every((c) => (decision.weights[c.id] || 3) === 3);
+  consumeSeed('weights');
+  if (!allFlat) return 0;
+  let applied = 0;
+  for (const c of decision.criteria) {
+    const v = map?.[c.id];
+    if (Number.isInteger(v) && v >= 1 && v <= 5) {
+      decision.weights[c.id] = v;
+      applied += 1;
+    }
+  }
+  if (applied) saveDraft();
+  return applied;
+}
+
+/** Apply AI-proposed ratings ({ `optionId-criterionId`: 0..5 }). One shot.
+    Blank-slate invariant: refuses unless no rating has been stored yet. */
+export function applySeededRatings(map) {
+  if (!canSeed('ratings')) return 0;
+  const blank = Object.keys(decision.ratings || {}).length === 0;
+  consumeSeed('ratings');
+  if (!blank) return 0;
+  const optIds = new Set(decision.options.map((o) => o.id));
+  const critIds = new Set(decision.criteria.map((c) => c.id));
+  let applied = 0;
+  for (const [key, raw] of Object.entries(map || {})) {
+    const [o, c] = key.split('-').map(Number);
+    if (!optIds.has(o) || !critIds.has(c)) continue;
+    let v = Number(raw);
+    if (!Number.isFinite(v)) continue;
+    v = Math.min(5, Math.max(0, Math.round(v * 10) / 10));
+    decision.ratings[key] = v;
+    applied += 1;
+  }
+  if (applied) saveDraft();
+  return applied;
+}
+
+/** Fill a blank option description with an AI draft. Never overwrites: the
+    option must still exist, still carry the name it had when the draft was
+    requested, and its description must still be empty. */
+export function applyDraftedDescription(optionId, nameAtDraft, text) {
+  const option = decision.options.find((o) => o.id === optionId);
+  if (!option || option.description) return false;
+  if (option.name !== nameAtDraft) return false;
+  const clean = sanitizeText(text, LIMITS.ITEM_DESCRIPTION);
+  if (!clean) return false;
+  option.description = clean;
+  saveDraft();
+  return true;
 }
 
 /* --------------------------------------------------------------------------
@@ -255,6 +338,8 @@ export function loadImportedData(data) {
   next.normalizedWeights = { ...(data.normalizedWeights || {}) };
   next.timestamp = data.timestamp || null;
   replaceDecision(next);
+  disarmSeeds(); // imported / shared / resumed decisions are never AI-seeded
+  bumpEpoch();   // any in-flight AI result belongs to the previous decision
   saveDraft();
 }
 
