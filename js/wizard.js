@@ -53,6 +53,21 @@ export function getCurrentStep() {
    on later visits it is cached and seeding succeeds. */
 const AI_SEED_WAIT_MS = 8000;
 
+/* How long the Tab 3 criteria fallback waits for an in-flight model load
+   before giving up and leaving the UI as-is. Thanks to background warming
+   (started when the user leaves Tab 1) the model is often ready or close by
+   the time criteria are reached, so a short bounded wait catches that case
+   without a fresh first-visit download ever blocking the step. */
+const AI_STARTER_WAIT_MS = 6000;
+
+/* Start the model download once, in the background, as early as the user
+   shows intent. Safe to call repeatedly; ensureAiLoading() is idempotent and
+   returns immediately when unsupported, already loading, or ready. */
+function warmAi() {
+  if (!aiSupported()) return;
+  ensureAiLoading();
+}
+
 /* Guards so background work started for one step can't apply to a stale one,
    and so we never kick a task off twice. */
 let starterAiToken = 0;
@@ -185,6 +200,12 @@ function gateMessage(target) {
 
 export function goToStep(step, { scroll = true } = {}) {
   currentStep = Math.min(STEP_COUNT, Math.max(1, step));
+
+  // Background warm-up: as soon as the user shows real intent (moving beyond
+  // the title step), start downloading the on-device model so it is likely
+  // ready by the time they reach criteria/weights. Idempotent and silent;
+  // never blocks navigation, and does nothing on unsupported devices.
+  if (currentStep >= 2) warmAi();
 
   for (let i = 1; i <= STEP_COUNT; i += 1) {
     $(`#step-${i}`)?.classList.toggle('is-hidden', i !== currentStep);
@@ -483,7 +504,7 @@ async function maybeSuggestCriteriaWithAi() {
 
   let suggestions;
   try {
-    suggestions = await aiCriteria(decision, { waitMs: 0 });
+    suggestions = await aiCriteria(decision, { waitMs: AI_STARTER_WAIT_MS });
   } catch {
     return; // AI unavailable/slow — leave the UI exactly as today.
   }
