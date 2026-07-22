@@ -31,6 +31,9 @@ export function createEmptyDecision() {
     normalizedWeights: {}, // criterionId -> percentage (0..100)
     ratings: {},   // `${optionId}-${criterionId}` -> 0..5 (0.1 precision)
     timestamp: null,
+    aiSeeded: false, // true once AI has seeded (or been offered) defaults for this
+                     // decision, or when the decision came from import/share/resume.
+                     // Guarantees AI only ever initiates values, never revisits them.
   };
 }
 
@@ -175,6 +178,17 @@ export function setRating(optionId, criterionId, value) {
   return v;
 }
 
+/**
+ * Mark this decision as AI-seeded. Called once, when AI has either seeded the
+ * initial weights/ratings for a brand-new decision or been given its single
+ * chance to. After this is set, the AI seeding paths must not run again for
+ * this decision — AI initiates values, it never revisits them.
+ */
+export function markAiSeeded() {
+  decision.aiSeeded = true;
+  saveDraft();
+}
+
 /* --------------------------------------------------------------------------
    Draft autosave — "the app already knew": work survives an accidental reload.
    Stored locally only; nothing leaves the browser.
@@ -254,6 +268,10 @@ export function loadImportedData(data) {
   }
   next.normalizedWeights = { ...(data.normalizedWeights || {}) };
   next.timestamp = data.timestamp || null;
+  // Any decision opened from a link, QR, JSON import, or resumed draft is
+  // treated as already seeded: AI must never change an existing decision,
+  // only initiate a brand-new one.
+  next.aiSeeded = true;
   replaceDecision(next);
   saveDraft();
 }
@@ -269,6 +287,7 @@ export function exportSnapshot() {
     weights: decision.weights,
     normalizedWeights: decision.normalizedWeights,
     ratings: decision.ratings,
+    aiSeeded: decision.aiSeeded === true,
     version: SCHEMA_VERSION,
   };
 }
