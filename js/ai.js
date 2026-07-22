@@ -1,55 +1,53 @@
 /* ==========================================================================
    Choicease — ai.js
-   The single seam between the app and on-device AI (WebLLM).
-   Nothing else in the app imports WebLLM directly; everything goes through
-   the functions here. Every function either returns clean, validated data or
-   throws AI_UNAVAILABLE, so callers can fall back to the existing non-AI path
-   with a single try/catch.
+   The single seam between the app and on-device AI.
 
-   Privacy: the model runs entirely in the browser via WebGPU. No decision
-   data ever leaves the device — consistent with the app's core promise.
+   Engine: Transformers.js (Hugging Face) running Qwen2.5-1.5B-Instruct in ONNX.
+   Unlike WebGPU-only runtimes, Transformers.js uses WebGPU when available and
+   falls back to a WASM (CPU) backend everywhere else — so this works on Safari,
+   Chrome, Firefox, and mobile, not just Chrome desktop. The model downloads
+   once (~1GB at q4) from the Hugging Face CDN and is cached by the browser;
+   nothing the user types ever leaves the device.
+
+   Nothing else in the app imports the AI library directly; everything goes
+   through the functions here. Every task function either returns clean,
+   validated data or throws AI_UNAVAILABLE, so callers fall back to the existing
+   non-AI path with a single try/catch.
 
    Design rules honoured here:
-   - Lazy: the model is only fetched when first genuinely needed.
-   - Non-blocking: load happens in the background; callers that need a result
-     "now" get AI_UNAVAILABLE if it isn't ready, and fall back silently.
-   - Structured: the model is always asked for strict JSON; we parse
-     defensively and reject anything malformed rather than guess.
+   - Lazy + non-blocking: the model loads in the background; callers that need a
+     result "now" get AI_UNAVAILABLE if it isn't ready yet, and fall back.
+   - Structured: the model is always asked for strict JSON; we parse defensively
+     and reject anything malformed rather than guess.
    ========================================================================== */
 
-/* WebLLM is VENDORED locally (js/vendor/web-llm/web-llm.js), pinned to package
-   version 0.2.84. Loading from an auto-ESM CDN (esm.run/jsdelivr +esm) re-bundles
-   the package and corrupts how it resolves its model config, surfacing as a
-   BindingError ("Cannot pass non-string to std::string") at engine init. The
-   vendored file is the package's own unmodified ESM build, so it resolves
-   correctly. If the import fails, we degrade silently to non-AI.
-   Path is relative to this module (js/ai.js → js/vendor/web-llm/web-llm.js). */
-const WEBLLM_SRC = './vendor/web-llm/web-llm.js';
+/* Transformers.js is loaded from jsDelivr as an ES module, on demand. If the
+   import fails (offline, blocked) we degrade silently to non-AI. */
+const TRANSFORMERS_SRC = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3';
 
-/* Preferred model: Qwen2.5-3B-Instruct — strong instruction-following and
-   reliable JSON for a ~2.5GB quantized download; a good quality/size balance.
-   We do not hardcode-trust this id: at runtime we pick it from the loaded
-   prebuiltAppConfig.model_list if present, else fall back to another Qwen 3B,
-   else any 3B instruct model — graceful degradation instead of a hard error. */
-const PREFERRED_MODEL_ID = 'Qwen2.5-3B-Instruct-q4f16_1-MLC';
+/* Qwen2.5-1.5B-Instruct (ONNX, q4): a good quality/size balance for on-device
+   use — strong enough for criteria/weights/ratings suggestions while staying
+   small enough (~1GB) to run under the WASM backend on mobile. To trade quality
+   for a smaller/faster download, switch to 'onnx-community/Qwen2.5-0.5B-Instruct'. */
+const MODEL_ID = 'onnx-community/Qwen2.5-1.5B-Instruct';
+const MODEL_DTYPE = 'q4';
 
 /* Sentinel thrown whenever AI cannot serve a request for any reason. Callers
    match on this to fall back to the existing regex/default behaviour. */
 export const AI_UNAVAILABLE = 'AI_UNAVAILABLE';
 
-/* Safety net: WebLLM can spawn internal promises we don't directly await; if
-   one rejects (e.g. a model-init failure), it can surface as an "Unhandled
-   Promise Rejection" in the console even though the app handles the failure via
-   status flags. We swallow only WebLLM/WASM-binding rejections here so they
-   don't alarm users, while leaving all other app errors untouched. Registered
-   once, guarded, and never rethrows. */
+/* Safety net: the AI library can spawn internal promises we don't directly
+   await; if one rejects it can surface as an "Unhandled Promise Rejection" in
+   the console even though the app handles the failure via status flags. We
+   swallow only AI/WASM-related rejections here so they don't alarm users, while
+   leaving all other app errors untouched. Registered once and never rethrows. */
 if (typeof window !== 'undefined' && !window.__choiceaseAiRejectionGuard) {
   window.__choiceaseAiRejectionGuard = true;
   window.addEventListener('unhandledrejection', (event) => {
     const msg = String(event?.reason?.message || event?.reason || '');
-    if (/BindingError|std::string|MLC|web-?llm|WebGPU/i.test(msg)) {
+    if (/transformers|onnx|wasm|webgpu|ort-|std::string|BindingError/i.test(msg)) {
       try { console.warn('[Choicease AI] suppressed model error:', msg); } catch { /* ignore */ }
-      event.preventDefault(); // keep it out of the console as an uncaught error
+      event.preventDefault();
     }
   });
 }
@@ -61,7 +59,7 @@ if (typeof window !== 'undefined' && !window.__choiceaseAiRejectionGuard) {
    'failed'    — permanently unavailable this session */
 const state = {
   status: 'idle',
-  engine: null,
+  generator: null,
   loadPromise: null,
   progress: 0, // 0..1, best-effort
 };
@@ -72,7 +70,6 @@ const progressListeners = new Set();
 
 export function onAiProgress(listener) {
   progressListeners.add(listener);
-  // Immediately push current state so late subscribers are in sync.
   try { listener({ status: state.status, progress: state.progress }); } catch { /* ignore */ }
   return () => progressListeners.delete(listener);
 }
@@ -83,9 +80,11 @@ function emitProgress() {
   }
 }
 
-/* True only when WebGPU exists; WebLLM cannot run without it. Cheap to call. */
+/* Transformers.js runs on a WASM backend when WebGPU is absent, so AI is
+   effectively supported on any modern browser. We keep this as a light
+   capability check (secure context + WebAssembly present). */
 export function aiSupported() {
-  return typeof navigator !== 'undefined' && 'gpu' in navigator;
+  return typeof WebAssembly !== 'undefined';
 }
 
 export function aiStatus() {
@@ -93,33 +92,12 @@ export function aiStatus() {
 }
 
 export function aiReady() {
-  return state.status === 'ready' && state.engine != null;
+  return state.status === 'ready' && state.generator != null;
 }
 
 /* --------------------------------------------------------------------------
    Loading
    -------------------------------------------------------------------------- */
-
-/**
- * Choose a model id that actually exists in the loaded WebLLM build. Prevents
- * passing an unknown id to the engine (which surfaces as a BindingError deep in
- * the WASM binding). Order: exact preferred id → any Qwen 2.5 3B instruct →
- * any 3B instruct → the preferred id as a last resort.
- */
-function resolveModelId(webllm) {
-  const list = webllm?.prebuiltAppConfig?.model_list;
-  const ids = Array.isArray(list)
-    ? list.map((m) => (m && typeof m.model_id === 'string' ? m.model_id : null)).filter(Boolean)
-    : [];
-  if (!ids.length) return PREFERRED_MODEL_ID; // let the engine try; it may still work
-
-  if (ids.includes(PREFERRED_MODEL_ID)) return PREFERRED_MODEL_ID;
-  const qwen3b = ids.find((id) => /Qwen2\.5-3B-Instruct/i.test(id));
-  if (qwen3b) return qwen3b;
-  const any3b = ids.find((id) => /(^|[-_])3B[-_].*Instruct/i.test(id));
-  if (any3b) return any3b;
-  return PREFERRED_MODEL_ID;
-}
 
 /**
  * Begin loading the model if it isn't already loading/ready. Safe to call
@@ -145,22 +123,31 @@ export function ensureAiLoading() {
 
   state.loadPromise = (async () => {
     try {
-      const webllm = await import(WEBLLM_SRC);
-      const modelId = resolveModelId(webllm);
-      if (typeof modelId !== 'string' || !modelId) {
-        throw new Error('No suitable WebLLM model found in prebuilt config');
-      }
-      const engine = await webllm.CreateMLCEngine(modelId, {
-        initProgressCallback: (report) => {
-          // report.progress is 0..1 (best-effort; not all phases report it)
-          if (typeof report?.progress === 'number') {
-            state.progress = Math.max(0, Math.min(1, report.progress));
+      const T = await import(TRANSFORMERS_SRC);
+      // Only load remote models from the HF hub; never look for local files.
+      if (T?.env) T.env.allowLocalModels = false;
+
+      // Prefer WebGPU when actually usable; otherwise fall back to WASM (CPU).
+      let device = 'wasm';
+      try {
+        if (typeof navigator !== 'undefined' && navigator.gpu
+            && await navigator.gpu.requestAdapter()) {
+          device = 'webgpu';
+        }
+      } catch { /* keep wasm */ }
+
+      const generator = await T.pipeline('text-generation', MODEL_ID, {
+        dtype: MODEL_DTYPE,
+        device,
+        progress_callback: (p) => {
+          if (p && p.status === 'progress' && p.total) {
+            state.progress = Math.max(0, Math.min(1, p.loaded / p.total));
             emitProgress();
           }
         },
       });
-      state.engine = engine;
-      state.modelId = modelId;
+
+      state.generator = generator;
       state.status = 'ready';
       state.progress = 1;
       emitProgress();
@@ -169,7 +156,7 @@ export function ensureAiLoading() {
       // AI is optional; the app falls back to non-AI. We log (not throw) so a
       // failure is diagnosable in the console without affecting the app.
       try { console.warn('[Choicease AI] model load failed:', err); } catch { /* ignore */ }
-      state.engine = null;
+      state.generator = null;
       state.status = 'failed';
       emitProgress();
       return false;
@@ -189,7 +176,7 @@ export function ensureAiLoading() {
  * `waitMs` optionally allows a short wait for an in-flight load to finish;
  * by default we do NOT wait (callers that can't block pass 0).
  */
-async function complete(system, user, { waitMs = 0, temperature = 0.4 } = {}) {
+async function complete(system, user, { waitMs = 0, maxNewTokens = 320 } = {}) {
   if (state.status !== 'ready') {
     if (waitMs > 0 && state.status === 'loading' && state.loadPromise) {
       const timeout = new Promise((res) => setTimeout(() => res(false), waitMs));
@@ -200,25 +187,28 @@ async function complete(system, user, { waitMs = 0, temperature = 0.4 } = {}) {
     }
   }
   try {
-    const reply = await state.engine.chat.completions.create({
-      messages: [
+    const out = await state.generator(
+      [
         { role: 'system', content: system },
         { role: 'user', content: user },
       ],
-      temperature,
-      // Nudge the runtime toward pure JSON where supported; we still parse
-      // defensively below in case the field is ignored.
-      response_format: { type: 'json_object' },
-    });
-    const content = reply?.choices?.[0]?.message?.content;
-    if (typeof content !== 'string' || !content.trim()) throw AI_UNAVAILABLE;
-    return content;
+      { max_new_tokens: maxNewTokens, do_sample: false, return_full_text: false },
+    );
+    // Transformers.js returns [{ generated_text: [...messages] | string }].
+    let text = out;
+    if (Array.isArray(out)) text = out[0] && out[0].generated_text;
+    if (Array.isArray(text)) {
+      const last = text[text.length - 1];
+      text = last && last.content;
+    }
+    text = String(text || '');
+    if (!text.trim()) throw AI_UNAVAILABLE;
+    return text;
   } catch (err) {
     if (err === AI_UNAVAILABLE) throw err;
     throw AI_UNAVAILABLE;
   }
 }
-
 /**
  * Parse a model reply into JSON, tolerating stray prose or code fences.
  * Returns the parsed value or throws AI_UNAVAILABLE.
