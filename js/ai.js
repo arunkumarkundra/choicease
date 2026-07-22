@@ -100,7 +100,7 @@ export function ensureAiLoading() {
 
   state.loadPromise = (async () => {
     try {
-      const webllm = await import(/* @vite-ignore */ WEBLLM_CDN);
+      const webllm = await import(WEBLLM_CDN);
       const engine = await webllm.CreateMLCEngine(MODEL_ID, {
         initProgressCallback: (report) => {
           // report.progress is 0..1 (best-effort; not all phases report it)
@@ -115,7 +115,10 @@ export function ensureAiLoading() {
       state.progress = 1;
       emitProgress();
       return true;
-    } catch {
+    } catch (err) {
+      // AI is optional; the app falls back to non-AI. We log (not throw) so a
+      // failure is diagnosable in the console without affecting the app.
+      try { console.warn('[Choicease AI] model load failed:', err); } catch { /* ignore */ }
       state.engine = null;
       state.status = 'failed';
       emitProgress();
