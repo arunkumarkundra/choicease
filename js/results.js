@@ -18,12 +18,16 @@ import {
   casualWinnerLine, casualSubLine, casualCallouts,
   verdictSentence, tradeOffLine, executiveSummary,
 } from './narrative.js';
+import {
+  aiSupported, ensureAiLoading, aiSanityCheck,
+} from './ai.js';
 import { esc, $, $$ } from './ui.js';
 
 let lastAnalysis = null;
 let whatIfWeights = null;
 let satisficingBar = 3;
 let advancedBuilt = false;
+let sanityToken = 0; // guards against applying a stale AI sanity-check result
 
 export function getLastAnalysis() {
   return lastAnalysis;
@@ -41,6 +45,10 @@ export function renderResults() {
   advancedBuilt = false;
 
   renderCasualLayer();
+
+  // Fire the on-device AI sanity check; it reveals itself when ready and stays
+  // hidden if AI is unsupported, slow, or fails. Never blocks the results.
+  maybeRunSanityCheck();
 
   // Advanced section resets collapsed; content builds lazily on first open.
   const adv = $('#advancedSection');
@@ -82,7 +90,73 @@ function renderCasualLayer() {
         <div class="callout callout--${note.tone}">${esc(note.text)}</div>
       `).join('')}
     </div>
+
+    <div class="ai-sanity is-hidden" id="aiSanityCheck" data-ai-sanity></div>
   `;
+}
+
+/* ---------------------- AI sanity check (on-device) ---------------------- */
+
+/**
+ * Build a compact, safe summary of the computed result for the model to react
+ * to. Deliberately structural (names, scores, weights, margins, confidence) so
+ * the model critiques the decision setup rather than inventing facts about the
+ * options.
+ */
+function buildSanitySummary() {
+  const { ranked, confidence } = lastAnalysis;
+  return {
+    title: decision.title || '',
+    optionCount: decision.options.length,
+    criteriaCount: decision.criteria.length,
+    ranking: ranked.map((r) => ({
+      name: r.option.name,
+      score: Math.round(r.totalScore * 100) / 100,
+      rank: r.rank,
+      tied: !!r.isTied,
+    })),
+    weights: decision.criteria
+      .map((c) => ({ name: c.name, weightPct: Math.round(decision.normalizedWeights[c.id] || 0) }))
+      .sort((a, b) => b.weightPct - a.weightPct),
+    marginOverSecond: ranked[1]
+      ? Math.round((ranked[0].totalScore - ranked[1].totalScore) * 100) / 100
+      : null,
+    confidence: confidence ? confidence.level : null,
+    ratingsCoverage: confidence ? Math.round(confidence.coverage * 100) : null,
+  };
+}
+
+/**
+ * Auto-run the sanity check and reveal it when ready. Silent on any failure:
+ * the container stays hidden and the results look exactly as they do today.
+ */
+async function maybeRunSanityCheck() {
+  if (!aiSupported()) return;
+  if (!lastAnalysis || !lastAnalysis.ranked?.length) return;
+
+  const token = ++sanityToken;
+  const summary = buildSanitySummary();
+
+  ensureAiLoading();
+
+  let critique;
+  try {
+    critique = await aiSanityCheck(decision, summary, { waitMs: 0 });
+  } catch {
+    return; // AI unavailable/slow/failed — leave results unchanged.
+  }
+
+  // Discard if results were re-rendered while we waited.
+  if (token !== sanityToken) return;
+  const box = $('#aiSanityCheck');
+  if (!box || !critique) return;
+
+  box.innerHTML = `
+    <div class="ai-sanity__head">🤖 A second look</div>
+    <p class="ai-sanity__body">${esc(critique)}</p>
+    <p class="ai-sanity__foot">On-device AI · nothing uploaded · treat as a prompt to reflect, not a verdict.</p>
+  `;
+  box.classList.remove('is-hidden');
 }
 
 function renderLeaderboard(ranked) {
