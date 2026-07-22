@@ -18,6 +18,7 @@ import { isUnlocked, validateLicenseKey, storeLicense } from './features.js';
 import {
   $, $$, toast, openModal, closeModal, wireModalDismissal, confirmDialog,
 } from './ui.js';
+import { initMagic } from './magic.js';
 
 function boot() {
   initWizard({ onResults: onResultsEntered });
@@ -27,6 +28,7 @@ function boot() {
   wirePanels();
   wirePremium();
   $('#year').textContent = String(new Date().getFullYear());
+  initMagic();
 
   if (!importFromFragmentIfPresent()) {
     offerDraftResume();
