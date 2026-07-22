@@ -34,6 +34,12 @@ export function initWizard({ onResults }) {
   renderOptions();
   renderCriteria();
   goToStep(1, { scroll: false });
+
+  // Start warming the on-device model immediately at page load. The download
+  // is large (can take several minutes) and caches for future visits, so the
+  // sooner it begins the more likely it is ready by the time the user reaches
+  // criteria/weights. Fully guarded and silent; a no-op on unsupported devices.
+  warmAi();
 }
 
 export function getCurrentStep() {
