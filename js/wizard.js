@@ -15,7 +15,7 @@ import {
   HELPER_GPT_URL, criteriaPrompt, weightsPrompt, ratingsPrompt, suggestStarterSet,
 } from './assist.js';
 import {
-  aiSupported, ensureAiLoading, onAiProgress, aiReady,
+  aiSupported, ensureAiLoading, onAiProgress, aiReady, aiStatus,
   aiCriteria, aiWeights, aiRatings, AI_UNAVAILABLE,
 } from './ai.js';
 import { esc, $, $$, toast, copyToClipboard, scrollToElement } from './ui.js';
@@ -53,18 +53,20 @@ export function getCurrentStep() {
    in index.html — the one-time "warming up" note is created on demand.
    ========================================================================== */
 
-/* How long to wait for an in-flight model load before falling back to plain
-   defaults when seeding weights/ratings on first entry to a step. On a first
-   visit the model won't be ready in time (fresh download) and we fall back;
-   on later visits it is cached and seeding succeeds. */
-const AI_SEED_WAIT_MS = 8000;
+/* How long to wait for an in-flight model load + inference before falling back
+   to plain defaults when seeding weights/ratings on first entry to a step.
+   The on-device model runs on a WASM (CPU) backend on many browsers, where a
+   single generation can take tens of seconds — so this budget is generous.
+   On a first visit the model won't be ready in time (fresh download) and we
+   fall back; on later visits it is cached and seeding succeeds. */
+const AI_SEED_WAIT_MS = 60000;
 
-/* How long the Tab 3 criteria fallback waits for an in-flight model load
-   before giving up and leaving the UI as-is. Thanks to background warming
-   (started when the user leaves Tab 1) the model is often ready or close by
-   the time criteria are reached, so a short bounded wait catches that case
-   without a fresh first-visit download ever blocking the step. */
-const AI_STARTER_WAIT_MS = 6000;
+/* How long the Tab 3 criteria fallback waits for an in-flight model load +
+   inference before giving up and leaving the UI as-is. Generous because WASM
+   (CPU) inference is slow; background warming (started at page load) means the
+   model is often already downloaded by the time criteria are reached, so this
+   mostly covers generation time rather than download. */
+const AI_STARTER_WAIT_MS = 45000;
 
 /* Start the model download once, in the background, as early as the user
    shows intent. Safe to call repeatedly; ensureAiLoading() is idempotent and
@@ -87,35 +89,42 @@ let starterAiToken = 0;
 const seedInFlight = { weightsRatings: false };
 
 /**
- * Insert (once) a small, friendly "warming up" note into `container`, wired to
- * model load progress. It removes itself when the model is ready or failed.
- * Purely additive DOM; no existing element is touched. Safe to call repeatedly.
+ * Insert (once) a small, friendly note into `container`, wired to model load
+ * progress. During download it shows "warming up" with a %, and once the model
+ * is ready it shows a "preparing suggestions" state (WASM inference can take a
+ * while). Returns a function that removes the note. Purely additive DOM.
  */
 function showWarmingNote(container) {
-  if (!container || !aiSupported()) return;
-  if (aiReady()) return; // nothing to wait for
-  if (container.querySelector('[data-ai-warming]')) return; // already shown
+  if (!container || !aiSupported()) return () => {};
+  let note = container.querySelector('[data-ai-warming]');
+  if (!note) {
+    note = document.createElement('p');
+    note.className = 'note';
+    note.setAttribute('data-ai-warming', '');
+    note.style.marginTop = '10px';
+    container.appendChild(note);
+  }
 
-  const note = document.createElement('p');
-  note.className = 'note';
-  note.setAttribute('data-ai-warming', '');
-  note.style.marginTop = '10px';
-  note.innerHTML =
-    '✨ Warming up a private AI assistant — runs entirely on your device, ' +
-    'nothing uploaded. This one-time setup can take a little while.';
-  container.appendChild(note);
-
-  const unsubscribe = onAiProgress(({ status, progress }) => {
+  const render = (status, progress) => {
     if (status === 'loading') {
       const pct = Math.round((progress || 0) * 100);
-      note.innerHTML =
-        `✨ Warming up a private AI assistant — runs entirely on your device, ` +
-        `nothing uploaded. Preparing… ${pct}%`;
-    } else if (status === 'ready' || status === 'failed') {
-      unsubscribe();
+      note.innerHTML = pct > 0
+        ? `✨ Warming up a private AI assistant — runs entirely on your device, `
+          + `nothing uploaded. Downloading… ${pct}%`
+        : `✨ Warming up a private AI assistant — runs entirely on your device, `
+          + `nothing uploaded. This one-time setup can take a little while.`;
+    } else if (status === 'ready') {
+      // Model is loaded; generation (WASM/CPU) may still take a while.
+      note.innerHTML = '✨ Preparing suggestions on your device…';
+    } else if (status === 'failed') {
       note.remove();
     }
-  });
+  };
+
+  render(aiStatus(), 0);
+  const unsubscribe = onAiProgress(({ status, progress }) => render(status, progress));
+
+  return () => { unsubscribe(); if (note && note.parentNode) note.remove(); };
 }
 
 /** True only for a brand-new decision the user has not touched on Tab 4/5. */
@@ -146,7 +155,7 @@ async function maybeSeedWeightsAndRatings() {
   const criteriaIds = decision.criteria.map((c) => c.id).join(',');
 
   ensureAiLoading();
-  showWarmingNote($('#weightingList'));
+  const clearNote = showWarmingNote($('#weightingList'));
 
   try {
     const stillEligible = () =>
@@ -184,6 +193,7 @@ async function maybeSeedWeightsAndRatings() {
   } finally {
     // Whether we succeeded, partially succeeded, or fell back: AI has had its
     // single chance for this decision. Never revisit.
+    clearNote();
     markAiSeeded();
     seedInFlight.weightsRatings = false;
     // Re-render whichever step is showing so seeded values appear.
@@ -516,14 +526,16 @@ async function maybeSuggestCriteriaWithAi() {
   const titleAtStart = decision.title;
 
   ensureAiLoading();
-  showWarmingNote($('#step-3'));
+  const clearNote = showWarmingNote($('#step-3'));
 
   let suggestions;
   try {
     suggestions = await aiCriteria(decision, { waitMs: AI_STARTER_WAIT_MS });
   } catch {
+    clearNote();
     return; // AI unavailable/slow — leave the UI exactly as today.
   }
+  clearNote();
 
   // Discard if anything moved on while we waited.
   if (token !== starterAiToken) return;
