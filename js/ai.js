@@ -18,13 +18,20 @@
    ========================================================================== */
 
 /* WebLLM is loaded from a CDN as an ES module, on demand. If the import
-   fails (offline, blocked, unsupported browser) we degrade to non-AI. */
-const WEBLLM_CDN = 'https://esm.run/@mlc-ai/web-llm';
+   fails (offline, blocked, unsupported browser) we degrade to non-AI.
+   The version is PINNED: a floating "latest" can pair a newer JS runtime with
+   an incompatible prebuilt model config, which throws a BindingError at engine
+   init. Pinning keeps the JS and the model library in the matched set. */
+const WEBLLM_VERSION = '0.2.84';
+const WEBLLM_CDN = `https://esm.run/@mlc-ai/web-llm@${WEBLLM_VERSION}`;
 
-/* Qwen2.5-3B-Instruct: strong instruction-following and reliable JSON for a
-   ~2GB quantized download; a good quality/size balance for on-device use.
-   (Kept as a single constant so it is trivial to swap later.) */
-const MODEL_ID = 'Qwen2.5-3B-Instruct-q4f16_1-MLC';
+/* Preferred model: Qwen2.5-3B-Instruct — strong instruction-following and
+   reliable JSON for a ~2.5GB quantized download; a good quality/size balance.
+   We do not assume this exact id exists in whatever version loads: at runtime
+   we pick it from the loaded prebuiltAppConfig.model_list if present, else fall
+   back to another Qwen 3B, else any 3B instruct model. This turns a model-list
+   drift into graceful degradation instead of a hard BindingError. */
+const PREFERRED_MODEL_ID = 'Qwen2.5-3B-Instruct-q4f16_1-MLC';
 
 /* Sentinel thrown whenever AI cannot serve a request for any reason. Callers
    match on this to fall back to the existing regex/default behaviour. */
@@ -77,6 +84,27 @@ export function aiReady() {
    -------------------------------------------------------------------------- */
 
 /**
+ * Choose a model id that actually exists in the loaded WebLLM build. Prevents
+ * passing an unknown id to the engine (which surfaces as a BindingError deep in
+ * the WASM binding). Order: exact preferred id → any Qwen 2.5 3B instruct →
+ * any 3B instruct → the preferred id as a last resort.
+ */
+function resolveModelId(webllm) {
+  const list = webllm?.prebuiltAppConfig?.model_list;
+  const ids = Array.isArray(list)
+    ? list.map((m) => (m && typeof m.model_id === 'string' ? m.model_id : null)).filter(Boolean)
+    : [];
+  if (!ids.length) return PREFERRED_MODEL_ID; // let the engine try; it may still work
+
+  if (ids.includes(PREFERRED_MODEL_ID)) return PREFERRED_MODEL_ID;
+  const qwen3b = ids.find((id) => /Qwen2\.5-3B-Instruct/i.test(id));
+  if (qwen3b) return qwen3b;
+  const any3b = ids.find((id) => /(^|[-_])3B[-_].*Instruct/i.test(id));
+  if (any3b) return any3b;
+  return PREFERRED_MODEL_ID;
+}
+
+/**
  * Begin loading the model if it isn't already loading/ready. Safe to call
  * repeatedly and from multiple places — the work happens at most once.
  * Does not throw; failures move status to 'failed'. Returns the shared
@@ -101,7 +129,11 @@ export function ensureAiLoading() {
   state.loadPromise = (async () => {
     try {
       const webllm = await import(WEBLLM_CDN);
-      const engine = await webllm.CreateMLCEngine(MODEL_ID, {
+      const modelId = resolveModelId(webllm);
+      if (typeof modelId !== 'string' || !modelId) {
+        throw new Error('No suitable WebLLM model found in prebuilt config');
+      }
+      const engine = await webllm.CreateMLCEngine(modelId, {
         initProgressCallback: (report) => {
           // report.progress is 0..1 (best-effort; not all phases report it)
           if (typeof report?.progress === 'number') {
@@ -111,6 +143,7 @@ export function ensureAiLoading() {
         },
       });
       state.engine = engine;
+      state.modelId = modelId;
       state.status = 'ready';
       state.progress = 1;
       emitProgress();
