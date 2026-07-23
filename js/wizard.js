@@ -15,7 +15,7 @@ import {
   HELPER_GPT_URL, criteriaPrompt, weightsPrompt, ratingsPrompt, suggestStarterSet,
 } from './assist.js';
 import { esc, $, $$, toast, copyToClipboard, scrollToElement } from './ui.js';
-import { aiStarterSet, magicStepChange, draftNewestOptionDescription } from './magic.js';
+import { aiStarterSet, magicStepChange } from './magic.js';
 
 export const STEP_COUNT = 6;
 let currentStep = 1;
@@ -165,7 +165,6 @@ function wireItemStep(kind, actions) {
   const add = () => {
     const nameInput = $(cfg.nameInput);
     const descInput = $(cfg.descInput);
-    const hadDescription = descInput.value.trim().length > 0;
     const result = actions.add(nameInput.value, descInput.value);
     if (!result.ok) {
       toast(result.error, 'warn');
@@ -176,13 +175,6 @@ function wireItemStep(kind, actions) {
     nameInput.focus();
     actions.render();
     renderStepper();
-    if (kind === 'option' && !hadDescription) {
-      draftNewestOptionDescription(() => {
-        // Refresh the list only when no inline editor is open, so a draft
-        // arriving mid-edit never blows away the user's typing.
-        if (!document.querySelector('#optionsList .is-editing')) renderOptions();
-      });
-    }
   };
    
   $(cfg.addBtn).addEventListener('click', add);
