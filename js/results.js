@@ -19,7 +19,7 @@ import {
   verdictSentence, tradeOffLine, executiveSummary,
 } from './narrative.js';
 import { esc, $, $$ } from './ui.js';
-import { requestSanityCheck } from './magic.js';
+import { requestSanityCheck, requestMissingOptions } from './magic.js';
 
 let lastAnalysis = null;
 let whatIfWeights = null;
@@ -52,6 +52,7 @@ export function renderResults() {
 
   if (lastAnalysis.ranked.length >= 2) {
     requestSanityCheck(decision, sanityDigest(lastAnalysis), appendSanityCallout);
+    requestMissingOptions(decision, appendMissingOptionsCallout);
   }
 }
 
@@ -85,6 +86,17 @@ function appendSanityCallout(text) {
   div.className = 'callout callout--info';
   div.setAttribute('data-sanity', '');
   div.textContent = `Second look: ${text}`;
+  callouts.appendChild(div);
+}
+
+function appendMissingOptionsCallout(list) {
+  const callouts = $('#casualResults .callouts');
+  if (!callouts || callouts.querySelector('[data-missing]') || !list.length) return;
+  const line = list.map((m) => (m.why ? `${m.name} — ${m.why}` : m.name)).join(' · ');
+  const div = document.createElement('div');
+  div.className = 'callout callout--info';
+  div.setAttribute('data-missing', '');
+  div.textContent = `Not on your list, but often in the running: ${line}. Feel free to hop back and add any of them.`;
   callouts.appendChild(div);
 }
 
