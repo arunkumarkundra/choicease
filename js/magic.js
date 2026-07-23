@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Choicease — magic.js
+   Choicease — magic.js  (v2)
    The invisible conductor between the app and the on-device AI engine.
 
    Everything here is a courtesy, never a dependency: every path is wrapped so
@@ -19,21 +19,28 @@
       while every weight is still the flat default (3), and ratings only while
       not a single rating has been stored. AI only ever writes on a blank
       slate.
+
+   v2: every task hands the engine a `cancelIf` probe describing when its
+   result would no longer be wanted. The engine checks it right before the
+   task's turn in the generation queue, so a job whose window has closed is
+   skipped instead of burning minutes of CPU and starving the tasks behind it
+   — the failure mode that kept v1's seeds and sanity check from ever landing
+   on slower devices. Also new: missing-options suggestions for the results
+   page. Removed: option-description drafting.
    ========================================================================== */
 
 import {
   decision, getDecisionEpoch, canSeed, consumeSeed,
-  applySeededWeights, applySeededRatings, applyDraftedDescription,
+  applySeededWeights, applySeededRatings,
 } from './state.js';
 import {
   aiSupported, ensureAiLoading, retryAiLoad,
-  aiCriteria, aiWeights, aiRatings, aiOptionDescription, aiSanityCheck,
+  aiCriteria, aiWeights, aiRatings, aiSanityCheck, aiMissingOptions,
 } from './ai.js';
 
 /* Background tasks may wait a long time for the model to finish downloading —
    validity is re-checked at application time, so waiting is harmless. */
 const WAIT_LONG = 300000; // 5 min — first-visit model download can be slow
-const WAIT_MED = 120000;
 
 /* ------------------------------ Enablement ------------------------------- */
 
@@ -99,6 +106,7 @@ export function magicStepChange(step, stepRenderers = {}) {
     ratingsCache = { fp: null, map: null };
     chipsCache = { fp: null, set: null };
     sanityCache = { fp: null, text: null };
+    missingCache = { fp: null, list: null };
   }
 
   if (step >= 2) kickLoad(); // the user is invested; warm the engine
@@ -131,12 +139,16 @@ function beginWeightsSeed() {
   const mySeq = ++weightsSeq;
   kickLoad();
 
-  aiWeights(decision, { waitMs: WAIT_LONG })
+  // The result is wanted only while the user is still standing, untouched,
+  // on their first visit to Tab 4 of this very decision.
+  const stillWanted = () => mySeq === weightsSeq
+    && epoch === getDecisionEpoch()
+    && currentStep === 4
+    && canSeed('weights');
+
+  aiWeights(decision, { waitMs: WAIT_LONG, cancelIf: () => !stillWanted() })
     .then((map) => {
-      if (mySeq !== weightsSeq) return;               // superseded
-      if (epoch !== getDecisionEpoch()) return;       // decision was replaced
-      if (currentStep !== 4) return;                  // window closed
-      if (!canSeed('weights')) return;                // the user took over
+      if (!stillWanted()) return;
       if (applySeededWeights(map) > 0 && typeof renderers.rerenderWeights === 'function') {
         renderers.rerenderWeights();
       }
@@ -176,13 +188,20 @@ function prefetchRatings() {
   const epoch = getDecisionEpoch();
   kickLoad();
 
-  aiRatings(decision, { waitMs: WAIT_LONG })
+  // A prefetch stays wanted while the user is anywhere in this decision's
+  // flow (they haven't rated anything and the inputs haven't changed) — it
+  // is NOT tied to being on Tab 5, that's the whole point of prefetching.
+  const stillWanted = () => epoch === getDecisionEpoch()
+    && canSeed('ratings')
+    && ratingsAreBlank()
+    && ratingsFingerprint() === fp;
+
+  aiRatings(decision, { waitMs: WAIT_LONG, cancelIf: () => !stillWanted() })
     .then((map) => {
-      if (epoch !== getDecisionEpoch()) return;
-      if (ratingsFingerprint() !== fp) return; // options/criteria edited since
+      if (!stillWanted()) return;
       ratingsCache = { fp, map };
       // If the user is already sitting on Tab 5, untouched, apply live.
-      if (currentStep === 5 && canSeed('ratings') && ratingsAreBlank()) {
+      if (currentStep === 5) {
         if (applySeededRatings(map) > 0 && typeof renderers.rerenderRatings === 'function') {
           renderers.rerenderRatings();
         }
@@ -230,9 +249,15 @@ export function aiStarterSet(dec, onReady) {
   if (chipsInflight !== fp) {
     chipsInflight = fp;
     kickLoad();
-    aiCriteria(dec, { waitMs: WAIT_LONG })
+
+    // Chips are wanted only while this is still the title and the user
+    // hasn't already assembled three criteria of their own.
+    const stillWanted = () => norm(decision.title) === fp
+      && (decision.criteria?.length || 0) < 3;
+
+    aiCriteria(dec, { waitMs: WAIT_LONG, cancelIf: () => !stillWanted() })
       .then((set) => {
-        if (norm(decision.title) !== fp) return; // title changed meanwhile
+        if (!stillWanted()) return;
         chipsCache = { fp, set };
         if (chipsOnReady) chipsOnReady();
       })
@@ -240,36 +265,6 @@ export function aiStarterSet(dec, onReady) {
       .finally(() => { if (chipsInflight === fp) chipsInflight = null; });
   }
   return null;
-}
-
-/* --------------- Tab 2 — concise option description drafting ------------- */
-
-let descJobs = 0;
-
-/**
- * Drafts a short description for the most recently added option, only when
- * the user left the description blank. Applied only if, by the time the
- * draft is ready, the option still exists, still has the same name, and its
- * description is still empty — a filled or edited field is never overwritten.
- */
-export function draftNewestOptionDescription(onApplied) {
-  if (!enabled()) return;
-  const option = decision.options[decision.options.length - 1];
-  if (!option || option.description) return;
-  if (descJobs >= 3) return; // don't pile up work during rapid entry
-  descJobs += 1;
-  const snap = { id: option.id, name: option.name, epoch: getDecisionEpoch() };
-  kickLoad();
-
-  aiOptionDescription(decision, snap.name, { waitMs: WAIT_MED })
-    .then((text) => {
-      if (snap.epoch !== getDecisionEpoch()) return;
-      if (applyDraftedDescription(snap.id, snap.name, text) && typeof onApplied === 'function') {
-        onApplied();
-      }
-    })
-    .catch(() => { /* silent: the field simply stays blank, as today */ })
-    .finally(() => { descJobs -= 1; });
 }
 
 /* ------------------- Results tab — silent sanity check ------------------- */
@@ -294,7 +289,7 @@ export function requestSanityCheck(dec, digest, onText) {
   }
   kickLoad();
 
-  aiSanityCheck(dec, digest, { waitMs: WAIT_LONG })
+  aiSanityCheck(dec, digest, { waitMs: WAIT_LONG, cancelIf: () => mySeq !== sanitySeq })
     .then((text) => {
       const clean = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 420);
       if (!clean) return;
@@ -302,4 +297,39 @@ export function requestSanityCheck(dec, digest, onText) {
       if (mySeq === sanitySeq) onText(clean);
     })
     .catch(() => { /* silent: the results page is complete without it */ });
+}
+
+/* --------------- Results tab — options worth considering ----------------- */
+
+let missingSeq = 0;
+let missingCache = { fp: null, list: null };
+
+/**
+ * Asks the model whether any strong options are missing from the list, once
+ * the full decision (frame, options, criteria, weights) is known. `onList`
+ * receives 1–3 { name, why } suggestions; an empty answer renders nothing.
+ * The user can go back and add any of them — nothing is ever added for them.
+ */
+export function requestMissingOptions(dec, onList) {
+  if (!enabled() || typeof onList !== 'function') return;
+  const fp = JSON.stringify([
+    norm(dec.title),
+    (dec.options || []).map((o) => norm(o.name)),
+    (dec.criteria || []).map((c) => norm(c.name)),
+  ]);
+  const mySeq = ++missingSeq;
+
+  if (missingCache.fp === fp && missingCache.list) {
+    if (missingCache.list.length) onList(missingCache.list);
+    return;
+  }
+  kickLoad();
+
+  aiMissingOptions(dec, { waitMs: WAIT_LONG, cancelIf: () => mySeq !== missingSeq })
+    .then((list) => {
+      const clean = Array.isArray(list) ? list : [];
+      missingCache = { fp, list: clean };
+      if (mySeq === missingSeq && clean.length) onList(clean);
+    })
+    .catch(() => { /* silent: no suggestion is a perfectly fine outcome */ });
 }
