@@ -1,44 +1,28 @@
 /* ==========================================================================
-   Choicease — ai.js  (v2)
+   Choicease — ai.js  (v2.1 · on-device, instrumented)
    The single seam between the app and on-device AI.
 
-   Engine: Transformers.js (Hugging Face) running Qwen2.5-0.5B-Instruct in
-   ONNX. Unlike WebGPU-only runtimes, Transformers.js uses WebGPU when it is
-   actually usable and falls back to a WASM (CPU) backend everywhere else — so
-   this works on Safari, Chrome, Firefox, and mobile, not just Chrome desktop.
-   The model downloads once (~0.4 GB at q4) from the Hugging Face CDN and is
-   cached by the browser; nothing the user types ever leaves the device.
-
-   Nothing else in the app imports the AI library directly; everything goes
-   through the functions here. Every task function either returns clean,
-   validated data or throws AI_UNAVAILABLE, so callers fall back to the
-   existing non-AI path with a single catch.
-
-   v2 changes (field-tested against v1):
-   - Index-based schemas for weights and ratings: the model answers with
-     criterion/option NUMBERS, not names. Small models frequently paraphrase
-     names ("Team & culture" → "Team and culture"), which made v1's exact-name
-     matching fail all-or-nothing; numbers match exactly and the replies are
-     5–10× shorter, so seeds land while the user is still on the tab.
-   - Stale-job cancellation: every task accepts a `cancelIf` probe that is
-     checked before its turn in the generation queue. A job whose window has
-     already closed (user left the tab, decision changed) is skipped instead
-     of burning minutes of CPU and starving everything queued behind it.
-   - Criteria suggestions must carry a concise description (like the regex
-     starter sets); items without one are dropped.
-   - New task: missing-options suggestions for the results page.
-   - Removed: option-description drafting (retired from the product).
+   Identical to v2 except for two things:
+   1. DIAGNOSTICS. Every engine and task event now logs one concise line to
+      the console with the [Choicease AI] prefix — device chosen, load time,
+      queue wait, generation time and size, and the exact reason whenever a
+      task is skipped, cancelled, or unusable. Users never see any of this;
+      it exists so a single test run tells you whether the bottleneck is the
+      model load, WASM decode speed, or output quality.
+      Silence it with:  localStorage.setItem('choicease.ai.debug', '0')
+   2. Chip validation loosened: a suggested criterion without a description is
+      kept (the prompt still demands descriptions; most items will have them),
+      so chips no longer vanish entirely when the small model skimps.
    ========================================================================== */
 
 /* Transformers.js is loaded from jsDelivr as an ES module, on demand. If the
    import fails (offline, blocked) we degrade silently to non-AI. */
 const TRANSFORMERS_SRC = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3';
 
-/* Qwen2.5-0.5B-Instruct (ONNX, q4): the configuration proven to work on
-   Safari, mobile, and desktop. ~0.4 GB, fast enough on the WASM (CPU) backend
-   to run everywhere. For noticeably better judgement on capable devices,
-   'onnx-community/Qwen2.5-1.5B-Instruct' is a drop-in swap (~1 GB, heavier on
-   mobile/WASM). */
+/* Qwen2.5-0.5B-Instruct (ONNX, q4): ~0.4 GB, the smallest model that can run
+   everywhere. 'onnx-community/Qwen2.5-1.5B-Instruct' is a drop-in swap with
+   better judgement — but it is ~3× slower per token, so only consider it if
+   the diagnostics show the engine running on webgpu. */
 const MODEL_ID = 'onnx-community/Qwen2.5-0.5B-Instruct';
 const MODEL_DTYPE = 'q4';
 
@@ -46,6 +30,17 @@ const MODEL_DTYPE = 'q4';
    match on this (or simply catch) to fall back to the existing regex/default
    behaviour. */
 export const AI_UNAVAILABLE = 'AI_UNAVAILABLE';
+
+/* ------------------------------ Diagnostics ------------------------------ */
+
+function debugOn() {
+  try { return localStorage.getItem('choicease.ai.debug') !== '0'; } catch { return true; }
+}
+function dlog(...args) {
+  if (!debugOn()) return;
+  try { console.info('[Choicease AI]', ...args); } catch { /* ignore */ }
+}
+const secs = (ms) => `${(ms / 1000).toFixed(1)}s`;
 
 /* Safety net: the AI library can spawn internal promises we don't directly
    await; if one rejects it can surface as an "Unhandled Promise Rejection" in
@@ -125,6 +120,7 @@ export function ensureAiLoading() {
 
   if (!aiSupported()) {
     state.status = 'failed';
+    dlog('engine: WebAssembly missing — AI disabled');
     emitProgress();
     return Promise.resolve(false);
   }
@@ -132,6 +128,8 @@ export function ensureAiLoading() {
   state.status = 'loading';
   state.progress = 0;
   emitProgress();
+  const t0 = Date.now();
+  dlog('engine: loading model…', MODEL_ID);
 
   state.loadPromise = (async () => {
     try {
@@ -160,9 +158,11 @@ export function ensureAiLoading() {
       };
 
       let generator = null;
+      let usedDevice = null;
       let lastErr = null;
       for (const device of tryDevices) {
         try {
+          dlog(`engine: trying ${device}…`);
           // Keep heavy WASM inference off the main thread (ORT proxy worker)
           // so typing and scrolling never jam while the model thinks. The
           // proxy does not apply to — and can conflict with — the WebGPU
@@ -173,8 +173,10 @@ export function ensureAiLoading() {
             device,
             progress_callback,
           });
+          usedDevice = device;
           break;
         } catch (err) {
+          dlog(`engine: ${device} failed —`, String(err?.message || err).slice(0, 160));
           lastErr = err;
           generator = null;
         }
@@ -184,6 +186,10 @@ export function ensureAiLoading() {
       state.generator = generator;
       state.status = 'ready';
       state.progress = 1;
+      dlog(`engine: ready on ${usedDevice} in ${secs(Date.now() - t0)}`);
+      if (usedDevice === 'wasm') {
+        dlog('engine: note — wasm (CPU) decode is slow; watch the per-task timings below');
+      }
       emitProgress();
       return true;
     } catch (err) {
@@ -210,6 +216,7 @@ export function retryAiLoad() {
   retriesLeft -= 1;
   state.status = 'idle';
   state.loadPromise = null;
+  dlog('engine: retrying load');
   return ensureAiLoading();
 }
 
@@ -235,36 +242,57 @@ function serialize(job) {
  * default we do NOT wait (callers that can't block pass 0).
  * `cancelIf` is a cheap probe checked before the job runs (including right
  * before its turn in the queue): return true to skip the generation entirely.
+ * `label` names the task in diagnostic logs.
  */
-async function complete(system, user, { waitMs = 0, maxNewTokens = 320, cancelIf = null } = {}) {
+async function complete(system, user, { waitMs = 0, maxNewTokens = 320, cancelIf = null, label = 'task' } = {}) {
   const cancelled = () => {
     try { return !!(cancelIf && cancelIf()); } catch { return false; }
   };
-  if (cancelled()) throw AI_UNAVAILABLE;
+  if (cancelled()) {
+    dlog(`${label}: cancelled before start (window already closed)`);
+    throw AI_UNAVAILABLE;
+  }
 
   if (state.status !== 'ready') {
     if (waitMs > 0 && state.status === 'loading' && state.loadPromise) {
+      dlog(`${label}: waiting for engine (status=loading)…`);
       const timeout = new Promise((res) => setTimeout(() => res(false), waitMs));
       const ok = await Promise.race([state.loadPromise, timeout]);
-      if (!ok || state.status !== 'ready') throw AI_UNAVAILABLE;
+      if (!ok || state.status !== 'ready') {
+        dlog(`${label}: gave up — engine ${state.status}`);
+        throw AI_UNAVAILABLE;
+      }
     } else {
+      dlog(`${label}: skipped — engine ${state.status}`);
       throw AI_UNAVAILABLE;
     }
   }
-  if (cancelled()) throw AI_UNAVAILABLE;
+  if (cancelled()) {
+    dlog(`${label}: cancelled while engine was loading`);
+    throw AI_UNAVAILABLE;
+  }
 
+  const tQueued = Date.now();
   try {
     const out = await serialize(() => {
       // The queue may have held this job for a while — a last look before
       // spending real compute on it.
-      if (cancelled()) throw AI_UNAVAILABLE;
+      if (cancelled()) {
+        dlog(`${label}: cancelled in queue after ${secs(Date.now() - tQueued)} (window closed while waiting)`);
+        throw AI_UNAVAILABLE;
+      }
+      const tStart = Date.now();
+      dlog(`${label}: generating (queue wait ${secs(tStart - tQueued)}, budget ${maxNewTokens} tokens)…`);
       return state.generator(
         [
           { role: 'system', content: system },
           { role: 'user', content: user },
         ],
         { max_new_tokens: maxNewTokens, do_sample: false, return_full_text: false },
-      );
+      ).then((res) => {
+        dlog(`${label}: generated in ${secs(Date.now() - tStart)}`);
+        return res;
+      });
     });
     // Transformers.js returns [{ generated_text: [...messages] | string }].
     let text = out;
@@ -274,10 +302,14 @@ async function complete(system, user, { waitMs = 0, maxNewTokens = 320, cancelIf
       text = last && last.content;
     }
     text = String(text || '');
-    if (!text.trim()) throw AI_UNAVAILABLE;
+    if (!text.trim()) {
+      dlog(`${label}: empty output`);
+      throw AI_UNAVAILABLE;
+    }
     return text;
   } catch (err) {
     if (err === AI_UNAVAILABLE) throw err;
+    dlog(`${label}: generation error —`, String(err?.message || err).slice(0, 160));
     throw AI_UNAVAILABLE;
   }
 }
@@ -286,7 +318,7 @@ async function complete(system, user, { waitMs = 0, maxNewTokens = 320, cancelIf
  * Parse a model reply into JSON, tolerating stray prose or code fences.
  * Returns the parsed value or throws AI_UNAVAILABLE.
  */
-function parseJson(text) {
+function parseJson(text, label = 'task') {
   if (typeof text !== 'string') throw AI_UNAVAILABLE;
   let s = text.trim();
   // Strip Markdown code fences if the model added them despite instructions.
@@ -299,16 +331,23 @@ function parseJson(text) {
     if (objStart === -1) start = arrStart;
     else if (arrStart === -1) start = objStart;
     else start = Math.min(objStart, arrStart);
-    if (start === -1) throw AI_UNAVAILABLE;
+    if (start === -1) {
+      dlog(`${label}: reply had no JSON — raw:`, text.slice(0, 140));
+      throw AI_UNAVAILABLE;
+    }
     const open = s[start];
     const close = open === '{' ? '}' : ']';
     const end = s.lastIndexOf(close);
-    if (end <= start) throw AI_UNAVAILABLE;
+    if (end <= start) {
+      dlog(`${label}: reply JSON never closed (likely truncated) — raw tail:`, text.slice(-140));
+      throw AI_UNAVAILABLE;
+    }
     s = s.slice(start, end + 1);
   }
   try {
     return JSON.parse(s);
   } catch {
+    dlog(`${label}: reply not valid JSON — raw:`, text.slice(0, 140));
     throw AI_UNAVAILABLE;
   }
 }
@@ -341,6 +380,14 @@ const clampInt = (n, lo, hi, fallback) => {
   if (!Number.isFinite(v)) return fallback;
   return Math.min(hi, Math.max(lo, v));
 };
+/* Indices are identities, not quantities: an out-of-range index means the
+   model referred to something that does not exist, so it must be REJECTED —
+   clamping it would silently assign the value to the wrong row. */
+const intInRange = (n, lo, hi) => {
+  const v = Number(n);
+  if (!Number.isInteger(v) || v < lo || v > hi) return null;
+  return v;
+};
 const clampNum = (n, lo, hi) => {
   const v = Number(n);
   if (!Number.isFinite(v)) return null;
@@ -351,8 +398,8 @@ const clampNum = (n, lo, hi) => {
    Task: criteria suggestions (Tab 3 AI fallback)
    Returns { label, criteria: [{ name, description }] } (3..7 items), shaped
    exactly like a STARTER_CRITERIA entry so the existing chip renderer can use
-   it unchanged. Every item must carry a concise description — like the regex
-   starter sets — or it is dropped. Throws AI_UNAVAILABLE otherwise.
+   it unchanged. Descriptions are demanded by the prompt but an item without
+   one is kept rather than dropped. Throws AI_UNAVAILABLE otherwise.
    -------------------------------------------------------------------------- */
 export async function aiCriteria(decision, { waitMs = 0, cancelIf = null } = {}) {
   const system =
@@ -366,8 +413,8 @@ export async function aiCriteria(decision, { waitMs = 0, cancelIf = null } = {})
     `${decision.options?.length ? `Options being compared:\n${optionsText(decision)}\n` : ''}` +
     'Suggest criteria to judge the options on.';
 
-  const raw = await complete(system, user, { waitMs, cancelIf, maxNewTokens: 360 });
-  const data = parseJson(raw);
+  const raw = await complete(system, user, { waitMs, cancelIf, maxNewTokens: 360, label: 'criteria' });
+  const data = parseJson(raw, 'criteria');
   const list = Array.isArray(data) ? data : data.criteria;
   if (!Array.isArray(list)) throw AI_UNAVAILABLE;
 
@@ -375,18 +422,22 @@ export async function aiCriteria(decision, { waitMs = 0, cancelIf = null } = {})
   const seen = new Set();
   for (const item of list) {
     const name = typeof item?.name === 'string' ? item.name.trim() : '';
+    if (!name) continue;
     const description = typeof item?.description === 'string' ? item.description.trim() : '';
-    if (!name || !description) continue; // description is required, like the regex sets
     const key = name.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
     out.push({ name: name.slice(0, 100), description: description.slice(0, 250) });
     if (out.length >= 7) break;
   }
-  if (out.length < 3) throw AI_UNAVAILABLE;
+  if (out.length < 3) {
+    dlog(`criteria: only ${out.length} usable item(s) — falling back`);
+    throw AI_UNAVAILABLE;
+  }
 
   const rawLabel = !Array.isArray(data) && typeof data?.label === 'string' ? data.label.trim() : '';
   const label = rawLabel ? rawLabel.replace(/["'`]/g, '').slice(0, 28) : 'tricky';
+  dlog(`criteria: ok — ${out.length} chips ("${label}")`);
   return { label, criteria: out };
 }
 
@@ -410,15 +461,15 @@ export async function aiWeights(decision, { waitMs = 0, cancelIf = null } = {}) 
     `${frameText(decision)}\nCriteria:\n${numberedCriteria(decision)}\n` +
     `Give v for each i from 1 to ${n}.`;
 
-  const raw = await complete(system, user, { waitMs, cancelIf, maxNewTokens: Math.min(220, 24 + n * 14) });
-  const data = parseJson(raw);
+  const raw = await complete(system, user, { waitMs, cancelIf, maxNewTokens: Math.min(220, 24 + n * 14), label: 'weights' });
+  const data = parseJson(raw, 'weights');
   const list = Array.isArray(data) ? data : data.weights;
   if (!Array.isArray(list)) throw AI_UNAVAILABLE;
 
   const result = {}; // { criterionId: 1..5 }
   let matched = 0;
   for (const item of list) {
-    const idx = clampInt(item?.i, 1, n, null);
+    const idx = intInRange(item?.i, 1, n);
     const v = clampInt(item?.v, 1, 5, null);
     if (idx == null || v == null) continue;
     const criterion = decision.criteria[idx - 1];
@@ -426,7 +477,11 @@ export async function aiWeights(decision, { waitMs = 0, cancelIf = null } = {}) 
     result[criterion.id] = v;
     matched += 1;
   }
-  if (matched < Math.max(2, Math.ceil(n / 2))) throw AI_UNAVAILABLE;
+  if (matched < Math.max(2, Math.ceil(n / 2))) {
+    dlog(`weights: only ${matched}/${n} criteria matched — falling back`);
+    throw AI_UNAVAILABLE;
+  }
+  dlog(`weights: ok — ${matched}/${n} seeded`);
   return result;
 }
 
@@ -454,15 +509,15 @@ export async function aiRatings(decision, { waitMs = 0, cancelIf = null } = {}) 
     'Rate the cells you reasonably can.';
 
   const budget = Math.min(640, 32 + O * C * 10);
-  const raw = await complete(system, user, { waitMs, cancelIf, maxNewTokens: budget });
-  const data = parseJson(raw);
+  const raw = await complete(system, user, { waitMs, cancelIf, maxNewTokens: budget, label: 'ratings' });
+  const data = parseJson(raw, 'ratings');
   const list = Array.isArray(data) ? data : data.ratings;
   if (!Array.isArray(list)) throw AI_UNAVAILABLE;
 
   const result = {}; // `${optionId}-${criterionId}` -> 0..5
   for (const item of list) {
-    const oIdx = clampInt(item?.o, 1, O, null);
-    const cIdx = clampInt(item?.c, 1, C, null);
+    const oIdx = intInRange(item?.o, 1, O);
+    const cIdx = intInRange(item?.c, 1, C);
     const score = clampNum(item?.v, 0, 5);
     if (oIdx == null || cIdx == null || score == null) continue;
     const option = decision.options[oIdx - 1];
@@ -470,7 +525,12 @@ export async function aiRatings(decision, { waitMs = 0, cancelIf = null } = {}) 
     if (!option || !criterion) continue;
     result[`${option.id}-${criterion.id}`] = Math.round(score * 10) / 10;
   }
-  if (Object.keys(result).length === 0) throw AI_UNAVAILABLE;
+  const cells = Object.keys(result).length;
+  if (cells === 0) {
+    dlog('ratings: no usable cells — falling back');
+    throw AI_UNAVAILABLE;
+  }
+  dlog(`ratings: ok — ${cells}/${O * C} cells seeded`);
   return result;
 }
 
@@ -494,8 +554,8 @@ export async function aiMissingOptions(decision, { waitMs = 0, cancelIf = null }
     `${decision.criteria?.length ? `Judged on:\n${numberedCriteria(decision)}\n` : ''}` +
     'Which strong options are missing, if any?';
 
-  const raw = await complete(system, user, { waitMs, cancelIf, maxNewTokens: 160 });
-  const data = parseJson(raw);
+  const raw = await complete(system, user, { waitMs, cancelIf, maxNewTokens: 160, label: 'missing' });
+  const data = parseJson(raw, 'missing');
   const list = Array.isArray(data) ? data : data.missing;
   if (!Array.isArray(list)) throw AI_UNAVAILABLE;
 
@@ -514,6 +574,7 @@ export async function aiMissingOptions(decision, { waitMs = 0, cancelIf = null }
     out.push({ name: name.slice(0, 100), why: why.slice(0, 120) });
     if (out.length >= 3) break;
   }
+  dlog(`missing: ok — ${out.length} suggestion(s)`);
   return out; // possibly [] — a valid "nothing to add"
 }
 
@@ -532,9 +593,10 @@ export async function aiSanityCheck(decision, analysis, { waitMs = 0, cancelIf =
     `${frameText(decision)}\n\nComputed analysis (JSON):\n${JSON.stringify(analysis)}\n` +
     'Give a brief, honest sanity check.';
 
-  const raw = await complete(system, user, { waitMs, cancelIf, maxNewTokens: 200 });
-  const data = parseJson(raw);
+  const raw = await complete(system, user, { waitMs, cancelIf, maxNewTokens: 200, label: 'sanity' });
+  const data = parseJson(raw, 'sanity');
   const critique = typeof data?.critique === 'string' ? data.critique.trim() : '';
   if (!critique) throw AI_UNAVAILABLE;
+  dlog('sanity: ok');
   return critique;
 }
